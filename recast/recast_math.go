@@ -199,26 +199,6 @@ func rcGetVert(verts []float64, index int) []float64 {
 	return verts[index*3 : index*3+3]
 }
 
-// / Performs a vector addition. (@p v1 + @p v2)
-// /  @param[out]	dest	The result vector. [(x, y, z)]
-// /  @param[in]		v1		The base vector. [(x, y, z)]
-// /  @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
-func dtVadd(v1, v2 []float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = v1[0] + v2[0]
-	res[1] = v1[1] + v2[1]
-	res[2] = v1[2] + v2[2]
-	return res
-}
-
-// / Performs a vector subtraction. (@p v1 - @p v2)
-// /  @param[out]	dest	The result vector. [(x, y, z)]
-// /  @param[in]		v1		The base vector. [(x, y, z)]
-// /  @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
-func dtVsub(v1, v2 []float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = v1[0] - v2[0]
-	res[1] = v1[1] - v2[1]
-	res[2] = v1[2] - v2[2]
-	return res
+func rcGetTris(tris []int, index int) []int {
+	return tris[index*4 : index*4+4]
 }
