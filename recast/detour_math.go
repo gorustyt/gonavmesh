@@ -262,3 +262,5 @@ func dtVmad(dest, v1, v2 []float64, s float64) {
 func dtVdot2D(u, v []float64) float64 {
 	return u[0]*v[0] + u[2]*v[2]
 }
+
+func dtAlign4(x int) int { return (x + 3) & ^3 }

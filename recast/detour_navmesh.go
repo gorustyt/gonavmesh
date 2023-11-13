@@ -2,7 +2,14 @@ package recast
 
 import "math"
 
-func (mesh *dtNavMesh) init1(params *dtNavMeshParams) dtStatus {
+/// @{
+/// @name Initialization and Tile Management
+
+// / Initializes the navigation mesh for tiled use.
+// /  @param[in]	params		Initialization parameters.
+// / @return The status flags for the operation.
+func NewDtNavMeshWithParams(params *dtNavMeshParams) (m DtNavMesh, status dtStatus) {
+	mesh := &dtNavMesh{}
 	mesh.m_orig = params.orig
 	mesh.m_tileWidth = params.tileWidth
 	mesh.m_tileHeight = params.tileHeight
@@ -30,14 +37,20 @@ func (mesh *dtNavMesh) init1(params *dtNavMeshParams) dtStatus {
 		mesh.m_saltBits = dtMin(31, 32-mesh.m_tileBits-mesh.m_polyBits)
 
 		if mesh.m_saltBits < 10 {
-			return DT_FAILURE | DT_INVALID_PARAM
+			return mesh, DT_FAILURE | DT_INVALID_PARAM
 		}
 
 	}
-	return DT_SUCCESS
+	return mesh, DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) init3(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int) (result dtTileRef, status dtStatus) {
+// / Initializes the navigation mesh for single tile use.
+// /  @param[in]	data		Data of the new tile. (See: #dtCreateNavMeshData)
+// /  @param[in]	dataSize	The data size of the new tile.
+// /  @param[in]	flags		The tile flags. (See: #dtTileFlags)
+// / @return The status flags for the operation.
+// /  @see dtCreateNavMeshData
+func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int) (result dtTileRef, status dtStatus) {
 	// Make sure the data is in right format.
 	if header.magic != DT_NAVMESH_MAGIC {
 		return result, DT_FAILURE | DT_WRONG_MAGIC
@@ -54,7 +67,7 @@ func (mesh *dtNavMesh) init3(header *dtMeshHeader, titleData *dtMeshTile, dataSi
 	params.maxTiles = 1
 	params.maxPolys = header.polyCount
 
-	status = mesh.init1(&params)
+	mesh, status := NewDtNavMeshWithParams(&params)
 	if status.dtStatusFailed() {
 		return result, status
 	}

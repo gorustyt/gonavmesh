@@ -243,6 +243,166 @@ type dtNavMeshParams struct {
 	maxPolys   int        ///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
 }
 
+type DtNavMesh interface {
+	/// Adds a tile to the navigation mesh.
+	///  @param[in]		data		Data for the new tile mesh. (See: #dtCreateNavMeshData)
+	///  @param[in]		dataSize	Data size of the new tile mesh.
+	///  @param[in]		flags		Tile flags. (See: #dtTileFlags)
+	///  @param[in]		lastRef		The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
+	///  @param[out]	result		The tile reference. (If the tile was succesfully added.) [opt]
+	/// @return The status flags for the operation.
+	addTile(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int, lastRef dtTileRef) (result dtTileRef, status dtStatus)
+	/// Removes the specified tile from the navigation mesh.
+	///  @param[in]		ref			The reference of the tile to remove.
+	///  @param[out]	data		Data associated with deleted tile.
+	///  @param[out]	dataSize	Size of the data associated with deleted tile.
+	/// @return The status flags for the operation.
+	removeTile(ref dtTileRef) (data []int, dataSize int, status dtStatus)
+	/// @name Query Functions
+
+	/// Calculates the tile grid location for the specified world position.
+	///  @param[in]	pos  The world position for the query. [(x, y, z)]
+	///  @param[out]	tx		The tile's x-location. (x, y)
+	///  @param[out]	ty		The tile's y-location. (x, y)
+	calcTileLoc(pos []float64) (tx, ty int)
+	/// Gets the tile at the specified grid location.
+	///  @param[in]	x		The tile's x-location. (x, y, layer)
+	///  @param[in]	y		The tile's y-location. (x, y, layer)
+	///  @param[in]	layer	The tile's layer. (x, y, layer)
+	/// @return The tile, or null if the tile does not exist.
+	getTileAt(x, y, layer int) *dtMeshTile
+	/// Gets all tiles at the specified grid location. (All layers.)
+	///  @param[in]		x			The tile's x-location. (x, y)
+	///  @param[in]		y			The tile's y-location. (x, y)
+	///  @param[out]	tiles		A pointer to an array of tiles that will hold the result.
+	///  @param[in]		maxTiles	The maximum tiles the tiles parameter can hold.
+	/// @return The number of tiles returned in the tiles array.
+	getTilesAt(x, y int, maxTiles int) ([]*dtMeshTile, int)
+	/// Gets the tile reference for the tile at specified grid location.
+	///  @param[in]	x		The tile's x-location. (x, y, layer)
+	///  @param[in]	y		The tile's y-location. (x, y, layer)
+	///  @param[in]	layer	The tile's layer. (x, y, layer)
+	/// @return The tile reference of the tile, or 0 if there is none.
+	getTileRefAt(x, y, layer int) dtTileRef
+	/// Gets the tile reference for the specified tile.
+	///  @param[in]	tile	The tile.
+	/// @return The tile reference of the tile.
+	getTileRef(tile *dtMeshTile) dtTileRef
+	/// Gets the tile for the specified tile reference.
+	///  @param[in]	ref		The tile reference of the tile to retrieve.
+	/// @return The tile for the specified reference, or null if the
+	///		reference is invalid.
+	getTileByRef(ref dtTileRef) *dtMeshTile
+	/// The maximum number of tiles supported by the navigation mesh.
+	/// @return The maximum number of tiles supported by the navigation mesh.
+	getMaxTiles() int
+	/// Gets the tile at the specified index.
+	///  @param[in]	i		The tile index. [Limit: 0 >= index < #getMaxTiles()]
+	/// @return The tile at the specified index.
+	getTile(i int) *dtMeshTile
+	/// Gets the tile and polygon for the specified polygon reference.
+	///  @param[in]		ref		The reference for the a polygon.
+	///  @param[out]	tile	The tile containing the polygon.
+	///  @param[out]	poly	The polygon.
+	/// @return The status flags for the operation.
+	getTileAndPolyByRef(ref dtPolyRef) (tile *dtMeshTile, poly *dtPoly, status dtStatus)
+	/// Returns the tile and polygon for the specified polygon reference.
+	///  @param[in]		ref		A known valid reference for a polygon.
+	///  @param[out]	tile	The tile containing the polygon.
+	///  @param[out]	poly	The polygon.
+	getTileAndPolyByRefUnsafe(ref dtPolyRef) (tile *dtMeshTile, poly *dtPoly)
+	/// Checks the validity of a polygon reference.
+	///  @param[in]	ref		The polygon reference to check.
+	/// @return True if polygon reference is valid for the navigation mesh.
+	isValidPolyRef(ref dtPolyRef) bool
+	/// Gets the polygon reference for the tile's base polygon.
+	///  @param[in]	tile		The tile.
+	/// @return The polygon reference for the base polygon in the specified tile.
+	getPolyRefBase(tile *dtMeshTile) dtPolyRef
+	/// Gets the endpoints for an off-mesh connection, ordered by "direction of travel".
+	///  @param[in]		prevRef		The reference of the polygon before the connection.
+	///  @param[in]		polyRef		The reference of the off-mesh connection polygon.
+	///  @param[out]	startPos	The start position of the off-mesh connection. [(x, y, z)]
+	///  @param[out]	endPos		The end position of the off-mesh connection. [(x, y, z)]
+	/// @return The status flags for the operation.
+	getOffMeshConnectionPolyEndPoints(prevRef dtPolyRef, polyRef dtPolyRef, startPos []float64, endPos []float64) dtStatus
+	/// Gets the specified off-mesh connection.
+	///  @param[in]	ref		The polygon reference of the off-mesh connection.
+	/// @return The specified off-mesh connection, or null if the polygon reference is not valid
+	getOffMeshConnectionByRef(ref dtPolyRef) *dtOffMeshConnection
+	/// @}
+
+	/// @{
+	/// @name State Management
+	/// These functions do not effect #dtTileRef or #dtPolyRef's.
+
+	/// Sets the user defined flags for the specified polygon.
+	///  @param[in]	ref		The polygon reference.
+	///  @param[in]	flags	The new flags for the polygon.
+	/// @return The status flags for the operation.
+	setPolyFlags(ref dtPolyRef, flags int) dtStatus
+
+	/// Gets the user defined flags for the specified polygon.
+	///  @param[in]		ref				The polygon reference.
+	///  @param[out]	resultFlags		The polygon flags.
+	/// @return The status flags for the operation.
+	getPolyFlags(ref dtPolyRef) (resultFlags int, status dtStatus)
+
+	/// Sets the user defined area for the specified polygon.
+	///  @param[in]	ref		The polygon reference.
+	///  @param[in]	area	The new area id for the polygon. [Limit: < #DT_MAX_AREAS]
+	/// @return The status flags for the operation.
+	setPolyArea(ref dtPolyRef, area int) dtStatus
+	/// Gets the user defined area for the specified polygon.
+	///  @param[in]		ref			The polygon reference.
+	///  @param[out]	resultArea	The area id for the polygon.
+	/// @return The status flags for the operation.
+	getPolyArea(ref dtPolyRef) (resultArea int, status dtStatus)
+
+	/// Gets the size of the buffer required by #storeTileState to store the specified tile's state.
+	///  @param[in]	tile	The tile.
+	/// @return The size of the buffer required to store the state.
+
+	/// Restores the state of the tile.
+	///  @param[in]	tile			The tile.
+	///  @param[in]	data			The new state. (Obtained from #storeTileState.)
+	///  @param[in]	maxDataSize		The size of the state within the data buffer.
+	/// @return The status flags for the operation.
+	restoreTileState(tile *dtMeshTile, tileState *dtTileState, polyStates []*dtPolyState, maxDataSize int) dtStatus
+	/// @name Encoding and Decoding
+	/// These functions are generally meant for internal use only.
+
+	/// Derives a standard polygon reference.
+	///  @note This function is generally meant for internal use only.
+	///  @param[in]	salt	The tile's salt value.
+	///  @param[in]	it		The index of the tile.
+	///  @param[in]	ip		The index of the polygon within the tile.
+	encodePolyId(salt, it, ip int) dtPolyRef
+	/// Decodes a standard polygon reference.
+	///  @note This function is generally meant for internal use only.
+	///  @param[in]	ref   The polygon reference to decode.
+	///  @param[out]	salt	The tile's salt value.
+	///  @param[out]	it		The index of the tile.
+	///  @param[out]	ip		The index of the polygon within the tile.
+	///  @see #encodePolyId
+	decodePolyId(ref dtPolyRef) (salt, it, ip int)
+	/// Extracts a tile's salt value from the specified polygon reference.
+	///  @note This function is generally meant for internal use only.
+	///  @param[in]	ref		The polygon reference.
+	///  @see #encodePolyId
+	decodePolyIdPoly(ref dtPolyRef) int
+	/// Extracts the tile's index from the specified polygon reference.
+	///  @note This function is generally meant for internal use only.
+	///  @param[in]	ref		The polygon reference.
+	///  @see #encodePolyId
+	decodePolyIdTile(ref dtPolyRef) int
+	/// Extracts a tile's salt value from the specified polygon reference.
+	///  @note This function is generally meant for internal use only.
+	///  @param[in]	ref		The polygon reference.
+	///  @see #encodePolyId
+	decodePolyIdSalt(ref dtPolyRef) int
+}
+
 type dtNavMesh struct {
 	m_params                  *dtNavMeshParams ///< Current initialization params. TODO: do not store this info twice.
 	m_orig                    [3]float64       ///< Origin of the tile (0,0)

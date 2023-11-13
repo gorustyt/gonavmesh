@@ -195,8 +195,15 @@ func rcVnormalize(v []float64) []float64 {
 	return res
 }
 
-func rcGetVert(verts []float64, index int) []float64 {
+func rcGetVert[T IT](verts []T, index int) []T {
 	return verts[index*3 : index*3+3]
+}
+
+func rcGetVert2[T IT](verts []T, index int) []T {
+	return verts[index*2 : index*2+2]
+}
+func rcGetVert4[T IT](verts []T, index int) []T {
+	return verts[index*4 : index*4+4]
 }
 
 func rcGetTris(tris []int, index int) []int {
