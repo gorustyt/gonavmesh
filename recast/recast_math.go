@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"cmp"
+	"math"
+)
 
 type IT interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
@@ -208,4 +211,19 @@ func rcGetVert4[T IT](verts []T, index int) []T {
 
 func rcGetTris(tris []int, index int) []int {
 	return tris[index*4 : index*4+4]
+}
+
+// / Clamps the value to the specified range.
+// / @param[in]		value			The value to clamp.
+// / @param[in]		minInclusive	The minimum permitted return value.
+// / @param[in]		maxInclusive	The maximum permitted return value.
+// / @return The value, clamped to the specified range.
+func rcClamp[T cmp.Ordered](value, minInclusive, maxInclusive T) T {
+	if value < minInclusive {
+		return minInclusive
+	}
+	if value > maxInclusive {
+		return maxInclusive
+	}
+	return value
 }
