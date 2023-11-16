@@ -15,6 +15,7 @@ type rcPolyMesh struct {
 
 type rcContourSet struct {
 	conts      []*rcContour ///< An array of the contours in the set. [Size: #nconts]
+	nconts     int          ///< The number of contours in the set.
 	bmin       []float64    ///< The minimum bounds in world space. [(x, y, z)]
 	bmax       []float64    ///< The maximum bounds in world space. [(x, y, z)]
 	cs         float64      ///< The size of each cell. (On the xz-plane.)
@@ -27,8 +28,10 @@ type rcContourSet struct {
 
 // 轮廓
 type rcContour struct {
-	verts  []int  ///< The mesh vertices.
-	rverts []int  ///< Raw contour vertex and connection data. [Size: 4 * #nrverts]
-	reg    int    ///< The region id of the contour.
-	areaId string ///< The area id of the contour.
+	verts   []int ///< The mesh vertices.
+	nverts  int   ///< The number of vertices in the simplified contour.
+	rverts  []int ///< Raw contour vertex and connection data. [Size: 4 * #nrverts]
+	nrverts int   ///< The number of vertices in the raw contour.
+	reg     int   ///< The region id of the contour.
+	area    int   ///< The area id of the contour.
 }

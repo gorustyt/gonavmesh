@@ -682,7 +682,7 @@ func isSolidEdge(chf *rcCompactHeightfield, srcReg []int, x, y, i, dir int) bool
 	return true
 }
 
-func walkContour(x, y, i, dir int, chf *rcCompactHeightfield, srcReg []int,
+func regionWalkContour(x, y, i, dir int, chf *rcCompactHeightfield, srcReg []int,
 	cont Stack[int]) {
 	startDir := dir
 	starti := i
@@ -1044,7 +1044,7 @@ func mergeAndFilterRegions(minRegionArea, mergeRegionSize int,
 				if ndir != -1 {
 					// The cell is at border.
 					// Walk around the contour to find all the neighbours.
-					walkContour(x, y, i, ndir, chf, srcReg, reg.connections)
+					regionWalkContour(x, y, i, ndir, chf, srcReg, reg.connections)
 				}
 			}
 		}

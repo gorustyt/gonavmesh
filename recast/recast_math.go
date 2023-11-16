@@ -201,7 +201,6 @@ func rcVnormalize(v []float64) []float64 {
 func rcGetVert[T IT](verts []T, index int) []T {
 	return verts[index*3 : index*3+3]
 }
-
 func rcGetVert2[T IT](verts []T, index int) []T {
 	return verts[index*2 : index*2+2]
 }
@@ -226,4 +225,13 @@ func rcClamp[T cmp.Ordered](value, minInclusive, maxInclusive T) T {
 		return maxInclusive
 	}
 	return value
+}
+
+// / Gets the direction for the specified offset. One of x and y should be 0.
+// / @param[in]		offsetX		The x offset. [Limits: -1 <= value <= 1]
+// / @param[in]		offsetZ		The z offset. [Limits: -1 <= value <= 1]
+// / @return The direction that represents the offset.
+func rcGetDirForOffset(offsetX, offsetZ int) int {
+	dirs := []int{3, 0, -1, 2, 1}
+	return dirs[((offsetZ+1)<<1)+offsetX]
 }

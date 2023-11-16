@@ -10,6 +10,8 @@ type Stack[T any] interface {
 	SetByIndex(index int, value T)
 	Resize(size int, value ...T)
 	Reserve(count int)
+	Slice(begin, end int) []T
+	Data() []T
 }
 
 func NewStack[T any](construct func() T) Stack[T] {
@@ -28,6 +30,9 @@ type stack[T any] struct {
 	m_cap     int
 }
 
+func (s *stack[T]) Data() []T {
+	return s.data
+}
 func (s *stack[T]) Clear() {
 	s.data = []T{}
 }
@@ -51,6 +56,11 @@ func (s *stack[T]) Empty() bool {
 
 func (s *stack[T]) Index(index int) T {
 	return s.data[index]
+}
+
+// [begin.end)
+func (s *stack[T]) Slice(begin, end int) []T {
+	return s.data[begin:end]
 }
 func (s *stack[T]) SetByIndex(index int, value T) {
 	s.data[index] = value
