@@ -263,4 +263,31 @@ func dtVdot2D(u, v []float64) float64 {
 	return u[0]*v[0] + u[2]*v[2]
 }
 
-func dtAlign4(x int) int { return (x + 3) & ^3 }
+// / Derives the square of the distance between the specified points on the xz-plane.
+// /  @param[in]		v1	A point. [(x, y, z)]
+// /  @param[in]		v2	A point. [(x, y, z)]
+// / @return The square of the distance between the point on the xz-plane.
+func dtVdist2DSqr(v1, v2 []float64) float64 {
+	dx := v2[0] - v1[0]
+	dz := v2[2] - v1[2]
+	return dx*dx + dz*dz
+}
+
+// / Derives the distance between the specified points on the xz-plane.
+// /  @param[in]		v1	A point. [(x, y, z)]
+// /  @param[in]		v2	A point. [(x, y, z)]
+// / @return The distance between the point on the xz-plane.
+// /
+// / The vectors are projected onto the xz-plane, so the y-values are ignored.
+func dtVdist2D(v1, v2 []float64) float64 {
+	dx := v2[0] - v1[0]
+	dz := v2[2] - v1[2]
+	return math.Sqrt(dx*dx + dz*dz)
+}
+
+// / Derives the scalar length of the vector.
+// /  @param[in]		v The vector. [(x, y, z)]
+// / @return The scalar length of the vector.
+func dtVlen(v []float64) float64 {
+	return math.Sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+}

@@ -60,6 +60,9 @@ func (s *stack[T]) Index(index int) T {
 
 // [begin.end)
 func (s *stack[T]) Slice(begin, end int) []T {
+	if end > s.Len() {
+		end = s.Len()
+	}
 	return s.data[begin:end]
 }
 func (s *stack[T]) SetByIndex(index int, value T) {

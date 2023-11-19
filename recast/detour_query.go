@@ -333,6 +333,8 @@ type NavMeshQuery interface {
 	///  @param[in]		ref		The reference id of the polygon to check.
 	/// @returns True if the polygon is in closed list.
 	isInClosedList(ref dtPolyRef) bool
+
+	getAttachedNavMesh() *dtNavMesh
 }
 type dtNavMeshQuery struct {
 	m_nav          *dtNavMesh ///< Pointer to navmesh data.
@@ -346,7 +348,7 @@ type dtNavMeshQuery struct {
 // /  @param[in]		nav			Pointer to the dtNavMesh object to use for all queries.
 // /  @param[in]		maxNodes	Maximum number of search nodes. [Limits: 0 < value <= 65535]
 // / @returns The status flags for the query.
-func NewDtNavMeshQuery(nav *dtNavMesh) NavMeshQuery {
+func NewDtNavMeshQuery(nav *dtNavMesh, maxNodes int) NavMeshQuery {
 	query := &dtNavMeshQuery{m_nodePool: map[dtPolyRef]*dtNode{},
 		m_tinyNodePool: map[dtPolyRef]*dtNode{},
 		m_nav:          nav,
@@ -1609,8 +1611,6 @@ func (q *dtNavMeshQuery) appendPortals(startIdx int, endIdx int, endPos []float6
 // /
 func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos []float64,
 	filter *dtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []dtPolyRef, visitedCount int, status dtStatus) {
-	dtAssert(q.m_nav)
-	dtAssert(q.m_tinyNodePool)
 	//if (!m_nav->isValidPolyRef(startRef) ||
 	// !startPos || !dtVisfinite(startPos) ||
 	// !endPos || !dtVisfinite(endPos) ||
@@ -1619,7 +1619,8 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 	//{
 	// return DT_FAILURE | DT_INVALID_PARAM;
 	//}
-
+	visited = make([]dtPolyRef, maxVisitedSize)
+	resultPos = make([]float64, 3)
 	status = DT_SUCCESS
 	MAX_STACK := 48
 	var stack [48]*dtNode
@@ -1762,23 +1763,30 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 		// Reverse the path.
 		var prev *dtNode
 		node := bestNode
-		for node != nil {
-			next := node.pidx
-			node.pidx = prev
-			prev = node
-			node = next
+	Begin:
+		next := node.pidx
+		node.pidx = prev
+		prev = node
+		node = next
+		if node != nil {
+			goto Begin
 		}
+		goto End
+	End:
 		// Store result
 		node = prev
-		for node != nil {
-			visited[n] = node.id
-			n++
-			if n >= maxVisitedSize {
-				status |= DT_BUFFER_TOO_SMALL
-				break
-			}
-			node = node.pidx
+	Begin1:
+		visited[n] = node.id
+		n++
+		if n >= maxVisitedSize {
+			status |= DT_BUFFER_TOO_SMALL
+			goto End1
 		}
+		node = node.pidx
+		if node != nil {
+			goto Begin1
+		}
+	End1:
 	}
 
 	copy(resultPos, bestPos)
@@ -2161,9 +2169,11 @@ func (q *dtNavMeshQuery) getPathToNode(endNode *dtNode, path []dtPolyRef, maxPat
 	// Find the length of the entire path.
 	curNode := endNode
 	var length = 0
-	for curNode != nil {
-		length++
-		curNode = curNode.pidx
+Begin8:
+	length++
+	curNode = curNode.pidx
+	if curNode != nil {
+		goto Begin8
 	}
 
 	// If the path cannot be fully stored then advance to the last node we will be able to store.
@@ -2223,46 +2233,52 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPath(path []dtPolyRef, maxPath int) (
 		var prev *dtNode
 		node := q.m_query.lastBestNode
 		prevRay := 0
-		for node != nil {
-			next := node.pidx
-			node.pidx = prev
-			prev = node
-			nextRay := node.flags & DT_NODE_PARENT_DETACHED                // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
-			node.flags = (node.flags & ^DT_NODE_PARENT_DETACHED) | prevRay // and store it in the reversed path's node
-			prevRay = nextRay
-			node = next
+	Begin4:
+		next := node.pidx
+		node.pidx = prev
+		prev = node
+		nextRay := node.flags & DT_NODE_PARENT_DETACHED                // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
+		node.flags = (node.flags & ^DT_NODE_PARENT_DETACHED) | prevRay // and store it in the reversed path's node
+		prevRay = nextRay
+		node = next
+		if node != nil {
+			goto Begin4
 		}
-
+		goto End4
+	End4:
 		// Store path
 		node = prev
-		for node != nil {
-			next := node.pidx
-			status = 0
-			if node.flags&DT_NODE_PARENT_DETACHED > 0 {
-				var normal [3]float64
-				_, m, status := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
-				n += m
-				// raycast ends on poly boundary and the path might include the next poly boundary.
-				if path[n-1] == next.id {
-					n-- // remove to avoid duplicates}
+	Begin3:
+		next = node.pidx
+		status = 0
+		if node.flags&DT_NODE_PARENT_DETACHED > 0 {
+			var normal [3]float64
+			_, m, status := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
+			n += m
+			// raycast ends on poly boundary and the path might include the next poly boundary.
+			if path[n-1] == next.id {
+				n-- // remove to avoid duplicates}
 
-				} else {
-					path[n] = node.id
-					n++
-					if n >= maxPath {
-						status = DT_BUFFER_TOO_SMALL
-					}
-
+			} else {
+				path[n] = node.id
+				n++
+				if n >= maxPath {
+					status = DT_BUFFER_TOO_SMALL
 				}
 
-				if status&DT_STATUS_DETAIL_MASK > 0 {
-					q.m_query.status |= status & DT_STATUS_DETAIL_MASK
-					break
-				}
-				node = next
 			}
 
+			if status&DT_STATUS_DETAIL_MASK > 0 {
+				q.m_query.status |= status & DT_STATUS_DETAIL_MASK
+				goto End3
+			}
+			node = next
+
 		}
+		if node != nil {
+			goto Begin3
+		}
+	End3:
 	}
 	details := q.m_query.status & DT_STATUS_DETAIL_MASK
 
@@ -3153,46 +3169,51 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPathPartial(existing []dtPolyRef, exi
 
 		// Reverse the path.
 		prevRay := 0
+	Begin5:
+		next := node.pidx
+		node.pidx = prev
+		prev = node
+		nextRay := node.flags & DT_NODE_PARENT_DETACHED                // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
+		node.flags = (node.flags & ^DT_NODE_PARENT_DETACHED) | prevRay // and store it in the reversed path's node
+		prevRay = nextRay
+		node = next
 		for node != nil {
-			next := node.pidx
-			node.pidx = prev
-			prev = node
-			nextRay := node.flags & DT_NODE_PARENT_DETACHED                // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
-			node.flags = (node.flags & ^DT_NODE_PARENT_DETACHED) | prevRay // and store it in the reversed path's node
-			prevRay = nextRay
-			node = next
+			goto Begin5
 		}
-
+		goto End5
+	End5:
 		// Store path
 		node = prev
-		for node != nil {
-			next := node.pidx
-			status = 0
-			if node.flags&DT_NODE_PARENT_DETACHED > 0 {
-				var normal [3]float64
-				_, m, _ := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
-				n += m
-				// raycast ends on poly boundary and the path might include the next poly boundary.
-				if path[n-1] == next.id {
-					n--
-				} // remove to avoid duplicates
+	Begin6:
+		next = node.pidx
+		status = 0
+		if node.flags&DT_NODE_PARENT_DETACHED > 0 {
+			var normal [3]float64
+			_, m, _ := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
+			n += m
+			// raycast ends on poly boundary and the path might include the next poly boundary.
+			if path[n-1] == next.id {
+				n--
+			} // remove to avoid duplicates
 
-			} else {
-				path[n] = node.id
-				n++
-				if n >= maxPath {
-					status = DT_BUFFER_TOO_SMALL
-				}
-
+		} else {
+			path[n] = node.id
+			n++
+			if n >= maxPath {
+				status = DT_BUFFER_TOO_SMALL
 			}
 
-			if status&DT_STATUS_DETAIL_MASK > 0 {
-				q.m_query.status |= status & DT_STATUS_DETAIL_MASK
-				break
-			}
-			node = next
 		}
 
+		if status&DT_STATUS_DETAIL_MASK > 0 {
+			q.m_query.status |= status & DT_STATUS_DETAIL_MASK
+			goto End6
+		}
+		node = next
+		if node != nil {
+			goto Begin6
+		}
+	End6:
 	}
 
 	details := q.m_query.status & DT_STATUS_DETAIL_MASK

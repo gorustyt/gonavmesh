@@ -1,5 +1,11 @@
 package recast
 
+import (
+	"log"
+	"math"
+	"reflect"
+)
+
 const (
 	VERTEX_BUCKET_COUNT = (1 << 12)
 	RC_MESH_NULL_IDX    = 0xffff
@@ -638,4 +644,704 @@ func triangulate(n int, verts, indices []int, tris []int) int {
 	ntris++
 
 	return ntris
+}
+func removeVertex(mesh *rcPolyMesh, rem int, maxTris int) bool {
+	nvp := mesh.nvp
+
+	// Count number of polygons to remove.
+	numRemovedVerts := 0
+	for i := 0; i < mesh.npolys; i++ {
+		p := mesh.polys[i*nvp*2:]
+		nv := countPolyVerts(p, nvp)
+		for j := 0; j < nv; j++ {
+			if p[j] == rem {
+				numRemovedVerts++
+			}
+
+		}
+	}
+
+	nedges := 0
+	edges := make([]int, numRemovedVerts*nvp*4)
+
+	nhole := 0
+	hole := make([]int, numRemovedVerts*nvp)
+	nhreg := 0
+	hreg := make([]int, numRemovedVerts*nvp)
+	nharea := 0
+	harea := make([]int, numRemovedVerts*nvp)
+
+	for i := 0; i < mesh.npolys; i++ {
+		p := mesh.polys[i*nvp*2:]
+		nv := countPolyVerts(p, nvp)
+		hasRem := false
+		for j := 0; j < nv; j++ {
+			if p[j] == rem {
+				hasRem = true
+			}
+		}
+
+		if hasRem {
+			// Collect edges which does not touch the removed vertex.
+			j := 0
+			k := nv - 1
+			for j < nv {
+				if p[j] != rem && p[k] != rem {
+					e := rcGetVert4(edges, nedges)
+					e[0] = p[k]
+					e[1] = p[j]
+					e[2] = mesh.regs[i]
+					e[3] = mesh.areas[i]
+					nedges++
+				}
+				k = j
+				j++
+			}
+			// Remove the polygon.
+			p2 := mesh.polys[(mesh.npolys-1)*nvp*2:]
+			if !reflect.DeepEqual(p, p2) {
+				copy(p, p2[:nvp])
+			}
+			for k := nvp; i < nvp+nvp; i++ {
+				p[k] = 0xff
+			}
+			mesh.regs[i] = mesh.regs[mesh.npolys-1]
+			mesh.areas[i] = mesh.areas[mesh.npolys-1]
+			mesh.npolys--
+			i--
+		}
+	}
+
+	// Remove vertex.
+	for i := rem; i < mesh.nverts-1; i++ {
+		mesh.verts[i*3+0] = mesh.verts[(i+1)*3+0]
+		mesh.verts[i*3+1] = mesh.verts[(i+1)*3+1]
+		mesh.verts[i*3+2] = mesh.verts[(i+1)*3+2]
+	}
+	mesh.nverts--
+
+	// Adjust indices to match the removed vertex layout.
+	for i := 0; i < mesh.npolys; i++ {
+		p := mesh.polys[i*nvp*2:]
+		nv := countPolyVerts(p, nvp)
+		for j := 0; j < nv; j++ {
+			if p[j] > rem {
+				p[j]--
+			}
+		}
+
+	}
+	for i := 0; i < nedges; i++ {
+		if edges[i*4+0] > rem {
+			edges[i*4+0]--
+		}
+		if edges[i*4+1] > rem {
+			edges[i*4+1]--
+		}
+	}
+
+	if nedges == 0 {
+		return true
+	}
+
+	// Start with one vertex, keep appending connected
+	// segments to the start and end of the hole.
+	pushBack(edges[0], hole, &nhole)
+	pushBack(edges[2], hreg, &nhreg)
+	pushBack(edges[3], harea, &nharea)
+
+	for nedges > 0 {
+		match := false
+
+		for i := 0; i < nedges; i++ {
+			ea := edges[i*4+0]
+			eb := edges[i*4+1]
+			r := edges[i*4+2]
+			a := edges[i*4+3]
+			add := false
+			if hole[0] == eb {
+				// The segment matches the beginning of the hole boundary.
+				pushFront(ea, hole, &nhole)
+				pushFront(r, hreg, &nhreg)
+				pushFront(a, harea, &nharea)
+				add = true
+			} else if hole[nhole-1] == ea {
+				// The segment matches the end of the hole boundary.
+				pushBack(eb, hole, &nhole)
+				pushBack(r, hreg, &nhreg)
+				pushBack(a, harea, &nharea)
+				add = true
+			}
+			if add {
+				// The edge segment was added, remove it.
+				edges[i*4+0] = edges[(nedges-1)*4+0]
+				edges[i*4+1] = edges[(nedges-1)*4+1]
+				edges[i*4+2] = edges[(nedges-1)*4+2]
+				edges[i*4+3] = edges[(nedges-1)*4+3]
+				nedges--
+				match = true
+				i--
+			}
+		}
+
+		if !match {
+			break
+		}
+
+	}
+
+	tris := make([]int, nhole*3)
+	tverts := make([]int, nhole*4)
+	thole := make([]int, nhole)
+	// Generate temp vertex array for triangulation.
+	for i := 0; i < nhole; i++ {
+		pi := hole[i]
+		tverts[i*4+0] = mesh.verts[pi*3+0]
+		tverts[i*4+1] = mesh.verts[pi*3+1]
+		tverts[i*4+2] = mesh.verts[pi*3+2]
+		tverts[i*4+3] = 0
+		thole[i] = i
+	}
+
+	// Triangulate the hole.
+	ntris := triangulate(nhole, tverts, thole, tris)
+	if ntris < 0 {
+		ntris = -ntris
+		log.Printf("removeVertex: triangulate() returned bad results.")
+	}
+
+	// Merge the hole triangles back to polygons.
+	polys := make([]int, (ntris+1)*nvp)
+	for i := range polys {
+		polys[i] = 0xff
+	}
+	pregs := make([]int, ntris)
+	pareas := make([]int, ntris)
+	tmpPoly := polys[ntris*nvp:]
+	// Build initial polygons.
+	npolys := 0
+	for j := 0; j < ntris; j++ {
+		t := rcGetVert(tris, j)
+		if t[0] != t[1] && t[0] != t[2] && t[1] != t[2] {
+			polys[npolys*nvp+0] = hole[t[0]]
+			polys[npolys*nvp+1] = hole[t[1]]
+			polys[npolys*nvp+2] = hole[t[2]]
+
+			// If this polygon covers multiple region types then
+			// mark it as such
+			if hreg[t[0]] != hreg[t[1]] || hreg[t[1]] != hreg[t[2]] {
+				pregs[npolys] = RC_MULTIPLE_REGS
+			} else {
+				pregs[npolys] = hreg[t[0]]
+			}
+
+			pareas[npolys] = harea[t[0]]
+			npolys++
+		}
+	}
+	if npolys == 0 {
+		return true
+	}
+
+	// Merge polygons.
+	if nvp > 3 {
+		for {
+			// Find best polygons to merge.
+			var bestMergeVal = 0
+			var bestPa = 0
+			var bestPb = 0
+			var bestEa = 0
+			var bestEb = 0
+
+			for j := 0; j < npolys-1; j++ {
+				pj := polys[j*nvp:]
+				for k := j + 1; k < npolys; k++ {
+					pk := polys[k*nvp:]
+					var ea, eb int
+					v := getPolyMergeValue(pj, pk, mesh.verts, ea, eb, nvp)
+					if v > bestMergeVal {
+						bestMergeVal = v
+						bestPa = j
+						bestPb = k
+						bestEa = ea
+						bestEb = eb
+					}
+				}
+			}
+
+			if bestMergeVal > 0 {
+				// Found best, merge.
+				pa := polys[bestPa*nvp:]
+				pb := polys[bestPb*nvp:]
+				mergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp)
+				if pregs[bestPa] != pregs[bestPb] {
+					pregs[bestPa] = RC_MULTIPLE_REGS
+				}
+
+				last := polys[(npolys-1)*nvp:]
+				if !(reflect.DeepEqual(pb, last)) {
+					copy(pb, last[:nvp])
+				}
+
+				pregs[bestPb] = pregs[npolys-1]
+				pareas[bestPb] = pareas[npolys-1]
+				npolys--
+			} else {
+				// Could not merge any polygons, stop.
+				break
+			}
+		}
+	}
+
+	// Store polygons.
+	for i := 0; i < npolys; i++ {
+		if mesh.npolys >= maxTris {
+			break
+		}
+		p := mesh.polys[mesh.npolys*nvp*2:]
+		for i := 0; i < nvp*2; i++ {
+			p[i] = 0xff
+		}
+		for j := 0; j < nvp; j++ {
+			p[j] = polys[i*nvp+j]
+		}
+		mesh.regs[mesh.npolys] = pregs[i]
+		mesh.areas[mesh.npolys] = pareas[i]
+		mesh.npolys++
+		if mesh.npolys > maxTris {
+			log.Printf("removeVertex: Too many polygons %d (max:%d).", mesh.npolys, maxTris)
+			return false
+		}
+	}
+
+	return true
+}
+
+// / @par
+// /
+// / @note If the mesh data is to be used to construct a Detour navigation mesh, then the upper
+// / limit must be restricted to <= #DT_VERTS_PER_POLYGON.
+// /
+// / @see rcAllocPolyMesh, rcContourSet, rcPolyMesh, rcConfig
+func rcBuildPolyMesh(cset *rcContourSet, nvp int, mesh *rcPolyMesh) bool {
+	copy(mesh.bmin, cset.bmin)
+	copy(mesh.bmax, cset.bmax)
+	mesh.cs = cset.cs
+	mesh.ch = cset.ch
+	mesh.borderSize = cset.borderSize
+	mesh.maxEdgeError = cset.maxError
+
+	maxVertices := 0
+	maxTris := 0
+	maxVertsPerCont := 0
+	for i := 0; i < cset.nconts; i++ {
+		// Skip null contours.
+		if cset.conts[i].nverts < 3 {
+			continue
+		}
+		maxVertices += cset.conts[i].nverts
+		maxTris += cset.conts[i].nverts - 2
+		maxVertsPerCont = rcMax(maxVertsPerCont, cset.conts[i].nverts)
+	}
+
+	if maxVertices >= 0xfffe {
+		log.Printf("rcBuildPolyMesh: Too many vertices %d.", maxVertices)
+		return false
+	}
+
+	vflags := make([]int, maxVertices)
+	mesh.verts = make([]int, maxVertices*3)
+
+	mesh.polys = make([]int, maxTris*nvp*2)
+	for i := range mesh.polys {
+		mesh.polys[i] = 0xff
+	}
+	mesh.regs = make([]int, maxTris)
+	mesh.areas = make([]int, maxTris)
+
+	mesh.nverts = 0
+	mesh.npolys = 0
+	mesh.nvp = nvp
+	mesh.maxpolys = maxTris
+	nextVert := make([]int, maxVertices)
+	firstVert := make([]int, VERTEX_BUCKET_COUNT)
+	for i := 0; i < VERTEX_BUCKET_COUNT; i++ {
+		firstVert[i] = -1
+	}
+
+	indices := make([]int, maxVertsPerCont)
+	tris := make([]int, maxVertsPerCont*3)
+	polys := make([]int, (maxVertsPerCont+1)*nvp)
+	tmpPoly := polys[maxVertsPerCont*nvp:]
+
+	for i := 0; i < cset.nconts; i++ {
+		cont := cset.conts[i]
+
+		// Skip null contours.
+		if cont.nverts < 3 {
+			continue
+		}
+
+		// Triangulate contour
+		for j := 0; j < cont.nverts; j++ {
+			indices[j] = j
+		}
+
+		ntris := triangulate(cont.nverts, cont.verts, indices, tris)
+		if ntris <= 0 {
+			// Bad triangulation, should not happen.
+			/*			printf("\tconst float bmin[3] = {%ff,%ff,%ff};\n", cset.bmin[0], cset.bmin[1], cset.bmin[2]);
+						printf("\tconst float cs = %ff;\n", cset.cs);
+						printf("\tconst float ch = %ff;\n", cset.ch);
+						printf("\tconst int verts[] = {\n");
+						for (int k = 0; k < cont.nverts; ++k)
+						{
+							const int* v = &cont.verts[k*4];
+							printf("\t\t%d,%d,%d,%d,\n", v[0], v[1], v[2], v[3]);
+						}
+						printf("\t};\n\tconst int nverts = sizeof(verts)/(sizeof(int)*4);\n");*/
+			log.Printf("rcBuildPolyMesh: Bad triangulation Contour %d.", i)
+			ntris = -ntris
+		}
+
+		// Add and merge vertices.
+		for j := 0; j < cont.nverts; j++ {
+			v := rcGetVert4(cont.verts, j)
+			mesh.nverts, indices[j] = addVertex(v[0], v[1], v[2], mesh.verts, firstVert, nextVert)
+			if v[3]&RC_BORDER_VERTEX > 0 {
+				// This vertex should be removed.
+				vflags[indices[j]] = 1
+			}
+		}
+
+		// Build initial polygons.
+		npolys := 0
+		for i := range polys {
+			polys[i] = 0xff
+		}
+		for j := 0; j < ntris; j++ {
+			t := rcGetVert(tris, j)
+			if t[0] != t[1] && t[0] != t[2] && t[1] != t[2] {
+				polys[npolys*nvp+0] = indices[t[0]]
+				polys[npolys*nvp+1] = indices[t[1]]
+				polys[npolys*nvp+2] = indices[t[2]]
+				npolys++
+			}
+		}
+		if npolys == 0 {
+			continue
+		}
+
+		// Merge polygons.
+		if nvp > 3 {
+			for {
+				// Find best polygons to merge.
+				bestMergeVal := 0
+				bestPa := 0
+				bestPb := 0
+				bestEa := 0
+				bestEb := 0
+
+				for j := 0; j < npolys-1; j++ {
+					pj := polys[j*nvp:]
+					for k := j + 1; k < npolys; k++ {
+						pk := polys[k*nvp:]
+						var ea, eb int
+						v := getPolyMergeValue(pj, pk, mesh.verts, ea, eb, nvp)
+						if v > bestMergeVal {
+							bestMergeVal = v
+							bestPa = j
+							bestPb = k
+							bestEa = ea
+							bestEb = eb
+						}
+					}
+				}
+
+				if bestMergeVal > 0 {
+					// Found best, merge.
+					pa := polys[bestPa*nvp:]
+					pb := polys[bestPb*nvp:]
+					mergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp)
+					lastPoly := polys[(npolys-1)*nvp:]
+					if !reflect.DeepEqual(pb, lastPoly) {
+						copy(pb, lastPoly[:nvp])
+					}
+
+					npolys--
+				} else {
+					// Could not merge any polygons, stop.
+					break
+				}
+			}
+		}
+
+		// Store polygons.
+		for j := 0; j < npolys; j++ {
+			p := mesh.polys[mesh.npolys*nvp*2:]
+			q := polys[j*nvp:]
+			for k := 0; k < nvp; k++ {
+				p[k] = q[k]
+			}
+
+			mesh.regs[mesh.npolys] = cont.reg
+			mesh.areas[mesh.npolys] = cont.area
+			mesh.npolys++
+			if mesh.npolys > maxTris {
+				log.Printf("rcBuildPolyMesh: Too many polygons %d (max:%d).", mesh.npolys, maxTris)
+				return false
+			}
+		}
+	}
+
+	// Remove edge vertices.
+	for i := 0; i < mesh.nverts; i++ {
+		if vflags[i] != 0 {
+			if !canRemoveVertex(mesh, i) {
+				continue
+			}
+
+			if !removeVertex(mesh, i, maxTris) {
+				// Failed to remove vertex
+				log.Printf("rcBuildPolyMesh: Failed to remove edge vertex %d.", i)
+				return false
+			}
+			// Remove vertex
+			// Note: mesh.nverts is already decremented inside removeVertex()!
+			// Fixup vertex flags
+			for j := i; j < mesh.nverts; j++ {
+				vflags[j] = vflags[j+1]
+			}
+
+			i--
+		}
+	}
+
+	// Calculate adjacency.
+	if !buildMeshAdjacency(mesh.polys, mesh.npolys, mesh.nverts, nvp) {
+		log.Printf("rcBuildPolyMesh: Adjacency failed.")
+		return false
+	}
+
+	// Find portal edges
+	if mesh.borderSize > 0 {
+		w := cset.width
+		h := cset.height
+		for i := 0; i < mesh.npolys; i++ {
+			p := mesh.polys[i*2*nvp:]
+			for j := 0; j < nvp; j++ {
+				if p[j] == RC_MESH_NULL_IDX {
+					break
+				}
+				// Skip connected edges.
+				if p[nvp+j] != RC_MESH_NULL_IDX {
+					continue
+				}
+
+				nj := j + 1
+				if nj >= nvp || p[nj] == RC_MESH_NULL_IDX {
+					nj = 0
+				}
+				va := rcGetVert(mesh.verts, p[j])
+				vb := rcGetVert(mesh.verts, p[nj])
+
+				if va[0] == 0 && vb[0] == 0 {
+					p[nvp+j] = 0x8000 | 0
+				} else if va[2] == h && vb[2] == h {
+					p[nvp+j] = 0x8000 | 1
+				} else if va[0] == w && vb[0] == w {
+					p[nvp+j] = 0x8000 | 2
+				} else if va[2] == 0 && vb[2] == 0 {
+					p[nvp+j] = 0x8000 | 3
+				}
+
+			}
+		}
+	}
+
+	// Just allocate the mesh flags array. The user is resposible to fill it.
+	mesh.flags = make([]int, mesh.npolys)
+	if mesh.nverts > 0xffff {
+		log.Printf("rcBuildPolyMesh: The resulting mesh has too many vertices %d (max %d). Data can be corrupted.", mesh.nverts, 0xffff)
+	}
+	if mesh.npolys > 0xffff {
+		log.Printf("rcBuildPolyMesh: The resulting mesh has too many polygons %d (max %d). Data can be corrupted.", mesh.npolys, 0xffff)
+	}
+
+	return true
+}
+
+// / @see rcAllocPolyMesh, rcPolyMesh
+func rcMergePolyMeshes(meshes []*rcPolyMesh, nmeshes int, mesh *rcPolyMesh) bool {
+
+	if nmeshes == 0 || len(meshes) == 0 {
+		return true
+	}
+	mesh.nvp = meshes[0].nvp
+	mesh.cs = meshes[0].cs
+	mesh.ch = meshes[0].ch
+	copy(mesh.bmin, meshes[0].bmin)
+	copy(mesh.bmax, meshes[0].bmax)
+
+	maxVerts := 0
+	maxPolys := 0
+	maxVertsPerMesh := 0
+	for i := 0; i < nmeshes; i++ {
+		mesh.bmin = rcVmin(mesh.bmin, meshes[i].bmin)
+		mesh.bmax = rcVmax(mesh.bmax, meshes[i].bmax)
+		maxVertsPerMesh = rcMax(maxVertsPerMesh, meshes[i].nverts)
+		maxVerts += meshes[i].nverts
+		maxPolys += meshes[i].npolys
+	}
+
+	mesh.nverts = 0
+	mesh.verts = make([]int, maxVerts*3)
+
+	mesh.npolys = 0
+	mesh.polys = make([]int, maxPolys*2*mesh.nvp)
+	for i := range mesh.polys {
+		mesh.polys[i] = 0xff
+	}
+
+	mesh.regs = make([]int, maxPolys)
+
+	mesh.areas = make([]int, maxPolys)
+
+	mesh.flags = make([]int, maxPolys)
+
+	nextVert := make([]int, maxVerts)
+
+	firstVert := make([]int, VERTEX_BUCKET_COUNT)
+	for i := 0; i < VERTEX_BUCKET_COUNT; i++ {
+		firstVert[i] = -1
+	}
+
+	vremap := make([]int, maxVertsPerMesh)
+	for i := 0; i < nmeshes; i++ {
+		pmesh := meshes[i]
+
+		ox := int(math.Floor((pmesh.bmin[0]-mesh.bmin[0])/mesh.cs + 0.5))
+		oz := int(math.Floor((pmesh.bmin[2]-mesh.bmin[2])/mesh.cs + 0.5))
+
+		isMinX := (ox == 0)
+		isMinZ := (oz == 0)
+		isMaxX := (math.Floor((mesh.bmax[0]-pmesh.bmax[0])/mesh.cs + 0.5)) == 0
+		isMaxZ := (math.Floor((mesh.bmax[2]-pmesh.bmax[2])/mesh.cs + 0.5)) == 0
+		isOnBorder := (isMinX || isMinZ || isMaxX || isMaxZ)
+
+		for j := 0; j < pmesh.nverts; j++ {
+			v := rcGetVert(pmesh.verts, j)
+			mesh.nverts, vremap[j] = addVertex(v[0]+ox, v[1], v[2]+oz, mesh.verts, firstVert, nextVert)
+		}
+
+		for j := 0; j < pmesh.npolys; j++ {
+			tgt := mesh.polys[mesh.npolys*2*mesh.nvp:]
+			src := pmesh.polys[j*2*mesh.nvp:]
+			mesh.regs[mesh.npolys] = pmesh.regs[j]
+			mesh.areas[mesh.npolys] = pmesh.areas[j]
+			mesh.flags[mesh.npolys] = pmesh.flags[j]
+			mesh.npolys++
+			for k := 0; k < mesh.nvp; k++ {
+				if src[k] == RC_MESH_NULL_IDX {
+					break
+				}
+				tgt[k] = vremap[src[k]]
+			}
+
+			if isOnBorder {
+				for k := mesh.nvp; k < mesh.nvp*2; k++ {
+					if src[k]&0x8000 > 0 && src[k] != 0xffff {
+						dir := src[k] & 0xf
+						switch dir {
+						case 0: // Portal x-
+							if isMinX {
+								tgt[k] = src[k]
+							}
+							break
+						case 1: // Portal z+
+							if isMaxZ {
+								tgt[k] = src[k]
+							}
+							break
+						case 2: // Portal x+
+							if isMaxX {
+								tgt[k] = src[k]
+							}
+
+							break
+						case 3: // Portal z-
+							if isMinZ {
+								tgt[k] = src[k]
+							}
+
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate adjacency.
+	if !buildMeshAdjacency(mesh.polys, mesh.npolys, mesh.nverts, mesh.nvp) {
+		log.Printf("rcMergePolyMeshes: Adjacency failed.")
+		return false
+	}
+
+	if mesh.nverts > 0xffff {
+		log.Printf("rcMergePolyMeshes: The resulting mesh has too many vertices %d (max %d). Data can be corrupted.", mesh.nverts, 0xffff)
+	}
+	if mesh.npolys > 0xffff {
+		log.Printf("rcMergePolyMeshes: The resulting mesh has too many polygons %d (max %d). Data can be corrupted.", mesh.npolys, 0xffff)
+	}
+
+	return true
+}
+
+func rcCopyPolyMesh(src *rcPolyMesh, dst *rcPolyMesh) bool {
+	// Destination must be empty.
+	if len(dst.verts) == 0 {
+		panic("")
+	}
+	if len(dst.polys) == 0 {
+		panic("")
+	}
+	if len(dst.regs) == 0 {
+		panic("")
+	}
+	if len(dst.areas) == 0 {
+		panic("")
+	}
+	if len(dst.flags) == 0 {
+		panic("")
+	}
+
+	dst.nverts = src.nverts
+	dst.npolys = src.npolys
+	dst.maxpolys = src.npolys
+	dst.nvp = src.nvp
+	copy(dst.bmin, src.bmin)
+	copy(dst.bmax, src.bmax)
+	dst.cs = src.cs
+	dst.ch = src.ch
+	dst.borderSize = src.borderSize
+	dst.maxEdgeError = src.maxEdgeError
+
+	dst.verts = make([]int, src.nverts*3)
+	copy(dst.verts, src.verts[:src.nverts*3])
+
+	dst.polys = make([]int, src.npolys*2*src.nvp)
+	copy(dst.polys, src.polys[:src.npolys*2*src.nvp])
+
+	dst.regs = make([]int, src.npolys)
+	copy(dst.regs, src.regs[:src.npolys])
+
+	dst.areas = make([]int, src.npolys)
+	copy(dst.areas, src.areas[:src.npolys])
+
+	dst.flags = make([]int, src.npolys)
+
+	copy(dst.flags, src.flags[:src.npolys])
+
+	return true
 }

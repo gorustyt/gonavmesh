@@ -4,6 +4,9 @@ type rcPolyMesh struct {
 	npolys       int       ///< The number of polygons.
 	verts        []int     ///< The mesh vertices.
 	polys        []int     ///< Polygon and neighbor data.
+	regs         []int     ///< The region id assigned to each polygon. [Length: #maxpolys]
+	flags        []int     ///< The user defined flags for each polygon. [Length: #maxpolys]
+	areas        []int     ///< The area id assigned to each polygon. [Length: #maxpolys]
 	bmin         []float64 ///< The minimum bounds in world space. [(x, y, z)]
 	bmax         []float64 ///< The maximum bounds in world space. [(x, y, z)]
 	cs           float64   ///< The size of each cell. (On the xz-plane.)
@@ -11,6 +14,8 @@ type rcPolyMesh struct {
 	borderSize   int       ///< The AABB border size used to generate the source data from which the mesh was derived.
 	maxEdgeError float64   ///< The max error of the polygon edges in the mesh.
 	nvp          int       //多边形最大能生成的顶点数
+	nverts       int       ///< The number of vertices.
+	maxpolys     int       ///< The number of allocated polygons.
 }
 
 type rcContourSet struct {

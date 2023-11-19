@@ -1099,227 +1099,398 @@ func etHeightData(chf *rcCompactHeightfield,
 		}
 	}
 }
+func getHeightData(chf *rcCompactHeightfield,
+	poly []int, npoly int,
+	verts []int, bs int,
+	hp *rcHeightPatch, queue Stack[int],
+	region int) {
+	// Note: Reads to the compact heightfield are offset by border size (bs)
+	// since border size offset is already removed from the polymesh vertices.
+
+	queue.Clear()
+	// Set all heights to RC_UNSET_HEIGHT.
+	if hp.data == nil {
+		hp.data = make([]int, hp.width*hp.height)
+	}
+	for i := range hp.data {
+		hp.data[i] = 0xff
+	}
+	empty := true
+
+	// We cannot sample from this poly if it was created from polys
+	// of different regions. If it was then it could potentially be overlapping
+	// with polys of that region and the heights sampled here could be wrong.
+	if region != RC_MULTIPLE_REGS {
+		// Copy the height from the same region, and mark region borders
+		// as seed points to fill the rest.
+		for hy := 0; hy < hp.height; hy++ {
+			y := hp.ymin + hy + bs
+			for hx := 0; hx < hp.width; hx++ {
+				x := hp.xmin + hx + bs
+				c := chf.cells[x+y*chf.width]
+				i := c.index
+				ni := (c.index + c.count)
+				for ; i < ni; i++ {
+					s := chf.spans[i]
+					if s.reg == region {
+						// Store height
+						hp.data[hx+hy*hp.width] = s.y
+						empty = false
+
+						// If any of the neighbours is not in same region,
+						// add the current location as flood fill start
+						border := false
+						for dir := 0; dir < 4; dir++ {
+							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
+								ax := x + rcGetDirOffsetX(dir)
+								ay := y + rcGetDirOffsetY(dir)
+								ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
+								as := chf.spans[ai]
+								if as.reg != region {
+									border = true
+									break
+								}
+							}
+						}
+						if border {
+							push3(queue, x, y, i)
+						}
+
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// if the polygon does not contain any points from the current region (rare, but happens)
+	// or if it could potentially be overlapping polygons of the same region,
+	// then use the center as the seed point.
+	if empty {
+		seedArrayWithPolyCenter(chf, poly, npoly, verts, bs, hp, queue)
+	}
+
+	RETRACT_SIZE := 256
+	head := 0
+
+	// We assume the seed is centered in the polygon, so a BFS to collect
+	// height data will ensure we do not move onto overlapping polygons and
+	// sample wrong heights.
+	for head*3 < queue.Len() {
+		cx := queue.Index(head*3 + 0)
+		cy := queue.Index(head*3 + 1)
+		ci := queue.Index(head*3 + 2)
+		head++
+		if head >= RETRACT_SIZE {
+			head = 0
+			if queue.Len() > RETRACT_SIZE*3 {
+				copy(queue.Data(), queue.Data()[RETRACT_SIZE*3:RETRACT_SIZE*3+queue.Len()-RETRACT_SIZE*3])
+			}
+
+			queue.Resize(queue.Len() - RETRACT_SIZE*3)
+		}
+
+		cs := chf.spans[ci]
+		for dir := 0; dir < 4; dir++ {
+			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
+				continue
+			}
+
+			ax := cx + rcGetDirOffsetX(dir)
+			ay := cy + rcGetDirOffsetY(dir)
+			hx := ax - hp.xmin - bs
+			hy := ay - hp.ymin - bs
+
+			if hx >= hp.width || hy >= hp.height {
+				continue
+			}
+
+			if hp.data[hx+hy*hp.width] != RC_UNSET_HEIGHT {
+				continue
+			}
+
+			ai := chf.cells[ax+ay*chf.width].index + rcGetCon(cs, dir)
+			as := chf.spans[ai]
+
+			hp.data[hx+hy*hp.width] = as.y
+
+			push3(queue, ax, ay, ai)
+		}
+	}
+}
 
 func getEdgeFlags(va, vb []float64,
 	vpoly []float64, npoly int) int {
 	// The flag returned by this function matches dtDetailTriEdgeFlags in Detour.
 	// Figure out if edge (va,vb) is part of the polygon boundary.
-	thrSqr := rcSqr(0.001);
+	thrSqr := rcSqr(0.001)
 	i := 0
 	j := npoly - 1
-	for ; i < npoly; {
+	for i < npoly {
 
-		if (distancePtSeg2d(va, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr &&
-			distancePtSeg2d(vb, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr) {
-			return 1;
+		if distancePtSeg2d(va, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr &&
+			distancePtSeg2d(vb, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr {
+			return 1
 		}
 		j = i
 		i++
 	}
-	return 0;
+	return 0
 }
 
 func getTriFlags(va, vb, vc []float64,
 	vpoly []float64, npoly int) int {
-	flags := 0;
-	flags |= getEdgeFlags(va, vb, vpoly, npoly) << 0;
-	flags |= getEdgeFlags(vb, vc, vpoly, npoly) << 2;
-	flags |= getEdgeFlags(vc, va, vpoly, npoly) << 4;
-	return flags;
-}
-/// Contains triangle meshes that represent detailed height data associated
-/// with the polygons in its associated polygon mesh object.
-/// @ingroup recast
- type  rcPolyMeshDetail struct {
-
-
- meshes []int ;	///< The sub-mesh data. [Size: 4*#nmeshes]
- verts []float64;			///< The mesh vertices. [Size: 3*#nverts]
- tris []int ;	///< The mesh triangles. [Size: 4*#ntris]
- nmeshes int			///< The number of sub-meshes defined by #meshes.
- nverts int			///< The number of vertices in #verts.
- ntris int			///< The number of triangles in #tris.
-// Explicitly-disabled copy constructor and copy assignment operator.
-};
-
-/// @par
-///
-/// See the #rcConfig documentation for more information on the configuration parameters.
-///
-/// @see rcAllocPolyMeshDetail, rcPolyMesh, rcCompactHeightfield, rcPolyMeshDetail, rcConfig
- func  rcBuildPolyMeshDetail(  mesh* rcPolyMesh, chf* rcCompactHeightfield, sampleDist float64,   sampleMaxError float64,
-dmesh* rcPolyMeshDetail)bool{
-if (mesh.nverts == 0 || mesh.npolys == 0){return true;}
-
-
- nvp := mesh.nvp;
- cs := mesh.cs;
- ch := mesh.ch;
-orig := mesh.bmin;
- borderSize := mesh.borderSize;
- heightSearchRadius := rcMax(1, math.Ceil(mesh.maxEdgeError));
-
-rcIntArray edges(64);
-rcIntArray tris(512);
-rcIntArray arr(512);
-rcIntArray samples(512);
-verts:=make([]float64,256*3);
-var 	 hp rcHeightPatch ;
-nPolyVerts := 0;
- maxhw := 0
-maxhh := 0;
-	 bounds:=make([]int,mesh.npolys*4)
-
-
-	 poly:=make([]float64,nvp*3)
-// Find max size for a polygon area.
-for i := 0; i < mesh.npolys; i++{
-p := &mesh.polys[i*nvp*2];
-xmin := &bounds[i*4+0];
-xmax :=  &bounds[i*4+1];
- ymin :=  &bounds[i*4+2];
- ymax := &bounds[i*4+3];
-*xmin = chf.width;
-	*xmax = 0;
-	*ymin = chf.height;
-	*ymax = 0;
-for  j := 0; j < nvp; j++{
-if(p[j] == RC_MESH_NULL_IDX) {break;}
- v := &mesh.verts[p[j]*3];
-xmin = rcMin(xmin, (int)v[0]);
-xmax = rcMax(xmax, (int)v[0]);
-ymin = rcMin(ymin, (int)v[2]);
-ymax = rcMax(ymax, (int)v[2]);
-nPolyVerts++;
-}
-xmin = rcMax(0,xmin-1);
-xmax = rcMin(chf.width,xmax+1);
-ymin = rcMax(0,ymin-1);
-ymax = rcMin(chf.height,ymax+1);
-if (xmin >= xmax || ymin >= ymax) continue;
-maxhw = rcMax(maxhw, xmax-xmin);
-maxhh = rcMax(maxhh, ymax-ymin);
+	flags := 0
+	flags |= getEdgeFlags(va, vb, vpoly, npoly) << 0
+	flags |= getEdgeFlags(vb, vc, vpoly, npoly) << 2
+	flags |= getEdgeFlags(vc, va, vpoly, npoly) << 4
+	return flags
 }
 
-hp.data = make([]int,maxhw*maxhh)
-
-
-dmesh.nmeshes = mesh.npolys;
-dmesh.nverts = 0;
-dmesh.ntris = 0;
-
-dmesh.meshes = make([]int,dmesh.nmeshes*4)
-
-vcap := nPolyVerts+nPolyVerts/2;
-tcap := vcap*2;
-
-dmesh.nverts = 0;
-
-dmesh.verts = make([]float64,vcap*3)
-dmesh.ntris = 0;
-
-dmesh.tris = make([]int,tcap*4)
-
-for  i := 0; i < mesh.npolys; i++{
- p := &mesh.polys[i*nvp*2];
-
-// Store polygon vertices for processing.
-npoly := 0;
-for j := 0; j < nvp; j++{
-if(p[j] == RC_MESH_NULL_IDX) {break;}
- v := &mesh.verts[p[j]*3];
-poly[j*3+0] = v[0]*cs;
-poly[j*3+1] = v[1]*ch;
-poly[j*3+2] = v[2]*cs;
-npoly++;
+// / Contains triangle meshes that represent detailed height data associated
+// / with the polygons in its associated polygon mesh object.
+// / @ingroup recast
+type rcPolyMeshDetail struct {
+	meshes  []int     ///< The sub-mesh data. [Size: 4*#nmeshes]
+	verts   []float64 ///< The mesh vertices. [Size: 3*#nverts]
+	tris    []int     ///< The mesh triangles. [Size: 4*#ntris]
+	nmeshes int       ///< The number of sub-meshes defined by #meshes.
+	nverts  int       ///< The number of vertices in #verts.
+	ntris   int       ///< The number of triangles in #tris.
+	// Explicitly-disabled copy constructor and copy assignment operator.
 }
 
-// Get the height data from the area of the polygon.
-hp.xmin = bounds[i*4+0];
-hp.ymin = bounds[i*4+2];
-hp.width = bounds[i*4+1]-bounds[i*4+0];
-hp.height = bounds[i*4+3]-bounds[i*4+2];
-getHeightData(ctx, chf, p, npoly, mesh.verts, borderSize, hp, arr, mesh.regs[i]);
+// / @par
+// /
+// / See the #rcConfig documentation for more information on the configuration parameters.
+// /
+// / @see rcAllocPolyMeshDetail, rcPolyMesh, rcCompactHeightfield, rcPolyMeshDetail, rcConfig
+func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDist float64, sampleMaxError float64,
+	dmesh *rcPolyMeshDetail) bool {
+	if mesh.nverts == 0 || mesh.npolys == 0 {
+		return true
+	}
 
-// Build detail mesh.
-int nverts = 0;
-if (!buildPolyDetail( poly, npoly,
-sampleDist, sampleMaxError,
-heightSearchRadius, chf, hp,
-verts, nverts, tris,
-edges, samples))
-{
-return false;
+	nvp := mesh.nvp
+	cs := mesh.cs
+	ch := mesh.ch
+	orig := mesh.bmin
+	borderSize := mesh.borderSize
+	heightSearchRadius := int(rcMax(1, math.Ceil(mesh.maxEdgeError)))
+	c := func() int { return 0 }
+	edges := NewStackArray(c, 64)
+	tris := NewStackArray(c, 512)
+	arr := NewStackArray(c, 512)
+	samples := NewStackArray(c, 512)
+	verts := make([]float64, 256*3)
+	var hp rcHeightPatch
+	nPolyVerts := 0
+	maxhw := 0
+	maxhh := 0
+	bounds := make([]int, mesh.npolys*4)
+
+	poly := make([]float64, nvp*3)
+	// Find max size for a polygon area.
+	for i := 0; i < mesh.npolys; i++ {
+		p := mesh.polys[i*nvp*2:]
+		xmin := &bounds[i*4+0]
+		xmax := &bounds[i*4+1]
+		ymin := &bounds[i*4+2]
+		ymax := &bounds[i*4+3]
+		*xmin = chf.width
+		*xmax = 0
+		*ymin = chf.height
+		*ymax = 0
+		for j := 0; j < nvp; j++ {
+			if p[j] == RC_MESH_NULL_IDX {
+				break
+			}
+			v := rcGetVert(mesh.verts, p[j])
+			*xmin = rcMin(*xmin, v[0])
+			*xmax = rcMax(*xmax, v[0])
+			*ymin = rcMin(*ymin, v[2])
+			*ymax = rcMax(*ymax, v[2])
+			nPolyVerts++
+		}
+		*xmin = rcMax(0, *xmin-1)
+		*xmax = rcMin(chf.width, *xmax+1)
+		*ymin = rcMax(0, *ymin-1)
+		*ymax = rcMin(chf.height, *ymax+1)
+		if *xmin >= *xmax || *ymin >= *ymax {
+			continue
+		}
+		maxhw = rcMax(maxhw, *xmax-*xmin)
+		maxhh = rcMax(maxhh, *ymax-*ymin)
+	}
+
+	hp.data = make([]int, maxhw*maxhh)
+
+	dmesh.nmeshes = mesh.npolys
+	dmesh.nverts = 0
+	dmesh.ntris = 0
+
+	dmesh.meshes = make([]int, dmesh.nmeshes*4)
+
+	vcap := nPolyVerts + nPolyVerts/2
+	tcap := vcap * 2
+
+	dmesh.nverts = 0
+
+	dmesh.verts = make([]float64, vcap*3)
+	dmesh.ntris = 0
+
+	dmesh.tris = make([]int, tcap*4)
+
+	for i := 0; i < mesh.npolys; i++ {
+		p := mesh.polys[i*nvp*2:]
+
+		// Store polygon vertices for processing.
+		npoly := 0
+		for j := 0; j < nvp; j++ {
+			if p[j] == RC_MESH_NULL_IDX {
+				break
+			}
+			v := rcGetVert(mesh.verts, p[j])
+			poly[j*3+0] = float64(v[0]) * cs
+			poly[j*3+1] = float64(v[1]) * ch
+			poly[j*3+2] = float64(v[2]) * cs
+			npoly++
+		}
+
+		// Get the height data from the area of the polygon.
+		hp.xmin = bounds[i*4+0]
+		hp.ymin = bounds[i*4+2]
+		hp.width = bounds[i*4+1] - bounds[i*4+0]
+		hp.height = bounds[i*4+3] - bounds[i*4+2]
+		getHeightData(chf, p, npoly, mesh.verts, borderSize, &hp, arr, mesh.regs[i])
+
+		// Build detail mesh.
+		nverts := 0
+		if !buildPolyDetail(poly, npoly,
+			sampleDist, sampleMaxError,
+			heightSearchRadius, chf, &hp,
+			verts, &nverts, tris,
+			edges, samples) {
+			return false
+		}
+
+		// Move detail verts to world space.
+		for j := 0; j < nverts; j++ {
+			verts[j*3+0] += orig[0]
+			verts[j*3+1] += orig[1] + chf.ch // Is this offset necessary?
+			verts[j*3+2] += orig[2]
+		}
+		// Offset poly too, will be used to flag checking.
+		for j := 0; j < npoly; j++ {
+			poly[j*3+0] += orig[0]
+			poly[j*3+1] += orig[1]
+			poly[j*3+2] += orig[2]
+		}
+
+		// Store detail submesh.
+		ntris := tris.Len() / 4
+
+		dmesh.meshes[i*4+0] = dmesh.nverts
+		dmesh.meshes[i*4+1] = nverts
+		dmesh.meshes[i*4+2] = dmesh.ntris
+		dmesh.meshes[i*4+3] = ntris
+
+		// Store vertices, allocate more memory if necessary.
+		if dmesh.nverts+nverts > vcap {
+			for dmesh.nverts+nverts > vcap {
+				vcap += 256
+			}
+
+			newv := make([]float64, vcap*3)
+			if dmesh.nverts != 0 {
+				copy(newv, dmesh.verts[:3*dmesh.nverts])
+			}
+			dmesh.verts = newv
+		}
+		for j := 0; j < nverts; j++ {
+			dmesh.verts[dmesh.nverts*3+0] = verts[j*3+0]
+			dmesh.verts[dmesh.nverts*3+1] = verts[j*3+1]
+			dmesh.verts[dmesh.nverts*3+2] = verts[j*3+2]
+			dmesh.nverts++
+		}
+
+		// Store triangles, allocate more memory if necessary.
+		if dmesh.ntris+ntris > tcap {
+			for dmesh.ntris+ntris > tcap {
+				tcap += 256
+			}
+
+			newt := make([]int, tcap*4)
+
+			if dmesh.ntris != 0 {
+				copy(newt, dmesh.tris[:4*dmesh.ntris])
+			}
+			dmesh.tris = newt
+		}
+		for j := 0; j < ntris; j++ {
+			t := tris.Slice(j*4, tris.Len())
+			dmesh.tris[dmesh.ntris*4+0] = t[0]
+			dmesh.tris[dmesh.ntris*4+1] = t[1]
+			dmesh.tris[dmesh.ntris*4+2] = t[2]
+			dmesh.tris[dmesh.ntris*4+3] = getTriFlags(rcGetVert(verts, t[0]), rcGetVert(verts, t[1]), rcGetVert(verts, t[2]), poly, npoly)
+			dmesh.ntris++
+		}
+	}
+
+	return true
 }
 
-// Move detail verts to world space.
-for (int j = 0; j < nverts; ++j)
-{
-verts[j*3+0] += orig[0];
-verts[j*3+1] += orig[1] + chf.ch; // Is this offset necessary?
-verts[j*3+2] += orig[2];
-}
-// Offset poly too, will be used to flag checking.
-for (int j = 0; j < npoly; ++j)
-{
-poly[j*3+0] += orig[0];
-poly[j*3+1] += orig[1];
-poly[j*3+2] += orig[2];
-}
+// / @see rcAllocPolyMeshDetail, rcPolyMeshDetail
+func rcMergePolyMeshDetails(meshes []*rcPolyMeshDetail, nmeshes int, mesh *rcPolyMeshDetail) bool {
 
-// Store detail submesh.
-const int ntris = tris.size()/4;
+	maxVerts := 0
+	maxTris := 0
+	maxMeshes := 0
 
-dmesh.meshes[i*4+0] = (unsigned int)dmesh.nverts;
-dmesh.meshes[i*4+1] = (unsigned int)nverts;
-dmesh.meshes[i*4+2] = (unsigned int)dmesh.ntris;
-dmesh.meshes[i*4+3] = (unsigned int)ntris;
+	for i := 0; i < nmeshes; i++ {
+		if meshes[i] == nil {
+			continue
+		}
+		maxVerts += meshes[i].nverts
+		maxTris += meshes[i].ntris
+		maxMeshes += meshes[i].nmeshes
+	}
 
-// Store vertices, allocate more memory if necessary.
-if (dmesh.nverts+nverts > vcap)
-{
-while (dmesh.nverts+nverts > vcap)
-vcap += 256;
+	mesh.nmeshes = 0
+	mesh.meshes = make([]int, maxMeshes*4)
+	mesh.ntris = 0
+	mesh.tris = make([]int, maxTris*4)
+	mesh.nverts = 0
 
-float* newv = (float*)rcAlloc(sizeof(float)*vcap*3, RC_ALLOC_PERM);
-if (!newv)
-{
-ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newv' (%d).", vcap*3);
-return false;
-}
-if (dmesh.nverts)
-memcpy(newv, dmesh.verts, sizeof(float)*3*dmesh.nverts);
-rcFree(dmesh.verts);
-dmesh.verts = newv;
-}
-for (int j = 0; j < nverts; ++j)
-{
-dmesh.verts[dmesh.nverts*3+0] = verts[j*3+0];
-dmesh.verts[dmesh.nverts*3+1] = verts[j*3+1];
-dmesh.verts[dmesh.nverts*3+2] = verts[j*3+2];
-dmesh.nverts++;
-}
+	mesh.verts = make([]float64, maxVerts*3)
+	// Merge datas.
+	for i := 0; i < nmeshes; i++ {
+		dm := meshes[i]
+		if dm == nil {
+			continue
+		}
+		for j := 0; j < dm.nmeshes; j++ {
+			dst := rcGetVert4(mesh.meshes, mesh.nmeshes)
+			src := rcGetVert4(dm.meshes, j)
+			dst[0] = mesh.nverts + src[0]
+			dst[1] = src[1]
+			dst[2] = mesh.ntris + src[2]
+			dst[3] = src[3]
+			mesh.nmeshes++
+		}
 
-// Store triangles, allocate more memory if necessary.
-if (dmesh.ntris+ntris > tcap) {
-for (dmesh.ntris+ntris > tcap){tcap += 256;}
+		for k := 0; k < dm.nverts; k++ {
+			copy(rcGetVert(mesh.verts, mesh.nverts), rcGetVert(dm.verts, k))
+			mesh.nverts++
+		}
+		for k := 0; k < dm.ntris; k++ {
+			mesh.tris[mesh.ntris*4+0] = dm.tris[k*4+0]
+			mesh.tris[mesh.ntris*4+1] = dm.tris[k*4+1]
+			mesh.tris[mesh.ntris*4+2] = dm.tris[k*4+2]
+			mesh.tris[mesh.ntris*4+3] = dm.tris[k*4+3]
+			mesh.ntris++
+		}
+	}
 
-newt:=make([]int,tcap*4)
-
-if (dmesh.ntris){memcpy(newt, dmesh.tris, sizeof(unsigned char)*4*dmesh.ntris);}
-
-rcFree(dmesh.tris);
-dmesh.tris = newt;
-}
-for (int j = 0; j < ntris; ++j){
-const int* t = &tris[j*4];
-dmesh.tris[dmesh.ntris*4+0] = (unsigned char)t[0];
-dmesh.tris[dmesh.ntris*4+1] = (unsigned char)t[1];
-dmesh.tris[dmesh.ntris*4+2] = (unsigned char)t[2];
-dmesh.tris[dmesh.ntris*4+3] = getTriFlags(&verts[t[0]*3], &verts[t[1]*3], &verts[t[2]*3], poly, npoly);
-dmesh.ntris++;
-}
-}
-
-return true;
+	return true
 }
