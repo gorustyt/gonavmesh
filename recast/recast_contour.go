@@ -174,7 +174,7 @@ func walkContour(x, y, i int, chf *rcCompactHeightfield,
 		if iter >= 40000 {
 			break
 		}
-		if flags[i] & (1 << dir) {
+		if flags[i]&(1<<dir) > 0 {
 			// Choose the edge corner
 			isBorderVertex := false
 			isAreaBorder := false

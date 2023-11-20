@@ -70,7 +70,7 @@ func (q *nodeQueue[T]) Reset() {
 func (q *nodeQueue[T]) Peek() T {
 	return q.data[0]
 }
-func (q *nodeQueue[T]) Poll() T { return heap.Pop(q) } //从堆顶弹出一个元素
+func (q *nodeQueue[T]) Poll() T { return heap.Pop(q).(T) } //从堆顶弹出一个元素
 // 更新元素
 func (q *nodeQueue[T]) Update(value any) bool {
 
@@ -93,7 +93,7 @@ func (q *nodeQueue[T]) Remove(value any) bool {
 func (q *nodeQueue[T]) Offer(value T) { heap.Push(q, value) } //插入一个元素
 
 func (q *nodeQueue[T]) Push(x any) {
-	q.data = append(q.data, x)
+	q.data = append(q.data, x.(T))
 	if v, ok := x.(NodeQueueIndex); ok {
 		v.SetIndex(len(q.data) - 1)
 	}

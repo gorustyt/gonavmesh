@@ -742,8 +742,8 @@ func buildPolyDetail(in []float64, nin int,
 		copy(bmin, in)
 		copy(bmax, in)
 		for i := 1; i < nin; i++ {
-			bmin = rcVmin(bmin, rcGetVert(in, i))
-			bmax = rcVmax(bmax, rcGetVert(in, i))
+			rcVmin(bmin, rcGetVert(in, i))
+			rcVmax(bmax, rcGetVert(in, i))
 		}
 		x0 := int(math.Floor(bmin[0] / sampleDist))
 		x1 := int(math.Ceil(bmax[0] / sampleDist))

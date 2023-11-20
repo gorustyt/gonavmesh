@@ -79,19 +79,17 @@ func rcSqrt(x float64) float64 {
 // / @param[out]		dest	The cross product. [(x, y, z)]
 // / @param[in]		v1		A Vector [(x, y, z)]
 // / @param[in]		v2		A vector [(x, y, z)]
-func rcVcross(v1, v2 []float64) []float64 {
-	res := make([]float64, 3)
+func rcVcross(res []float64, v1, v2 []float64) { //求向量的叉集
 	res[0] = v1[1]*v2[2] - v1[2]*v2[1]
 	res[1] = v1[2]*v2[0] - v1[0]*v2[2]
 	res[2] = v1[0]*v2[1] - v1[1]*v2[0]
-	return res
 }
 
 // / Derives the dot product of two vectors. (@p v1 . @p v2)
 // / @param[in]		v1	A Vector [(x, y, z)]
 // / @param[in]		v2	A vector [(x, y, z)]
 // / @return The dot product.
-func rcVdot(v1, v2 []float64) float64 {
+func rcVdot(v1, v2 []float64) float64 { //求向量的点积
 	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
 }
 
@@ -135,34 +133,19 @@ func rcVsub(v1, v2 []float64) []float64 {
 // / Selects the minimum value of each element from the specified vectors.
 // / @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
-func rcVmin(mn, v []float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = rcMin(mn[0], v[0])
-	res[1] = rcMin(mn[1], v[1])
-	res[2] = rcMin(mn[2], v[2])
-	return res
+func rcVmin(mn, v []float64) {
+	mn[0] = rcMin(mn[0], v[0])
+	mn[1] = rcMin(mn[1], v[1])
+	mn[2] = rcMin(mn[2], v[2])
 }
 
 // / Selects the maximum value of each element from the specified vectors.
 // / @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
-func rcVmax(mx, v []float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = rcMax(mx[0], v[0])
-	res[1] = rcMax(mx[1], v[1])
-	res[2] = rcMax(mx[2], v[2])
-	return res
-}
-
-// / Performs a vector copy.
-// / @param[out]		dest	The result. [(x, y, z)]
-// / @param[in]		v		The vector to copy. [(x, y, z)]
-func rcVcopy(v []float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = v[0]
-	res[1] = v[1]
-	res[2] = v[2]
-	return res
+func rcVmax(mx, v []float64) {
+	mx[0] = rcMax(mx[0], v[0])
+	mx[1] = rcMax(mx[1], v[1])
+	mx[2] = rcMax(mx[2], v[2])
 }
 
 // / Returns the distance between two points.
@@ -189,13 +172,11 @@ func rcVdistSqr(v1, v2 []float64) float64 {
 
 // / Normalizes the vector.
 // / @param[in,out]	v	The vector to normalize. [(x, y, z)]
-func rcVnormalize(v []float64) []float64 {
-	res := make([]float64, 3)
+func rcVnormalize(v []float64) { //向量的单位化
 	d := 1.0 / rcSqrt(rcSqr(v[0])+rcSqr(v[1])+rcSqr(v[2]))
-	res[0] *= d
-	res[1] *= d
-	res[2] *= d
-	return res
+	v[0] *= d
+	v[1] *= d
+	v[2] *= d
 }
 
 func rcGetVert[T IT](verts []T, index int) []T {
@@ -234,4 +215,14 @@ func rcClamp[T cmp.Ordered](value, minInclusive, maxInclusive T) T {
 func rcGetDirForOffset(offsetX, offsetZ int) int {
 	dirs := []int{3, 0, -1, 2, 1}
 	return dirs[((offsetZ+1)<<1)+offsetX]
+}
+
+// / Sets the neighbor connection data for the specified direction.
+// / @param[in]		span			The span to update.
+// / @param[in]		direction		The direction to set. [Limits: 0 <= value < 4]
+// / @param[in]		neighborIndex	The index of the neighbor span.
+func rcSetCon(span *rcCompactSpan, direction, neighborIndex int) {
+	shift := direction * 6
+	con := span.con
+	span.con = (con & ^(0x3f << shift)) | ((neighborIndex & 0x3f) << shift)
 }

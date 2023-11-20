@@ -1187,8 +1187,8 @@ func rcMergePolyMeshes(meshes []*rcPolyMesh, nmeshes int, mesh *rcPolyMesh) bool
 	maxPolys := 0
 	maxVertsPerMesh := 0
 	for i := 0; i < nmeshes; i++ {
-		mesh.bmin = rcVmin(mesh.bmin, meshes[i].bmin)
-		mesh.bmax = rcVmax(mesh.bmax, meshes[i].bmax)
+		rcVmin(mesh.bmin, meshes[i].bmin)
+		rcVmax(mesh.bmax, meshes[i].bmax)
 		maxVertsPerMesh = rcMax(maxVertsPerMesh, meshes[i].nverts)
 		maxVerts += meshes[i].nverts
 		maxPolys += meshes[i].npolys

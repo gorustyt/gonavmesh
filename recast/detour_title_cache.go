@@ -81,7 +81,7 @@ type dtTileCache struct {
 
 	m_params *dtTileCacheParams
 	m_tcomp  *dtTileCacheCompressor
-	m_tmproc *dtTileCacheMeshProcess
+	m_tmproc dtTileCacheMeshProcess
 
 	m_obstacles        []*dtTileCacheObstacle
 	m_nextFreeObstacle *dtTileCacheObstacle
@@ -112,13 +112,13 @@ func (d *dtTileCache) getObstaclesIndex(o *dtTileCacheObstacle) int {
 
 // / Encodes a tile id.
 func (d *dtTileCache) encodeTileId(salt int, it int) dtCompressedTileRef {
-	return (salt << d.m_tileBits) | it
+	return dtCompressedTileRef((salt << d.m_tileBits) | it)
 }
 
 // / Decodes a tile salt.
 func (d *dtTileCache) decodeTileIdSalt(ref dtCompressedTileRef) int {
 	saltMask := (1 << d.m_saltBits) - 1
-	return (ref >> d.m_tileBits) & saltMask
+	return (int(ref) >> d.m_tileBits) & saltMask
 }
 
 // / Decodes a tile id.
@@ -242,7 +242,7 @@ func (d *dtTileCache) getTileByRef(ref dtCompressedTileRef) *dtCompressedTile {
 
 func (d *dtTileCache) init(params *dtTileCacheParams,
 	tcomp *dtTileCacheCompressor,
-	tmproc *dtTileCacheMeshProcess) dtStatus {
+	tmproc dtTileCacheMeshProcess) dtStatus {
 	d.m_tcomp = tcomp
 	d.m_tmproc = tmproc
 	d.m_nreqs = 0
@@ -797,11 +797,11 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *dtNavMe
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
 	bc := &NavMeshTileBuildContext{}
-	walkableClimbVx := (d.m_params.walkableClimb / d.m_params.ch)
+	walkableClimbVx := int(d.m_params.walkableClimb / d.m_params.ch)
 	var status dtStatus
 
 	// Decompress tile layer data.
-	status = dtDecompressTileCacheLayer(d.m_tcomp, tile.data, tile.dataSize, bc.layer)
+	bc.layer, status = dtDecompressTileCacheLayer(d.m_tcomp, tile.data, tile.dataSize)
 	if status.dtStatusFailed() {
 		return status
 	}
@@ -818,38 +818,38 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *dtNavMe
 				dtMarkCylinderArea(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
 					ob.cylinder.pos[:], ob.cylinder.radius, ob.cylinder.height, 0)
 			} else if ob.Type == DT_OBSTACLE_BOX {
-				dtMarkBoxArea(*bc.layer, tile.header.bmin, d.m_params.cs, d.m_params.ch,
-					ob.box.bmin, ob.box.bmax, 0)
+				dtMarkBoxArea(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
+					ob.box.bmin[:], ob.box.bmax[:], 0)
 			} else if ob.Type == DT_OBSTACLE_ORIENTED_BOX {
-				dtMarkBoxArea(*bc.layer, tile.header.bmin, d.m_params.cs, d.m_params.ch,
-					ob.orientedBox.center, ob.orientedBox.halfExtents, ob.orientedBox.rotAux, 0)
+				dtMarkBoxArea1(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
+					ob.orientedBox.center[:], ob.orientedBox.halfExtents[:], ob.orientedBox.rotAux[:], 0)
 			}
 		}
 	}
 
 	// Build navmesh
-	status = d.dtBuildTileCacheRegions(m_talloc, *bc.layer, walkableClimbVx)
+	status = dtBuildTileCacheRegions(bc.layer, walkableClimbVx)
 	if status.dtStatusFailed() {
 		return status
 	}
 
-	bc.lcset = dtAllocTileCacheContourSet(m_talloc)
+	bc.lcset = &dtTileCacheContourSet{}
 	if bc.lcset == nil {
 		return DT_FAILURE | DT_OUT_OF_MEMORY
 	}
 
-	status = dtBuildTileCacheContours(m_talloc, *bc.layer, walkableClimbVx,
-		d.m_params.maxSimplificationError, *bc.lcset)
+	status = dtBuildTileCacheContours(bc.layer, walkableClimbVx,
+		d.m_params.maxSimplificationError, bc.lcset)
 	if status.dtStatusFailed() {
 		return status
 	}
 
-	bc.lmesh = dtAllocTileCachePolyMesh(m_talloc)
+	bc.lmesh = &dtTileCachePolyMesh{}
 	if bc.lmesh == nil {
 		return DT_FAILURE | DT_OUT_OF_MEMORY
 	}
 
-	status = dtBuildTileCachePolyMesh(m_talloc, *bc.lcset, *bc.lmesh)
+	status = dtBuildTileCachePolyMesh(bc.lcset, bc.lmesh)
 	if status.dtStatusFailed() {
 		return status
 	}
@@ -881,11 +881,11 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *dtNavMe
 	copy(params.bmin[:], tile.header.bmin[:])
 	copy(params.bmax[:], tile.header.bmax[:])
 
-	if d.m_tmproc {
+	if d.m_tmproc != nil {
 		d.m_tmproc.process(&params, bc.lmesh.areas, bc.lmesh.flags)
 	}
 
-	var navDataSize int
+	//var navDataSize int
 	if !dtCreateNavMeshData(&params) {
 		return DT_FAILURE
 	}
@@ -894,13 +894,13 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *dtNavMe
 	navmesh.removeTile(navmesh.getTileRefAt(tile.header.tx, tile.header.ty, tile.header.tlayer))
 
 	// Add new tile, or leave the location empty.
-	if navData {
-		// Let the navmesh own the data.
-		status = navmesh.addTile(navData, navDataSize, DT_TILE_FREE_DATA, 0, 0)
-		if status.dtStatusFailed() {
-			return status
-		}
-	}
+	//if navData {
+	//	// Let the navmesh own the data.
+	//	status = navmesh.addTile(navData, navDataSize, DT_TILE_FREE_DATA, 0, 0)
+	//	if status.dtStatusFailed() {
+	//		return status
+	//	}
+	//}
 
 	return DT_SUCCESS
 }

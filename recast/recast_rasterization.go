@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"log"
+	"math"
+)
 
 // / Check whether two bounding boxes overlap
 // /
@@ -39,13 +42,13 @@ func rasterizeTri(v0, v1, v2 []float64,
 	// Calculate the bounding box of the triangle.
 	triBBMin := make([]float64, 3)
 	copy(triBBMin, v0)
-	triBBMin = rcVmin(triBBMin, v1)
-	triBBMin = rcVmin(triBBMin, v2)
+	rcVmin(triBBMin, v1)
+	rcVmin(triBBMin, v2)
 
 	triBBMax := make([]float64, 3)
 	copy(triBBMax, v0)
-	triBBMax = rcVmax(triBBMax, v1)
-	triBBMax = rcVmax(triBBMax, v2)
+	rcVmax(triBBMax, v1)
+	rcVmax(triBBMax, v2)
 
 	// If the triangle does not touch the bounding box of the heightfield, skip the triangle.
 	if !overlapBounds(triBBMin, triBBMax, heightfieldBBMin, heightfieldBBMax) {
@@ -57,8 +60,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 	by := heightfieldBBMax[1] - heightfieldBBMin[1]
 
 	// Calculate the footprint of the triangle on the grid's z-axis
-	z0 := (int)((triBBMin[2] - heightfieldBBMin[2]) * inverseCellSize)
-	z1 := (int)((triBBMax[2] - heightfieldBBMin[2]) * inverseCellSize)
+	z0 := int((triBBMin[2] - heightfieldBBMin[2]) * inverseCellSize)
+	z1 := int((triBBMax[2] - heightfieldBBMin[2]) * inverseCellSize)
 
 	// use -1 rather than 0 to cut the polygon properly at the start of the tile
 	z0 = rcClamp(z0, -1, h-1)
@@ -163,9 +166,26 @@ func rasterizeTri(v0, v1, v2 []float64,
 
 	return true
 }
-func rcRasterizeTriangles(verts []float64, triAreaIDs []int, numTris int,
+func rcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int, numTris int,
 	heightfield *rcHeightfield, flagMergeThreshold int) bool {
 
+	// Rasterize the triangles.
+	inverseCellSize := 1.0 / heightfield.cs
+	inverseCellHeight := 1.0 / heightfield.ch
+	for triIndex := 0; triIndex < numTris; triIndex++ {
+		v0 := rcGetVert(verts, triIndex*3+0)
+		v1 := rcGetVert(verts, triIndex*3+1)
+		v2 := rcGetVert(verts, triIndex*3+2)
+		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func rcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
+	heightfield *rcHeightfield, flagMergeThreshold int) bool {
 	// Rasterize the triangles.
 	inverseCellSize := 1.0 / heightfield.cs
 	inverseCellHeight := 1.0 / heightfield.ch
@@ -174,6 +194,7 @@ func rcRasterizeTriangles(verts []float64, triAreaIDs []int, numTris int,
 		v1 := rcGetVert(verts, (triIndex*3 + 1))
 		v2 := rcGetVert(verts, (triIndex*3 + 2))
 		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
+			log.Printf("rcRasterizeTriangles: Out of memory.")
 			return false
 		}
 	}
@@ -204,9 +225,7 @@ func dividePoly(inVerts []float64, inVertsCount int,
 	outVerts1 []float64, outVerts1Count *int,
 	outVerts2 []float64, outVerts2Count *int,
 	axisOffset float64, axis rcAxis) {
-	if inVertsCount <= 12 {
-		panic("")
-	}
+	dtAssertTrue(inVertsCount <= 12)
 
 	// How far positive or negative away from the separating axis is each vertex.
 	inVertAxisDelta := make([]float64, 12)
@@ -227,29 +246,32 @@ func dividePoly(inVerts []float64, inVertsCount int,
 			outVerts1[poly1Vert*3+0] = inVerts[inVertB*3+0] + (inVerts[inVertA*3+0]-inVerts[inVertB*3+0])*s
 			outVerts1[poly1Vert*3+1] = inVerts[inVertB*3+1] + (inVerts[inVertA*3+1]-inVerts[inVertB*3+1])*s
 			outVerts1[poly1Vert*3+2] = inVerts[inVertB*3+2] + (inVerts[inVertA*3+2]-inVerts[inVertB*3+2])*s
-			copy(outVerts2[poly2Vert*3:poly2Vert*3+3], outVerts1[poly1Vert*3:poly1Vert*3+3])
+
+			copy(rcGetVert(outVerts2, poly2Vert), rcGetVert(outVerts1, poly1Vert))
 			poly1Vert++
 			poly2Vert++
 
 			// add the inVertA point to the right polygon. Do NOT add points that are on the dividing line
 			// since these were already added above
 			if inVertAxisDelta[inVertA] > 0 {
-				copy(outVerts1[poly1Vert*3:poly1Vert*3+3], inVerts[inVertA*3:inVertA*3+3])
+
+				copy(rcGetVert(outVerts1, poly1Vert), rcGetVert(inVerts, inVertA))
 				poly1Vert++
 			} else if inVertAxisDelta[inVertA] < 0 {
-				copy(outVerts2[poly2Vert*3:poly2Vert*3+3], inVerts[inVertA*3:inVertA*3+3])
+				copy(rcGetVert(outVerts1, poly2Vert), rcGetVert(inVerts, inVertA))
 				poly2Vert++
 			}
 		} else {
 			// add the inVertA point to the right polygon. Addition is done even for points on the dividing line
 			if inVertAxisDelta[inVertA] >= 0 {
-				copy(outVerts1[poly1Vert*3:poly1Vert*3+3], inVerts[inVertA*3:inVertA*3+3])
+				copy(rcGetVert(outVerts1, poly1Vert), rcGetVert(inVerts, inVertA))
 				poly1Vert++
 				if inVertAxisDelta[inVertA] != 0 {
 					continue
 				}
 			}
-			copy(outVerts2[poly2Vert*3:poly2Vert*3+3], inVerts[inVertA*3:inVertA*3+3])
+
+			copy(rcGetVert(outVerts2, poly2Vert), rcGetVert(inVerts, inVertA))
 			poly2Vert++
 		}
 		inVertB = inVertA

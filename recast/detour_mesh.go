@@ -437,20 +437,20 @@ func (mesh *dtNavMesh) getMaxTiles() int {
 // /  @param[in]	ip		The index of the polygon within the tile.
 func (mesh *dtNavMesh) encodePolyId(salt, it, ip int) dtPolyRef {
 	if DT_POLYREF64 == 1 {
-		return salt<<(DT_POLY_BITS+DT_TILE_BITS) | (it << DT_POLY_BITS) | ip
+		return dtPolyRef(salt<<(DT_POLY_BITS+DT_TILE_BITS) | (it << DT_POLY_BITS) | ip)
 	} else {
-		return salt<<(mesh.m_polyBits+mesh.m_tileBits) | (it << mesh.m_polyBits) | ip
+		return dtPolyRef(salt<<(mesh.m_polyBits+mesh.m_tileBits) | (it << mesh.m_polyBits) | ip)
 	}
 }
 
 func (mesh *dtNavMesh) decodePolyIdTile(ref dtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		tileMask := (1 << DT_TILE_BITS) - 1
-		return int((ref >> DT_POLY_BITS) & tileMask)
+		return int((int(ref) >> DT_POLY_BITS) & tileMask)
 	} else {
 	}
 	tileMask := (1 << mesh.m_tileBits) - 1
-	return (ref >> mesh.m_polyBits) & tileMask
+	return (int(ref) >> mesh.m_polyBits) & tileMask
 }
 
 // / Decodes a standard polygon reference.
@@ -460,7 +460,8 @@ func (mesh *dtNavMesh) decodePolyIdTile(ref dtPolyRef) int {
 // /  @param[out]	it		The index of the tile.
 // /  @param[out]	ip		The index of the polygon within the tile.
 // /  @see #encodePolyId
-func (mesh *dtNavMesh) decodePolyId(ref dtPolyRef) (salt, it, ip int) {
+func (mesh *dtNavMesh) decodePolyId(r dtPolyRef) (salt, it, ip int) {
+	ref := int(r)
 	if DT_POLYREF64 == 1 {
 		saltMask := (1 << DT_SALT_BITS) - 1
 		tileMask := (1 << DT_TILE_BITS) - 1
@@ -490,10 +491,10 @@ func dtGetDetailTriEdgeFlags(triFlags int, edgeIndex int) int {
 func (mesh *dtNavMesh) decodePolyIdPoly(ref dtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		polyMask := (1 << DT_POLY_BITS) - 1
-		return int(ref & polyMask)
+		return int(ref) & polyMask
 	} else {
 		polyMask := (1 << mesh.m_polyBits) - 1
-		return int(ref & polyMask)
+		return int(ref) & polyMask
 	}
 
 }
@@ -505,10 +506,10 @@ func (mesh *dtNavMesh) decodePolyIdPoly(ref dtPolyRef) int {
 func (mesh *dtNavMesh) decodePolyIdSalt(ref dtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		saltMask := (1 << DT_SALT_BITS) - 1
-		return ((ref >> (DT_POLY_BITS + DT_TILE_BITS)) & saltMask)
+		return ((int(ref) >> (DT_POLY_BITS + DT_TILE_BITS)) & saltMask)
 	}
 	saltMask := (1 << mesh.m_saltBits) - 1
-	return ((ref >> (mesh.m_polyBits + mesh.m_tileBits)) & saltMask)
+	return ((int(ref) >> (mesh.m_polyBits + mesh.m_tileBits)) & saltMask)
 
 }
 

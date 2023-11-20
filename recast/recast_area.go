@@ -400,12 +400,13 @@ func rcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, are
 	zStride := xSize // For readability
 
 	// Compute the bounding box of the polygon
-
-	bmin := rcVcopy(verts)
-	bmax := rcVcopy(verts)
+	bmin := make([]float64, 3)
+	bmax := make([]float64, 3)
+	copy(bmin, verts)
+	copy(bmax, verts)
 	for i := 1; i < numVerts; i++ {
-		bmin = rcVmin(bmin, verts[i*3:i*3+3])
-		bmax = rcVmax(bmax, verts[i*3:i*3+3])
+		rcVmin(bmin, verts[i*3:i*3+3])
+		rcVmax(bmax, verts[i*3:i*3+3])
 	}
 	bmin[1] = minY
 	bmax[1] = maxY
