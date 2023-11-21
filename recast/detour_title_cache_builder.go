@@ -801,6 +801,8 @@ func titleCacheBuildMeshAdjacency(
 			vb := rcGetVert4(cont.verts, j)
 			dir := va[3] & 0xf
 			if dir == 0xf {
+				k = j
+				j++
 				continue
 			}
 			if dir == 0 || dir == 2 {
@@ -816,6 +818,8 @@ func titleCacheBuildMeshAdjacency(
 					e := edges[m]
 					// Skip connected edges.
 					if e.poly[0] != e.poly[1] {
+						k = j
+						j++
 						continue
 					}
 
@@ -833,8 +837,6 @@ func titleCacheBuildMeshAdjacency(
 							e.polyEdge[1] = dir
 						}
 					}
-					k = j
-					j++
 				}
 			} else {
 				// Find matching vertical edge
@@ -849,6 +851,8 @@ func titleCacheBuildMeshAdjacency(
 					e := edges[m]
 					// Skip connected edges.
 					if e.poly[0] != e.poly[1] {
+						k = j
+						j++
 						continue
 					}
 
@@ -868,6 +872,8 @@ func titleCacheBuildMeshAdjacency(
 					}
 				}
 			}
+			k = j
+			j++
 		}
 	}
 

@@ -706,6 +706,8 @@ func closestPointOnDetailEdges(onlyBoundary bool, tile *dtMeshTile, poly *dtPoly
 			if (dtGetDetailTriEdgeFlags(tris[3], j)&DT_DETAIL_EDGE_BOUNDARY) == 0 && (onlyBoundary || tris[j] < tris[k]) {
 				// Only looking at boundary edges and this is internal, or
 				// this is an inner edge that we will see again or have already seen.
+				j = k
+				k++
 				continue
 			}
 

@@ -71,8 +71,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 	buf := make([]float64, 7*3*4)
 	in := buf
 	inRow := buf[7*3:]
-	p1 := inRow[:7*3]
-	p2 := p1[:7*3]
+	p1 := inRow[7*3:]
+	p2 := p1[7*3:]
 
 	copy(in[0:], v0)
 	copy(in[1*3:], v1)
@@ -104,8 +104,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 				maxX = inRow[vert*3]
 			}
 		}
-		x0 := (int)((minX - heightfieldBBMin[0]) * inverseCellSize)
-		x1 := (int)((maxX - heightfieldBBMin[0]) * inverseCellSize)
+		x0 := int((minX - heightfieldBBMin[0]) * inverseCellSize)
+		x1 := int((maxX - heightfieldBBMin[0]) * inverseCellSize)
 		if x1 < 0 || x0 >= w {
 			continue
 		}
@@ -173,9 +173,9 @@ func rcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int,
 	inverseCellSize := 1.0 / heightfield.cs
 	inverseCellHeight := 1.0 / heightfield.ch
 	for triIndex := 0; triIndex < numTris; triIndex++ {
-		v0 := rcGetVert(verts, triIndex*3+0)
-		v1 := rcGetVert(verts, triIndex*3+1)
-		v2 := rcGetVert(verts, triIndex*3+2)
+		v0 := rcGetVert(verts, tris[triIndex*3+0])
+		v1 := rcGetVert(verts, tris[triIndex*3+1])
+		v2 := rcGetVert(verts, tris[triIndex*3+2])
 		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			return false
 		}
@@ -190,9 +190,9 @@ func rcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
 	inverseCellSize := 1.0 / heightfield.cs
 	inverseCellHeight := 1.0 / heightfield.ch
 	for triIndex := 0; triIndex < numTris; triIndex++ {
-		v0 := rcGetVert(verts, (triIndex*3 + 0))
-		v1 := rcGetVert(verts, (triIndex*3 + 1))
-		v2 := rcGetVert(verts, (triIndex*3 + 2))
+		v0 := rcGetVert(verts, triIndex*3+0)
+		v1 := rcGetVert(verts, triIndex*3+1)
+		v2 := rcGetVert(verts, triIndex*3+2)
 		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			log.Printf("rcRasterizeTriangles: Out of memory.")
 			return false
@@ -267,6 +267,8 @@ func dividePoly(inVerts []float64, inVertsCount int,
 				copy(rcGetVert(outVerts1, poly1Vert), rcGetVert(inVerts, inVertA))
 				poly1Vert++
 				if inVertAxisDelta[inVertA] != 0 {
+					inVertB = inVertA
+					inVertA++
 					continue
 				}
 			}

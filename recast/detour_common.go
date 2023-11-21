@@ -261,6 +261,8 @@ func dtIntersectSegmentPoly2D(p0, p1, verts []float64, nverts int) (tmin, tmax f
 			if n < 0 {
 				return tmin, tmax, segMin, segMax, false
 			} else {
+				j = i
+				i++
 				continue
 			}
 

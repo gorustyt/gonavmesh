@@ -214,8 +214,5 @@ func rcCreateHeightfield(heightfield *rcHeightfield, sizeX, sizeZ int,
 	heightfield.cs = cellSize
 	heightfield.ch = cellHeight
 	heightfield.spans = make([]*rcSpan, heightfield.width*heightfield.height)
-	for i := range heightfield.spans {
-		heightfield.spans[i] = &rcSpan{}
-	}
 	return true
 }

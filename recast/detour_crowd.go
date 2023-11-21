@@ -752,9 +752,8 @@ func (d *dtCrowd) getActiveAgents(agents []*dtCrowdAgent, maxAgents int) int {
 		}
 		if n < maxAgents {
 			agents[n] = d.m_agents[i]
+			n++
 		}
-
-		n++
 	}
 	return n
 }

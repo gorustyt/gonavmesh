@@ -213,54 +213,26 @@ func TestCreateHeightfield(t *testing.T) {
 	heightfield := &rcHeightfield{}
 
 	result := rcCreateHeightfield(heightfield, width, height, bmin, bmax, cellSize, cellHeight)
+	msg := "create a heightfield"
+	assertTrue(t, result, msg)
 
-	if !result {
-		t.Errorf("create a heightfield")
-	}
+	assertTrue(t, heightfield.width == width, msg)
+	assertTrue(t, heightfield.height == height, msg)
 
-	if heightfield.width != width {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.height != height {
-		t.Errorf("create a heightfield")
-	}
+	assertTrue(t, heightfield.bmin[0] == bmin[0], msg)
+	assertTrue(t, heightfield.bmin[1] == bmin[1], msg)
+	assertTrue(t, heightfield.bmin[2] == bmin[2], msg)
 
-	if heightfield.bmin[0] != bmin[0] {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.bmin[1] != bmin[1] {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.bmin[2] != bmin[2] {
-		t.Errorf("create a heightfield")
-	}
+	assertTrue(t, heightfield.bmax[0] == bmax[0], msg)
+	assertTrue(t, heightfield.bmax[1] == bmax[1], msg)
+	assertTrue(t, heightfield.bmax[2] == bmax[2], msg)
 
-	if heightfield.bmax[0] != bmax[0] {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.bmax[1] != bmax[1] {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.bmax[2] != bmax[2] {
-		t.Errorf("create a heightfield")
-	}
+	assertTrue(t, heightfield.cs == cellSize, msg)
+	assertTrue(t, heightfield.ch == cellHeight, msg)
 
-	if heightfield.cs != cellSize {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.ch != cellHeight {
-		t.Errorf("create a heightfield")
-	}
-
-	if heightfield.spans == nil {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.pools != nil {
-		t.Errorf("create a heightfield")
-	}
-	if heightfield.freelist != nil {
-		t.Errorf("create a heightfield")
-	}
+	assertTrue(t, heightfield.spans != nil, msg)
+	assertTrue(t, heightfield.pools == nil, msg)
+	assertTrue(t, heightfield.freelist == nil, msg)
 }
 
 func TestMarkWalkableTriangles(t *testing.T) {

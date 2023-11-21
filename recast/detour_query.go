@@ -1095,12 +1095,16 @@ func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []floa
 					}
 				}
 				if !solid {
+					j = i
+					i++
 					continue
 				}
 			} else if bestPoly.neis[j] > 0 {
 				// Internal edge
 				idx := (bestPoly.neis[j] - 1)
 				if filter.passFilter(bestTile.polys[idx]) {
+					j = i
+					i++
 					continue
 				}
 
@@ -1114,6 +1118,8 @@ func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []floa
 
 			// Edge is too far, skip.
 			if distSqr > radiusSqr {
+				j = i
+				i++
 				continue
 			}
 
@@ -1725,11 +1731,15 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 					// Skip if no node can be allocated.
 					neighbourNode := q.m_tinyNodePool[neis[k]]
 					if neighbourNode == nil {
+						j = i
+						i++
 						continue
 					}
 
 					// Skip if already visited.
 					if neighbourNode.flags&DT_NODE_CLOSED > 0 {
+						j = i
+						i++
 						continue
 					}
 
@@ -1739,6 +1749,8 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 					vi := rcGetVert(verts[:], i)
 					_, distSqr := dtDistancePtSegSqr2D(searchPos, vj, vi)
 					if distSqr > searchRadSqr {
+						j = i
+						i++
 						continue
 					}
 
@@ -3556,6 +3568,8 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 
 			// If the edge leads to another polygon and portals are not stored, skip.
 			if neiRef != 0 && !storePortals {
+				j = i
+				i++
 				continue
 			}
 
@@ -3573,7 +3587,8 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 			} else {
 				status |= DT_BUFFER_TOO_SMALL
 			}
-
+			j = i
+			i++
 			continue
 		}
 

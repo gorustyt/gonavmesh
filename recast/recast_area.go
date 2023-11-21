@@ -75,10 +75,14 @@ func pointInPoly(numVerts int, verts []float64, point []float64) bool {
 		vj := verts[j*3 : j*3+3]
 
 		if (vi[2] > point[2]) == (vj[2] > point[2]) {
+			j = i
+			i++
 			continue
 		}
 
 		if point[0] >= (vj[0]-vi[0])*(point[2]-vi[2])/(vj[2]-vi[2])+vi[0] {
+			j = i
+			i++
 			continue
 		}
 		inPoly = !inPoly
