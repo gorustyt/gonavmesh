@@ -1,6 +1,6 @@
 package recast
 
-type dtStatus int
+type DtStatus int
 
 const (
 	// High level status.
@@ -21,21 +21,21 @@ const (
 )
 
 // Returns true of status is success.
-func (status dtStatus) dtStatusSucceed() bool {
+func (status DtStatus) DtStatusSucceed() bool {
 	return (status & DT_SUCCESS) != 0
 }
 
 // Returns true of status is failure.
-func (status dtStatus) dtStatusFailed() bool {
+func (status DtStatus) DtStatusFailed() bool {
 	return (status & DT_FAILURE) != 0
 }
 
 // Returns true of status is in progress.
-func (status dtStatus) dtStatusInProgress() bool {
+func (status DtStatus) DtStatusInProgress() bool {
 	return (status & DT_IN_PROGRESS) != 0
 }
 
 // Returns true if specific detail is set.
-func (status dtStatus) dtStatusDetail(detail int) bool {
+func (status DtStatus) DtStatusDetail(detail int) bool {
 	return (int(status) & detail) != 0
 }

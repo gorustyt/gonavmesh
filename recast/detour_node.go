@@ -25,7 +25,7 @@ type dtNode struct {
 	pidx   *dtNode    ///<  parent node.
 	state  int        ///< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
 	flags  int        ///< Node flags. A combination of dtNodeFlags.
-	id     dtPolyRef  ///< Polygon ref the node corresponds to.
+	id     DtPolyRef  ///< Polygon ref the node corresponds to.
 	_index int        //堆中移除和更新对象用
 }
 

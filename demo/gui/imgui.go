@@ -20,10 +20,10 @@ const (
 	IMGUI_GFXCMD_SCISSOR
 )
 
-func imguiPoint(points []float64) image.Point {
+func imguiPoint(points []float64, height int) image.Point {
 	return image.Point{
 		X: int(points[0]),
-		Y: int(points[1]),
+		Y: int(float64(height) - points[1]),
 	}
 }
 
@@ -304,8 +304,9 @@ func (gs *guiState) getRenderCmd() (res []*imguiGfxCmd) {
 	e := gs.queue.Front()
 	for e != nil {
 		res = append(res, e.Value.(*imguiGfxCmd))
+		next := e.Next()
 		gs.queue.Remove(e)
-		e = e.Next()
+		e = next
 	}
 	return res
 }
@@ -588,7 +589,11 @@ func (gs *guiState) imguiEndScrollArea() {
 	gs.insideCurrentScroll = false
 }
 
-func (gs *guiState) imguiButton(text string, enabled bool) bool {
+func (gs *guiState) imguiButton(text string, enableds ...bool) bool {
+	enabled := true
+	if len(enableds) > 0 {
+		enabled = enableds[0]
+	}
 	gs.widgetId++
 	id := (gs.areaId << 16) | gs.widgetId
 
@@ -649,7 +654,11 @@ func (gs *guiState) imguiItem(text string, enabled bool) bool {
 	return res
 }
 
-func (gs *guiState) imguiCheck(text string, checked, enabled bool) bool {
+func (gs *guiState) imguiCheck(text string, checked bool, enableds ...bool) bool {
+	enabled := true
+	if len(enableds) > 0 {
+		enabled = enableds[0]
+	}
 	gs.widgetId++
 	id := (gs.areaId << 16) | gs.widgetId
 

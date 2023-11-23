@@ -82,12 +82,11 @@ func dtClamp[T IT](v, mn, mx T) T {
 // /  @param[in]		v1		The starting vector.
 // /  @param[in]		v2		The destination vector.
 // /	 @param[in]		t		The interpolation factor. [Limits: 0 <= value <= 1.0]
-func dtVlerp(v1, v2 []float64, t float64) []float64 {
-	res := make([]float64, 3)
-	res[0] = v1[0] + (v2[0]-v1[0])*t
-	res[1] = v1[1] + (v2[1]-v1[1])*t
-	res[2] = v1[2] + (v2[2]-v1[2])*t
-	return res
+func dtVlerp(dest []float64, v1, v2 []float64, t float64) []float64 {
+	dest[0] = v1[0] + (v2[0]-v1[0])*t
+	dest[1] = v1[1] + (v2[1]-v1[1])*t
+	dest[2] = v1[2] + (v2[2]-v1[2])*t
+	return dest
 }
 
 // / Performs a vector copy.

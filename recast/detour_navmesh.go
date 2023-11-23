@@ -8,8 +8,8 @@ import "math"
 // / Initializes the navigation mesh for tiled use.
 // /  @param[in]	params		Initialization parameters.
 // / @return The status flags for the operation.
-func NewDtNavMeshWithParams(params *dtNavMeshParams) (m DtNavMesh, status dtStatus) {
-	mesh := &dtNavMesh{}
+func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatus) {
+	mesh := &DtNavMesh{}
 	mesh.m_orig = params.orig
 	mesh.m_tileWidth = params.tileWidth
 	mesh.m_tileHeight = params.tileHeight
@@ -50,7 +50,7 @@ func NewDtNavMeshWithParams(params *dtNavMeshParams) (m DtNavMesh, status dtStat
 // /  @param[in]	flags		The tile flags. (See: #dtTileFlags)
 // / @return The status flags for the operation.
 // /  @see dtCreateNavMeshData
-func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int) (result dtTileRef, status dtStatus) {
+func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int) (result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
 	if header.magic != DT_NAVMESH_MAGIC {
 		return result, DT_FAILURE | DT_WRONG_MAGIC
@@ -60,7 +60,7 @@ func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, fla
 		return result, DT_FAILURE | DT_WRONG_VERSION
 	}
 
-	var params dtNavMeshParams
+	var params NavMeshParams
 	params.orig = header.bmin
 	params.tileWidth = header.bmax[0] - header.bmin[0]
 	params.tileHeight = header.bmax[2] - header.bmin[2]
@@ -68,7 +68,7 @@ func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, fla
 	params.maxPolys = header.polyCount
 
 	mesh, status := NewDtNavMeshWithParams(&params)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return result, status
 	}
 
@@ -79,7 +79,7 @@ func NewDtNavMesh(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, fla
 // /
 // / @note The parameters are created automatically when the single tile
 // / initialization is performed.
-func (mesh *dtNavMesh) getParams() *dtNavMeshParams {
+func (mesh *DtNavMesh) getParams() *NavMeshParams {
 	return mesh.m_params
 }
 func overlapSlabs(amin, amax, bmin, bmax []float64, px, py float64) bool {
@@ -179,8 +179,8 @@ func freeLink(tile *dtMeshTile, link int) {
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////////
-func (mesh *dtNavMesh) findConnectingPolys(va, vb []float64, tile *dtMeshTile, side int, maxcon int) (con []dtPolyRef, conarea []float64, n int) {
-	con = make([]dtPolyRef, 4)
+func (mesh *DtNavMesh) findConnectingPolys(va, vb []float64, tile *dtMeshTile, side int, maxcon int) (con []DtPolyRef, conarea []float64, n int) {
+	con = make([]DtPolyRef, 4)
 	conarea = make([]float64, 4*2)
 	if tile == nil {
 		return
@@ -223,7 +223,7 @@ func (mesh *dtNavMesh) findConnectingPolys(va, vb []float64, tile *dtMeshTile, s
 			if n < maxcon {
 				conarea[n*2+0] = dtMax(amin[0], bmin[0])
 				conarea[n*2+1] = dtMin(amax[0], bmax[0])
-				con[n] = dtPolyRef(int(base) | i)
+				con[n] = DtPolyRef(int(base) | i)
 				n++
 			}
 			break
@@ -232,7 +232,7 @@ func (mesh *dtNavMesh) findConnectingPolys(va, vb []float64, tile *dtMeshTile, s
 	return
 }
 
-func (mesh *dtNavMesh) getPolyRefBase(tile *dtMeshTile) dtPolyRef {
+func (mesh *DtNavMesh) getPolyRefBase(tile *dtMeshTile) DtPolyRef {
 	if tile == nil {
 		return 0
 	}
@@ -240,12 +240,12 @@ func (mesh *dtNavMesh) getPolyRefBase(tile *dtMeshTile) dtPolyRef {
 	return mesh.encodePolyId(tile.salt, it, 0)
 }
 
-func (mesh *dtNavMesh) unconnectLinks(tile *dtMeshTile, target *dtMeshTile) {
+func (mesh *DtNavMesh) unconnectLinks(tile *dtMeshTile, target *dtMeshTile) {
 	if tile == nil || target == nil {
 		return
 	}
 
-	targetNum := mesh.decodePolyIdTile(dtPolyRef(mesh.getTileRef(target)))
+	targetNum := mesh.decodePolyIdTile(DtPolyRef(mesh.getTileRef(target)))
 
 	for i := 0; i < tile.header.polyCount; i++ {
 		poly := tile.polys[i]
@@ -271,7 +271,7 @@ func (mesh *dtNavMesh) unconnectLinks(tile *dtMeshTile, target *dtMeshTile) {
 		}
 	}
 }
-func (mesh *dtNavMesh) getTileIndex(tile *dtMeshTile) int {
+func (mesh *DtNavMesh) getTileIndex(tile *dtMeshTile) int {
 	for index, v := range mesh.m_tiles {
 		if v == tile {
 			return index
@@ -279,15 +279,15 @@ func (mesh *dtNavMesh) getTileIndex(tile *dtMeshTile) int {
 	}
 	return -1
 }
-func (mesh *dtNavMesh) getTileRef(tile *dtMeshTile) dtTileRef {
+func (mesh *DtNavMesh) getTileRef(tile *dtMeshTile) DtTileRef {
 	if tile == nil {
-		return dtTileRef(0)
+		return DtTileRef(0)
 	}
 	it := mesh.getTileIndex(tile)
-	return dtTileRef(mesh.encodePolyId(tile.salt, it, 0))
+	return DtTileRef(mesh.encodePolyId(tile.salt, it, 0))
 }
 
-func (mesh *dtNavMesh) getTileRefAt(x, y, layer int) dtTileRef {
+func (mesh *DtNavMesh) getTileRefAt(x, y, layer int) DtTileRef {
 	// Find tile based on hash.
 	h := computeTileHash(x, y, mesh.m_tileLutMask)
 	tile := mesh.m_posLookup[h]
@@ -303,7 +303,7 @@ func (mesh *dtNavMesh) getTileRefAt(x, y, layer int) dtTileRef {
 	return 0
 }
 
-func (mesh *dtNavMesh) connectExtLinks(tile *dtMeshTile, target *dtMeshTile, side int) {
+func (mesh *DtNavMesh) connectExtLinks(tile *dtMeshTile, target *dtMeshTile, side int) {
 	if tile == nil {
 		return
 	}
@@ -366,7 +366,7 @@ func (mesh *dtNavMesh) connectExtLinks(tile *dtMeshTile, target *dtMeshTile, sid
 	}
 }
 
-func (mesh *dtNavMesh) connectExtOffMeshLinks(tile *dtMeshTile, target *dtMeshTile, side int) {
+func (mesh *DtNavMesh) connectExtOffMeshLinks(tile *dtMeshTile, target *dtMeshTile, side int) {
 	if tile == nil {
 		return
 	}
@@ -428,7 +428,7 @@ func (mesh *dtNavMesh) connectExtOffMeshLinks(tile *dtMeshTile, target *dtMeshTi
 				landPolyIdx := mesh.decodePolyIdPoly(ref)
 				landPoly := tile.polys[landPolyIdx]
 				link := tile.links[tidx]
-				link.ref = mesh.getPolyRefBase(target) | dtPolyRef(targetCon.poly)
+				link.ref = mesh.getPolyRefBase(target) | DtPolyRef(targetCon.poly)
 				link.edge = 0xff
 				link.side = side
 				if side == -1 {
@@ -446,7 +446,7 @@ func (mesh *dtNavMesh) connectExtOffMeshLinks(tile *dtMeshTile, target *dtMeshTi
 
 }
 
-func (mesh *dtNavMesh) findNearestPolyInTile(tile *dtMeshTile, center []float64, halfExtents []float64) (nearestPt []float64, nearest dtPolyRef) {
+func (mesh *DtNavMesh) findNearestPolyInTile(tile *dtMeshTile, center []float64, halfExtents []float64) (nearestPt []float64, nearest DtPolyRef) {
 	nearestPt = make([]float64, 3)
 	bmin := dtVsub(center, halfExtents)
 	bmax := dtVadd(center, halfExtents)
@@ -460,7 +460,9 @@ func (mesh *dtNavMesh) findNearestPolyInTile(tile *dtMeshTile, center []float64,
 	for i := 0; i < polyCount; i++ {
 		ref := polys[i]
 		var d float64
-		closestPtPoly, posOverPoly := mesh.closestPointOnPoly(ref, center)
+		closestPtPoly := make([]float64, 3)
+		posOverPoly := false
+		mesh.closestPointOnPoly(ref, center, closestPtPoly, &posOverPoly)
 
 		// If a point is directly over a polygon and closer than
 		// climb height, favor that instead of straight line nearest point.
@@ -485,8 +487,8 @@ func (mesh *dtNavMesh) findNearestPolyInTile(tile *dtMeshTile, center []float64,
 	return nearestPt, nearest
 }
 
-func (mesh *dtNavMesh) queryPolygonsInTile(tile *dtMeshTile, qmin []float64, qmax []float64, maxPolys int) (polys []dtPolyRef, n int) {
-	polys = make([]dtPolyRef, 128)
+func (mesh *DtNavMesh) queryPolygonsInTile(tile *dtMeshTile, qmin []float64, qmax []float64, maxPolys int) (polys []DtPolyRef, n int) {
+	polys = make([]DtPolyRef, 128)
 	if tile.bvTree != nil {
 		node := 0
 		end := tile.header.bvNodeCount
@@ -522,7 +524,7 @@ func (mesh *dtNavMesh) queryPolygonsInTile(tile *dtMeshTile, qmin []float64, qma
 
 			if isLeafNode && overlap {
 				if n < maxPolys {
-					polys[n] = dtPolyRef(int(base) | tile.bvTree[node].i)
+					polys[n] = DtPolyRef(int(base) | tile.bvTree[node].i)
 				}
 				n++
 			}
@@ -556,7 +558,7 @@ func (mesh *dtNavMesh) queryPolygonsInTile(tile *dtMeshTile, qmin []float64, qma
 			}
 			if dtOverlapBounds(qmin, qmax, bmin, bmax) {
 				if n < maxPolys {
-					polys[n] = dtPolyRef(int(base) | i)
+					polys[n] = DtPolyRef(int(base) | i)
 					n++
 				}
 
@@ -566,33 +568,26 @@ func (mesh *dtNavMesh) queryPolygonsInTile(tile *dtMeshTile, qmin []float64, qma
 	}
 }
 
-func (mesh *dtNavMesh) closestPointOnPoly(ref dtPolyRef, pos []float64) (closest []float64, posOverPoly bool) {
-	closest = make([]float64, 3)
+func (mesh *DtNavMesh) closestPointOnPoly(ref DtPolyRef, pos []float64, closest []float64, posOverPoly *bool) {
 	tile, poly := mesh.getTileAndPolyByRefUnsafe(ref)
-	closest = dtVcopy(pos)
+	copy(closest, pos)
 	if height, ok := mesh.getPolyHeight(tile, poly, pos); ok {
 		closest[1] = height
-		if posOverPoly {
-			posOverPoly = true
-		}
+		*posOverPoly = true
 		return
 	}
-
-	if posOverPoly {
-		posOverPoly = false
-	}
-
+	*posOverPoly = false
 	// Off-mesh connections don't have detail polygons.
 	if poly.getType() == DT_POLYTYPE_OFFMESH_CONNECTION {
 		v0 := rcGetVert(tile.verts, poly.verts[0])
 		v1 := rcGetVert(tile.verts, poly.verts[1])
 		t, _ := dtDistancePtSegSqr2D(pos, v0, v1)
-		closest = dtVlerp(v0, v1, t)
+		dtVlerp(closest, v0, v1, t)
 		return
 	}
 
 	// Outside poly that is not an offmesh connection.
-	closest = closestPointOnDetailEdges(true, tile, poly, pos)
+	closestPointOnDetailEdges(true, tile, poly, pos, closest)
 	return
 }
 func getPolyIndexByTitle(tile *dtMeshTile, poly *dtPoly) int {
@@ -603,7 +598,7 @@ func getPolyIndexByTitle(tile *dtMeshTile, poly *dtPoly) int {
 	}
 	return -1
 }
-func (mesh *dtNavMesh) getPolyHeight(tile *dtMeshTile, poly *dtPoly, pos []float64) (height float64, ok bool) {
+func (mesh *DtNavMesh) getPolyHeight(tile *dtMeshTile, poly *dtPoly, pos []float64) (height float64, ok bool) {
 	// Off-mesh connections do not have detail polys and getting height
 	// over them does not make sense.
 	if poly.getType() == DT_POLYTYPE_OFFMESH_CONNECTION {
@@ -640,7 +635,8 @@ func (mesh *dtNavMesh) getPolyHeight(tile *dtMeshTile, poly *dtPoly, pos []float
 	// or larger floating point values) the point is on an edge, so just select
 	// closest. This should almost never happen so the extra iteration here is
 	// ok.
-	closest := closestPointOnDetailEdges(false, tile, poly, pos)
+	closest := make([]float64, 3)
+	closestPointOnDetailEdges(false, tile, poly, pos, closest)
 	height = closest[1]
 	return height, true
 
@@ -651,13 +647,13 @@ func (mesh *dtNavMesh) getPolyHeight(tile *dtMeshTile, poly *dtPoly, pos []float
 // / @warning Only use this function if it is known that the provided polygon
 // / reference is valid. This function is faster than #getTileAndPolyByRef, but
 // / it does not validate the reference.
-func (mesh *dtNavMesh) getTileAndPolyByRefUnsafe(ref dtPolyRef) (tile *dtMeshTile, poly *dtPoly) {
+func (mesh *DtNavMesh) getTileAndPolyByRefUnsafe(ref DtPolyRef) (tile *dtMeshTile, poly *dtPoly) {
 	_, it, ip := mesh.decodePolyId(ref)
 	tile = mesh.m_tiles[it]
 	poly = mesh.m_tiles[it].polys[ip]
 	return
 }
-func (mesh *dtNavMesh) getTileAndPolyByRef(ref dtPolyRef) (tile *dtMeshTile, poly *dtPoly, status dtStatus) {
+func (mesh *DtNavMesh) getTileAndPolyByRef(ref DtPolyRef) (tile *dtMeshTile, poly *dtPoly, status DtStatus) {
 	if ref == 0 {
 		return tile, poly, DT_FAILURE
 	}
@@ -677,8 +673,7 @@ func (mesh *dtNavMesh) getTileAndPolyByRef(ref dtPolyRef) (tile *dtMeshTile, pol
 	return tile, poly, DT_SUCCESS
 }
 
-func closestPointOnDetailEdges(onlyBoundary bool, tile *dtMeshTile, poly *dtPoly, pos []float64) (closest []float64) {
-	closest = make([]float64, 3)
+func closestPointOnDetailEdges(onlyBoundary bool, tile *dtMeshTile, poly *dtPoly, pos []float64, closest []float64) {
 	ip := getPolyIndexByTitle(tile, poly)
 	pd := tile.detailMeshes[ip]
 	dmin := math.MaxFloat64
@@ -723,8 +718,7 @@ func closestPointOnDetailEdges(onlyBoundary bool, tile *dtMeshTile, poly *dtPoly
 		}
 	}
 
-	closest = dtVlerp(pmin, pmax, tmin)
-	return closest
+	dtVlerp(closest, pmin, pmax, tmin)
 }
 
 // / @par
@@ -751,7 +745,7 @@ func dtPointInPolygon(pt, verts []float64, nverts int) bool {
 type dtTileState struct {
 	magic   int       // Magic number, used to identify the data.
 	version int       // Data version number.
-	ref     dtTileRef // Tile ref at the time of storing the data.
+	ref     DtTileRef // Tile ref at the time of storing the data.
 }
 
 type dtPolyState struct {
@@ -762,9 +756,9 @@ type dtPolyState struct {
 // / @par
 // /
 // / Tile state includes non-structural data such as polygon flags, area ids, etc.
-// / @note This function does not impact the tile's #dtTileRef and #dtPolyRef's.
+// / @note This function does not impact the tile's #DtTileRef and #DtPolyRef's.
 // / @see #storeTileState
-func (mesh *dtNavMesh) restoreTileState(tile *dtMeshTile, tileState *dtTileState, polyStates []*dtPolyState, maxDataSize int) dtStatus {
+func (mesh *DtNavMesh) restoreTileState(tile *dtMeshTile, tileState *dtTileState, polyStates []*dtPolyState, maxDataSize int) DtStatus {
 	// Make sure there is enough space to store the state.
 	// Check that the restore is possible.
 	if tileState.magic != DT_NAVMESH_STATE_MAGIC {
@@ -796,7 +790,7 @@ func (mesh *dtNavMesh) restoreTileState(tile *dtMeshTile, tileState *dtTileState
 // / space is full, or there is a tile already at the specified reference.
 // /
 // / The lastRef parameter is used to restore a tile with the same tile
-// / reference it had previously used.  In this case the #dtPolyRef's for the
+// / reference it had previously used.  In this case the #DtPolyRef's for the
 // / tile will be restored to the same values they were before the tile was
 // / removed.
 // /
@@ -806,7 +800,7 @@ func (mesh *dtNavMesh) restoreTileState(tile *dtMeshTile, tileState *dtTileState
 // / removed from this nav mesh.
 // /
 // / @see dtCreateNavMeshData, #removeTile
-func (mesh *dtNavMesh) addTile(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int, lastRef dtTileRef) (result dtTileRef, status dtStatus) {
+func (mesh *DtNavMesh) addTile(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
 
 	if header.magic != DT_NAVMESH_MAGIC {
@@ -839,7 +833,7 @@ func (mesh *dtNavMesh) addTile(header *dtMeshHeader, titleData *dtMeshTile, data
 		}
 	} else {
 		// Try to relocate the tile to specific index with same salt.
-		tileIndex := mesh.decodePolyIdTile(dtPolyRef(lastRef))
+		tileIndex := mesh.decodePolyIdTile(DtPolyRef(lastRef))
 		if tileIndex >= mesh.m_maxTiles {
 			return result, DT_FAILURE | DT_OUT_OF_MEMORY
 		}
@@ -865,7 +859,7 @@ func (mesh *dtNavMesh) addTile(header *dtMeshHeader, titleData *dtMeshTile, data
 		}
 
 		// Restore salt.
-		tile.salt = mesh.decodePolyIdSalt(dtPolyRef(lastRef))
+		tile.salt = mesh.decodePolyIdSalt(DtPolyRef(lastRef))
 	}
 
 	// Make sure we could allocate a tile.
@@ -940,7 +934,7 @@ func (mesh *dtNavMesh) addTile(header *dtMeshHeader, titleData *dtMeshTile, data
 	return result, DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) baseOffMeshLinks(tile *dtMeshTile) {
+func (mesh *DtNavMesh) baseOffMeshLinks(tile *dtMeshTile) {
 	if tile == nil {
 		return
 	}
@@ -988,7 +982,7 @@ func (mesh *dtNavMesh) baseOffMeshLinks(tile *dtMeshTile) {
 			landPolyIdx := mesh.decodePolyIdPoly(ref)
 			landPoly := tile.polys[landPolyIdx]
 			link := tile.links[tidx]
-			link.ref = base | dtPolyRef(con.poly)
+			link.ref = base | DtPolyRef(con.poly)
 			link.edge = 0xff
 			link.side = 0xff
 			link.bmax = 0
@@ -1000,7 +994,7 @@ func (mesh *dtNavMesh) baseOffMeshLinks(tile *dtMeshTile) {
 	}
 }
 
-func (mesh *dtNavMesh) connectIntLinks(tile *dtMeshTile) {
+func (mesh *DtNavMesh) connectIntLinks(tile *dtMeshTile) {
 	if tile == nil {
 		return
 	}
@@ -1026,7 +1020,7 @@ func (mesh *dtNavMesh) connectIntLinks(tile *dtMeshTile) {
 			idx := allocLink(tile)
 			if idx != DT_NULL_LINK {
 				link := tile.links[idx]
-				link.ref = base | (dtPolyRef)(poly.neis[j]-1)
+				link.ref = base | (DtPolyRef)(poly.neis[j]-1)
 				link.edge = j
 				link.side = 0xff
 				link.bmax = 0
@@ -1039,7 +1033,7 @@ func (mesh *dtNavMesh) connectIntLinks(tile *dtMeshTile) {
 	}
 }
 
-func (mesh *dtNavMesh) getTileAt(x, y, layer int) *dtMeshTile {
+func (mesh *DtNavMesh) getTileAt(x, y, layer int) *dtMeshTile {
 	// Find tile based on hash.
 	h := computeTileHash(x, y, mesh.m_tileLutMask)
 	tile := mesh.m_posLookup[h]
@@ -1058,13 +1052,13 @@ func (mesh *dtNavMesh) getTileAt(x, y, layer int) *dtMeshTile {
 // / it can be added back to the navigation mesh at a later point.
 // /
 // / @see #addTile
-func (mesh *dtNavMesh) removeTile(ref dtTileRef) (data []int, dataSize int, status dtStatus) {
+func (mesh *DtNavMesh) removeTile(ref DtTileRef) (data []int, dataSize int, status DtStatus) {
 	if ref == 0 {
 		return data, dataSize, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	tileIndex := mesh.decodePolyIdTile((dtPolyRef(ref)))
-	tileSalt := mesh.decodePolyIdSalt((dtPolyRef(ref)))
+	tileIndex := mesh.decodePolyIdTile((DtPolyRef(ref)))
+	tileSalt := mesh.decodePolyIdSalt((DtPolyRef(ref)))
 	if tileIndex >= mesh.m_maxTiles {
 		return data, dataSize, DT_FAILURE | DT_INVALID_PARAM
 	}
@@ -1161,7 +1155,7 @@ func (mesh *dtNavMesh) removeTile(ref dtTileRef) (data []int, dataSize int, stat
 	return data, dataSize, DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) getNeighbourTilesAt(x, y, side, maxTiles int) ([]*dtMeshTile, int) {
+func (mesh *DtNavMesh) getNeighbourTilesAt(x, y, side, maxTiles int) ([]*dtMeshTile, int) {
 	nx := x
 	ny := y
 	switch side {
@@ -1198,7 +1192,7 @@ func (mesh *dtNavMesh) getNeighbourTilesAt(x, y, side, maxTiles int) ([]*dtMeshT
 	return mesh.getTilesAt(nx, ny, maxTiles)
 }
 
-func (mesh *dtNavMesh) getTilesAt(x, y int, maxTiles int) ([]*dtMeshTile, int) {
+func (mesh *DtNavMesh) getTilesAt(x, y int, maxTiles int) ([]*dtMeshTile, int) {
 	MAX_NEIS := 32
 	tiles := make([]*dtMeshTile, MAX_NEIS)
 	n := 0
@@ -1218,7 +1212,7 @@ func (mesh *dtNavMesh) getTilesAt(x, y int, maxTiles int) ([]*dtMeshTile, int) {
 
 	return tiles, n
 }
-func (mesh *dtNavMesh) isValidPolyRef(ref dtPolyRef) bool {
+func (mesh *DtNavMesh) isValidPolyRef(ref DtPolyRef) bool {
 	if ref == 0 {
 		return false
 	}
@@ -1242,7 +1236,7 @@ func (mesh *dtNavMesh) isValidPolyRef(ref dtPolyRef) bool {
 // / inside a normal polygon. So an off-mesh connection is "entered" from a
 // / normal polygon at one of its endpoints. This is the polygon identified by
 // / the prevRef parameter.
-func (mesh *dtNavMesh) getOffMeshConnectionPolyEndPoints(prevRef dtPolyRef, polyRef dtPolyRef, startPos []float64, endPos []float64) dtStatus {
+func (mesh *DtNavMesh) getOffMeshConnectionPolyEndPoints(prevRef DtPolyRef, polyRef DtPolyRef, startPos []float64, endPos []float64) DtStatus {
 
 	if polyRef == 0 {
 		return DT_FAILURE
@@ -1288,7 +1282,7 @@ func (mesh *dtNavMesh) getOffMeshConnectionPolyEndPoints(prevRef dtPolyRef, poly
 	return DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) getOffMeshConnectionByRef(ref dtPolyRef) *dtOffMeshConnection {
+func (mesh *DtNavMesh) getOffMeshConnectionByRef(ref DtPolyRef) *dtOffMeshConnection {
 
 	if ref == 0 {
 		return nil
@@ -1320,7 +1314,7 @@ func (mesh *dtNavMesh) getOffMeshConnectionByRef(ref dtPolyRef) *dtOffMeshConnec
 	return tile.offMeshCons[idx]
 }
 
-func (mesh *dtNavMesh) setPolyFlags(ref dtPolyRef, flags int) dtStatus {
+func (mesh *DtNavMesh) setPolyFlags(ref DtPolyRef, flags int) DtStatus {
 	if ref == 0 {
 		return DT_FAILURE
 	}
@@ -1341,7 +1335,7 @@ func (mesh *dtNavMesh) setPolyFlags(ref dtPolyRef, flags int) dtStatus {
 	return DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) getPolyFlags(ref dtPolyRef) (resultFlags int, status dtStatus) {
+func (mesh *DtNavMesh) getPolyFlags(ref DtPolyRef) (resultFlags int, status DtStatus) {
 	if ref == 0 {
 		return resultFlags, DT_FAILURE
 	}
@@ -1363,7 +1357,7 @@ func (mesh *dtNavMesh) getPolyFlags(ref dtPolyRef) (resultFlags int, status dtSt
 	return resultFlags, DT_SUCCESS
 }
 
-func (mesh *dtNavMesh) setPolyArea(ref dtPolyRef, area int) dtStatus {
+func (mesh *DtNavMesh) setPolyArea(ref DtPolyRef, area int) DtStatus {
 	if ref == 0 {
 		return DT_FAILURE
 	}
@@ -1384,7 +1378,7 @@ func (mesh *dtNavMesh) setPolyArea(ref dtPolyRef, area int) dtStatus {
 
 	return DT_SUCCESS
 }
-func (mesh *dtNavMesh) getPolyArea(ref dtPolyRef) (resultArea int, status dtStatus) {
+func (mesh *DtNavMesh) getPolyArea(ref DtPolyRef) (resultArea int, status DtStatus) {
 	if ref == 0 {
 		return resultArea, DT_FAILURE
 	}

@@ -7,7 +7,7 @@ import (
 
 // / Represents the source data used to build an navigation mesh tile.
 // / @ingroup detour
-type dtNavMeshCreateParams struct {
+type DtNavMeshCreateParams struct {
 
 	/// @name Polygon Mesh Attributes
 	/// Used to create the base navigation graph.
@@ -288,7 +288,7 @@ func subdivide(items []*BVItem, nitems int, imin, imax int, curNode *int, nodes 
 	}
 }
 
-func createBVTree(params *dtNavMeshCreateParams, nodes []*dtBVNode) int {
+func createBVTree(params *DtNavMeshCreateParams, nodes []*dtBVNode) int {
 	// Build tree
 	quantFactor := 1 / params.cs
 	var items = make([]*BVItem, params.polyCount)
@@ -373,8 +373,8 @@ func createBVTree(params *dtNavMeshCreateParams, nodes []*dtBVNode) int {
 // / used to free the memory will be determined by how the tile is added to the navigation
 // / mesh.
 // /
-// / @see dtNavMesh, dtNavMesh::addTile()
-func dtCreateNavMeshData(params *dtNavMeshCreateParams) bool {
+// / @see DtNavMesh, DtNavMesh::addTile()
+func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	if params.nvp > DT_VERTS_PER_POLYGON {
 		return false
 	}

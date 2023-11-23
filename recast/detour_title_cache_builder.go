@@ -101,13 +101,13 @@ func newDtTempContour(vbuf []int, nvbuf int, pbuf []int, npbuf int) *dtTempConto
 type dtTileCacheCompressor interface {
 	maxCompressedSize(bufferSize int) int
 	compress(buffer []byte, bufferSize int,
-		compressed, maxCompressedSize int, compressedSize *int) dtStatus
+		compressed, maxCompressedSize int, compressedSize *int) DtStatus
 	decompress(compressed []byte, compressedSize int,
-		buffer []byte, maxBufferSizeint, bufferSize *int) dtStatus
+		buffer []byte, maxBufferSizeint, bufferSize *int) DtStatus
 }
 
 type dtTileCacheMeshProcess interface {
-	process(params *dtNavMeshCreateParams, polyAreas []int, polyFlags []int)
+	process(params *DtNavMeshCreateParams, polyAreas []int, polyFlags []int)
 }
 
 func overlapRangeExl(amin, amax,
@@ -157,7 +157,7 @@ func canMerge(oldRegId, newRegId int, regs []*dtLayerMonotoneRegion, nregs int) 
 }
 func dtBuildTileCacheRegions(
 	layer *dtTileCacheLayer,
-	walkableClimb int) dtStatus {
+	walkableClimb int) DtStatus {
 
 	w := layer.header.width
 	h := layer.header.height
@@ -899,7 +899,7 @@ func titleCacheBuildMeshAdjacency(
 func dtBuildTileCacheContours(
 	layer *dtTileCacheLayer,
 	walkableClimb int, maxError float64,
-	lcset *dtTileCacheContourSet) dtStatus {
+	lcset *dtTileCacheContourSet) DtStatus {
 
 	w := layer.header.width
 	h := layer.header.height
@@ -1027,7 +1027,7 @@ type titleCacheRcEdge struct {
 
 func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 	data []byte, compressedSize int,
-) (layerOut *dtTileCacheLayer, status dtStatus) {
+) (layerOut *dtTileCacheLayer, status DtStatus) {
 	//if compressedHeader.magic != DT_TILECACHE_MAGIC {
 	//	return nil, DT_FAILURE | DT_WRONG_MAGIC
 	//}
@@ -1052,9 +1052,9 @@ func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 	//memcpy(header, compressedHeader, headerSize);
 	//// Decompress grid.
 	//int size = 0;
-	//dtStatus status = comp.decompress(compressed+headerSize, compressedSize-headerSize,
+	//DtStatus status = comp.decompress(compressed+headerSize, compressedSize-headerSize,
 	//	grids, gridsSize, &size);
-	//if (status.dtStatusFailed()) {
+	//if (status.DtStatusFailed()) {
 	//	alloc->free(buffer);
 	//	return status;
 	//}
@@ -1069,7 +1069,7 @@ func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 }
 
 func dtMarkCylinderArea(layer *dtTileCacheLayer, orig []float64, cs float64, ch float64,
-	pos []float64, radius float64, height float64, areaId int) dtStatus {
+	pos []float64, radius float64, height float64, areaId int) DtStatus {
 	bmin := make([]float64, 3)
 	bmax := make([]float64, 3)
 	bmin[0] = pos[0] - radius
@@ -1142,7 +1142,7 @@ func dtMarkCylinderArea(layer *dtTileCacheLayer, orig []float64, cs float64, ch 
 }
 
 func dtMarkBoxArea(layer *dtTileCacheLayer, orig []float64, cs, ch float64,
-	bmin, bmax []float64, areaId int) dtStatus {
+	bmin, bmax []float64, areaId int) DtStatus {
 	w := layer.header.width
 	h := layer.header.height
 	ics := 1.0 / cs
@@ -1196,7 +1196,7 @@ func dtMarkBoxArea(layer *dtTileCacheLayer, orig []float64, cs, ch float64,
 }
 
 func dtMarkBoxArea1(layer *dtTileCacheLayer, orig []float64, cs float64, ch float64,
-	center []float64, halfExtents []float64, rotAux []float64, areaId int) dtStatus {
+	center []float64, halfExtents []float64, rotAux []float64, areaId int) DtStatus {
 	w := layer.header.width
 	h := layer.header.height
 	ics := 1.0 / cs
@@ -1270,7 +1270,7 @@ func dtMarkBoxArea1(layer *dtTileCacheLayer, orig []float64, cs float64, ch floa
 
 func dtBuildTileCachePolyMesh(
 	lcset *dtTileCacheContourSet,
-	mesh *dtTileCachePolyMesh) dtStatus {
+	mesh *dtTileCachePolyMesh) DtStatus {
 	maxVertices := 0
 	maxTris := 0
 	maxVertsPerCont := 0
@@ -1427,7 +1427,7 @@ func dtBuildTileCachePolyMesh(
 			}
 
 			status := titleCacheRemoveVertex(mesh, i, maxTris)
-			if status.dtStatusFailed() {
+			if status.DtStatusFailed() {
 				return status
 			}
 
@@ -1739,7 +1739,7 @@ func titleCacheCanRemoveVertex(mesh *dtTileCachePolyMesh, rem int) bool {
 	return true
 }
 
-func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) dtStatus {
+func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtStatus {
 	// Count number of polygons to remove.
 	numRemovedVerts := 0
 	for i := 0; i < mesh.npolys; i++ {

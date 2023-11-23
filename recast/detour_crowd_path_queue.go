@@ -8,14 +8,14 @@ type PathQuery struct {
 	ref dtPathQueueRef
 	/// Path find start and end location.
 	startPos, endPos [3]float64
-	startRef, endRef dtPolyRef
+	startRef, endRef DtPolyRef
 	/// Result.
-	path  []dtPolyRef
+	path  []DtPolyRef
 	npath int
 	/// State.
-	status    dtStatus
+	status    DtStatus
 	keepAlive int
-	filter    *dtQueryFilter ///< TODO: This is potentially dangerous!
+	filter    *DtQueryFilter ///< TODO: This is potentially dangerous!
 }
 
 type dtPathQueue struct {
@@ -42,13 +42,13 @@ func (d *dtPathQueue) purge() {
 	}
 }
 
-func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav *dtNavMesh) bool {
+func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav *DtNavMesh) bool {
 	d.purge()
 	d.m_navquery = NewDtNavMeshQuery(nav, maxSearchNodeCount)
 	d.m_maxPathSize = maxPathSize
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		d.m_queue[i].ref = DT_PATHQ_INVALID
-		d.m_queue[i].path = make([]dtPolyRef, d.m_maxPathSize)
+		d.m_queue[i].path = make([]DtPolyRef, d.m_maxPathSize)
 	}
 
 	d.m_queueHead = 0
@@ -73,7 +73,7 @@ func (d *dtPathQueue) update(maxIters int) {
 		}
 
 		// Handle completed request.
-		if q.status.dtStatusSucceed() || q.status.dtStatusFailed() {
+		if q.status.DtStatusSucceed() || q.status.DtStatusFailed() {
 			// If the path result has not been read in few frames, free the slot.
 			q.keepAlive++
 			if q.keepAlive > MAX_KEEP_ALIVE {
@@ -87,16 +87,16 @@ func (d *dtPathQueue) update(maxIters int) {
 
 		// Handle query start.
 		if q.status == 0 {
-			q.status = d.m_navquery.initSlicedFindPath(q.startRef, q.endRef, q.startPos[:], q.endPos[:], q.filter, 0)
+			q.status = d.m_navquery.InitSlicedFindPath(q.startRef, q.endRef, q.startPos[:], q.endPos[:], q.filter, 0)
 		}
 		// Handle query in progress.
-		if q.status.dtStatusInProgress() {
+		if q.status.DtStatusInProgress() {
 			iters := 0
-			iters, q.status = d.m_navquery.updateSlicedFindPath(iterCount)
+			iters, q.status = d.m_navquery.UpdateSlicedFindPath(iterCount)
 			iterCount -= iters
 		}
-		if q.status.dtStatusSucceed() {
-			q.npath, q.status = d.m_navquery.finalizeSlicedFindPath(q.path, d.m_maxPathSize)
+		if q.status.DtStatusSucceed() {
+			q.npath, q.status = d.m_navquery.FinalizeSlicedFindPath(q.path, d.m_maxPathSize)
 		}
 
 		if iterCount <= 0 {
@@ -107,9 +107,9 @@ func (d *dtPathQueue) update(maxIters int) {
 	}
 }
 
-func (d *dtPathQueue) request(startRef, endRef dtPolyRef,
+func (d *dtPathQueue) request(startRef, endRef DtPolyRef,
 	startPos, endPos []float64,
-	filter *dtQueryFilter) dtPathQueueRef {
+	filter *DtQueryFilter) dtPathQueueRef {
 	// Find empty slot
 	slot := -1
 	for i := 0; i < d.MAX_QUEUE; i++ {
@@ -144,7 +144,7 @@ func (d *dtPathQueue) request(startRef, endRef dtPolyRef,
 	return ref
 }
 
-func (d *dtPathQueue) getRequestStatus(ref dtPathQueueRef) dtStatus {
+func (d *dtPathQueue) getRequestStatus(ref dtPathQueueRef) DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			return d.m_queue[i].status
@@ -154,7 +154,7 @@ func (d *dtPathQueue) getRequestStatus(ref dtPathQueueRef) dtStatus {
 	return DT_FAILURE
 }
 
-func (d *dtPathQueue) getPathResult(ref dtPathQueueRef, path []dtPolyRef, pathSize *int, maxPath int) dtStatus {
+func (d *dtPathQueue) getPathResult(ref dtPathQueueRef, path []DtPolyRef, pathSize *int, maxPath int) DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			q := d.m_queue[i]

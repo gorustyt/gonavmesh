@@ -2,12 +2,8 @@ package gui
 
 import (
 	"github.com/AllenDang/giu"
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"image/color"
-	"log"
 	"math"
-	"os"
-	"unsafe"
 )
 
 const (
@@ -45,17 +41,6 @@ func (render *imguiRender) init(fontPath string) {
 		render.circleVerts[i*2+0] = math.Cos(a)
 		render.circleVerts[i*2+1] = math.Sin(a)
 	}
-	// Load font.
-	data, err := os.ReadFile(fontPath)
-	if err != nil {
-		panic(err)
-	}
-	// can free ttf_buffer at this point
-	gl.GenTextures(1, &render.ftex)
-	gl.BindTexture(gl.TEXTURE_2D, render.ftex)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, 512, 512, 0, gl.ALPHA, gl.UNSIGNED_BYTE, unsafe.Pointer(&data))
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	return
 }
 
@@ -71,6 +56,7 @@ func (render *imguiRender) render(cmds ...*imguiGfxCmd) {
 }
 
 func (render *imguiRender) doRender(cmd *imguiGfxCmd, s float64) {
+
 	switch cmd.Type {
 	case IMGUI_GFXCMD_RECT:
 		if cmd.rect.r == 0 {
@@ -105,10 +91,10 @@ func (render *imguiRender) doRender(cmd *imguiGfxCmd, s float64) {
 		render.drawText(float64(cmd.text.x), float64(cmd.text.y), cmd.text.text, cmd.text.align, cmd.col)
 	case IMGUI_GFXCMD_SCISSOR:
 		if cmd.flags > 0 {
-			gl.Enable(gl.SCISSOR_TEST)
-			gl.Scissor(int32(cmd.rect.x), int32(cmd.rect.y), int32(cmd.rect.w), int32(cmd.rect.h))
+			//gl.Enable(gl.SCISSOR_TEST)
+			//gl.Scissor(int32(cmd.rect.x), int32(cmd.rect.y), int32(cmd.rect.w), int32(cmd.rect.h))
 		} else {
-			gl.Disable(gl.SCISSOR_TEST)
+			//gl.Disable(gl.SCISSOR_TEST)
 		}
 	}
 }
@@ -129,11 +115,11 @@ func (render *imguiRender) drawPolygon(coords []float64, numCoords int, r float6
 			d = 1.0 / d
 			dx *= d
 			dy *= d
-			j = i
-			i++
 		}
 		render.tempNormals[j*2+0] = dy
 		render.tempNormals[j*2+1] = -dx
+		j = i
+		i++
 	}
 	i = 0
 	j = numCoords - 1
@@ -162,13 +148,13 @@ func (render *imguiRender) drawPolygon(coords []float64, numCoords int, r float6
 	i = 0
 	j = numCoords - 1
 	for i < numCoords {
-		render.pen.AddTriangle(imguiPoint(coords[i*2:]), imguiPoint(coords[j*2:]), imguiPoint(render.tempCoords[j*2:]), col, float32(r))
-		render.pen.AddTriangle(imguiPoint(render.tempCoords[j*2:]), imguiPoint(render.tempCoords[i*2:]), imguiPoint(coords[i*2:]), col, float32(r))
+		render.pen.AddTriangle(imguiPoint(coords[i*2:], render.ui.height), imguiPoint(coords[j*2:], render.ui.height), imguiPoint(render.tempCoords[j*2:], render.ui.height), col, float32(r))
+		render.pen.AddTriangle(imguiPoint(render.tempCoords[j*2:], render.ui.height), imguiPoint(render.tempCoords[i*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
 		j = i
 		i++
 	}
 	for i = 2; i < numCoords; i++ {
-		render.pen.AddTriangle(imguiPoint(coords), imguiPoint(coords[(i-1)*2:]), imguiPoint(coords[i*2:]), col, float32(r))
+		render.pen.AddTriangle(imguiPoint(coords, render.ui.height), imguiPoint(coords[(i-1)*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
 	}
 }
 
@@ -262,14 +248,11 @@ func (render *imguiRender) drawLine(x0, y0, x1, y1, r, fth float64, col color.RG
 }
 
 func (render *imguiRender) drawText(x, y float64, text string, align giu.AlignmentType, col color.RGBA) {
-	//if render.ftex == 0 {
-	//	return
-	//}
 	if text == "" {
 		return
 	}
-	log.Printf("drwa text:x:%v,y:%v", x, y)
-	render.pen.AddText(imguiPoint([]float64{x, y}), col, text)
+
+	render.pen.AddText(imguiPoint([]float64{x, y}, render.ui.height), col, text)
 }
 
 func (render *imguiRender) Build() {

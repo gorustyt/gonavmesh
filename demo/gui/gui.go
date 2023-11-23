@@ -2,9 +2,7 @@ package gui
 
 import (
 	g "github.com/AllenDang/giu"
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/go-gl/mathgl/mgl32"
 	"log"
 	"math"
 )
@@ -27,6 +25,7 @@ type Gui struct {
 	width, height int
 	sample        *Sample
 	InputGeom     *InputGeom
+	font          *g.FontInfo
 }
 
 func NewGui(title string) *Gui {
@@ -41,9 +40,11 @@ func NewGui(title string) *Gui {
 	ui.width, ui.height = getWH()
 	ui.layout = newLayout(ui)
 	ui.render = newImguiRender(ui)
-	ui.mainWindow = g.NewMasterWindow(ui.title, ui.width, ui.height, g.MasterWindowFlagsNotResizable)
+	ui.mainWindow = g.NewMasterWindow(ui.title, ui.width, ui.height, 0)
 	ui.mainWindow.SetCloseCallback(ui.shutdown)
 	ui.mainWindow.SetDropCallback(ui.fileDrop)
+	ui.font = g.Context.FontAtlas.AddFont("DroidSans.ttf", 20)
+	ui.mainWindow.SetBgColor(imguiRGBA(169, 169, 169, 5))
 	return ui
 }
 
@@ -57,30 +58,12 @@ func (ui *Gui) fileDrop(files []string) {
 }
 
 func (ui *Gui) Run() {
-	cameraEulers := []float32{45, -45}
-	cameraPos := []float64{0, 0, 0}
-	camr := float32(1000.0)
 	ui.mainWindow.Run(func() {
-		gl.Viewport(0, 0, int32(ui.width), int32(ui.height))
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		gl.Enable(gl.BLEND)
-		gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-		gl.Disable(gl.TEXTURE_2D)
-		gl.Enable(gl.DEPTH_TEST)
-
-		// Compute the projection matrix.
-		gl.MatrixLoadIdentityEXT(gl.PATH_PROJECTION_NV)
-		mgl32.Perspective(50.0, float32(ui.width)/float32(ui.height), 1.0, camr)
-		projectionMatrix := make([]float64, 16)
-		gl.GetDoublev(gl.PATH_PROJECTION_NV, &projectionMatrix[0])
-		// Compute the modelview matrix.
-		gl.MatrixLoadIdentityEXT(gl.PATH_MODELVIEW_NV)
-		gl.MatrixRotatefEXT(gl.PATH_MODELVIEW_NV, cameraEulers[0], 1, 0, 0)
-		gl.MatrixRotatefEXT(gl.PATH_MODELVIEW_NV, cameraEulers[1], 0, 1, 0)
-		gl.MatrixTranslatedEXT(gl.PATH_MODELVIEW_NV, -cameraPos[0], -cameraPos[1], -cameraPos[2])
-		modelviewMatrix := make([]float64, 16)
-		gl.GetDoublev(gl.PATH_MODELVIEW_NV, &modelviewMatrix[0])
-		g.SingleWindow().Layout(ui.layout, ui.render)
+		g.SingleWindow().Layout(g.Custom(func() {
+			g.PushFont(ui.font)
+		}), ui.layout, ui.render, g.Custom(func() {
+			g.PopFont()
+		}))
 	})
 }
 

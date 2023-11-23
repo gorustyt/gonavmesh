@@ -8,6 +8,7 @@ label {
 }
 
 button {
+        margin-left:100px;
         color: red;
         button-color: yellow;
 }

@@ -11,14 +11,14 @@ const (
 const (
 	H_SCALE = 0.999 // Search heuristic scale.
 
-	/// Vertex flags returned by dtNavMeshQuery::findStraightPath.
+	/// Vertex flags returned by DtNavMeshQuery::findStraightPath.
 	DT_STRAIGHTPATH_START              = 0x01 ///< The vertex is the start position in the path.
 	DT_STRAIGHTPATH_END                = 0x02 ///< The vertex is the end position in the path.
 	DT_STRAIGHTPATH_OFFMESH_CONNECTION = 0x04 ///< The vertex is the start of an off-mesh connection.
 
 )
 const (
-	/// Options for dtNavMeshQuery::findStraightPath.
+	/// Options for DtNavMeshQuery::findStraightPath.
 	DT_STRAIGHTPATH_AREA_CROSSINGS = 0x01 ///< Add a vertex at every polygon edge crossing where area changes.
 	DT_STRAIGHTPATH_ALL_CROSSINGS  = 0x02 ///< Add a vertex at every polygon edge crossing.
 )
@@ -28,13 +28,13 @@ var (
 )
 
 type dtQueryData struct {
-	status           dtStatus
+	status           DtStatus
 	lastBestNode     *dtNode
 	lastBestNodeCost float64
-	startRef, endRef dtPolyRef
+	startRef, endRef DtPolyRef
 	startPos         [3]float64
 	endPos           [3]float64
-	filter           *dtQueryFilter
+	filter           *DtQueryFilter
 	options          int
 	raycastLimitSqr  float64
 }
@@ -53,8 +53,8 @@ type NavMeshQuery interface {
 	///  							[(polyRef) * @p pathCount]
 	///  @param[out]	pathCount	The number of polygons returned in the @p path array.
 	///  @param[in]		maxPath		The maximum number of polygons the @p path array can hold. [Limit: >= 1]
-	findPath(startRef, endRef dtPolyRef,
-		startPos, endPos []float64, filter *dtQueryFilter, path []dtPolyRef, maxPath int) (pathCount int, status dtStatus)
+	FindPath(startRef, endRef DtPolyRef,
+		startPos, endPos []float64, filter *DtQueryFilter, path []DtPolyRef, maxPath int) (pathCount int, status DtStatus)
 	/// Finds the straight path from the start to the end position within the polygon corridor.
 	///  @param[in]		startPos			Path start position. [(x, y, z)]
 	///  @param[in]		endPos				Path end position. [(x, y, z)]
@@ -67,10 +67,10 @@ type NavMeshQuery interface {
 	///  @param[in]		maxStraightPath		The maximum number of points the straight path arrays can hold.  [Limit: > 0]
 	///  @param[in]		options				Query options. (see: #dtStraightPathOptions)
 	/// @returns The status flags for the query.
-	findStraightPath(startPos, endPos []float64,
-		path []dtPolyRef, pathSize int,
-		straightPath []float64, straightPathFlags []int, straightPathRefs []dtPolyRef,
-		maxStraightPath int, options int) (straightPathCount int, status dtStatus)
+	FindStraightPath(startPos, endPos []float64,
+		path []DtPolyRef, pathSize int,
+		straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef,
+		maxStraightPath int, options int) (straightPathCount int, status DtStatus)
 	/// Initializes a sliced path query.
 	///  @param[in]		startRef	The reference id of the start polygon.
 	///  @param[in]		endRef		The reference id of the end polygon.
@@ -79,20 +79,20 @@ type NavMeshQuery interface {
 	///  @param[in]		filter		The polygon filter to apply to the query.
 	///  @param[in]		options		query options (see: #dtFindPathOptions)
 	/// @returns The status flags for the query.
-	initSlicedFindPath(startRef, endRef dtPolyRef,
-		startPos, endPos []float64, filter *dtQueryFilter, options int) dtStatus
+	InitSlicedFindPath(startRef, endRef DtPolyRef,
+		startPos, endPos []float64, filter *DtQueryFilter, options int) DtStatus
 	/// Updates an in-progress sliced path query.
 	///  @param[in]		maxIter		The maximum number of iterations to perform.
 	///  @param[out]	doneIters	The actual number of iterations completed. [opt]
 	/// @returns The status flags for the query.
-	updateSlicedFindPath(maxIter int) (doneIters int, status dtStatus)
+	UpdateSlicedFindPath(maxIter int) (doneIters int, status DtStatus)
 	/// Finalizes and returns the results of a sliced path query.
 	///  @param[out]	path		An ordered list of polygon references representing the path. (Start to end.)
 	///  							[(polyRef) * @p pathCount]
 	///  @param[out]	pathCount	The number of polygons returned in the @p path array.
 	///  @param[in]		maxPath		The max number of polygons the path array can hold. [Limit: >= 1]
 	/// @returns The status flags for the query.
-	finalizeSlicedFindPath(path []dtPolyRef, maxPath int) (pathCount int, status dtStatus)
+	FinalizeSlicedFindPath(path []DtPolyRef, maxPath int) (pathCount int, status DtStatus)
 	/// Finalizes and returns the results of an incomplete sliced path query, returning the path to the furthest
 	/// polygon on the existing path that was visited during the search.
 	///  @param[in]		existing		An array of polygon references for the existing path.
@@ -102,8 +102,8 @@ type NavMeshQuery interface {
 	///  @param[out]	pathCount		The number of polygons returned in the @p path array.
 	///  @param[in]		maxPath			The max number of polygons the @p path array can hold. [Limit: >= 1]
 	/// @returns The status flags for the query.
-	finalizeSlicedFindPathPartial(existing []dtPolyRef, existingSize int,
-		path []dtPolyRef, maxPath int) (pathCount int, status dtStatus)
+	FinalizeSlicedFindPathPartial(existing []DtPolyRef, existingSize int,
+		path []DtPolyRef, maxPath int) (pathCount int, status DtStatus)
 	///@}
 	/// @name Dijkstra Search Functions
 	/// @{
@@ -120,9 +120,9 @@ type NavMeshQuery interface {
 	///  @param[out]	resultCount		The number of polygons found. [opt]
 	///  @param[in]		maxResult		The maximum number of polygons the result arrays can hold.
 	/// @returns The status flags for the query.
-	findPolysAroundCircle(startRef dtPolyRef, centerPos []float64, radius float64,
-		filter *dtQueryFilter,
-		resultCost []float64, resultRef []dtPolyRef, resultParent []dtPolyRef, maxResult int) (resultCount int, status dtStatus)
+	FindPolysAroundCircle(startRef DtPolyRef, centerPos []float64, radius float64,
+		filter *DtQueryFilter,
+		resultCost []float64, resultRef []DtPolyRef, resultParent []DtPolyRef, maxResult int) (resultCount int, status DtStatus)
 
 	/// Finds the polygons along the naviation graph that touch the specified convex polygon.
 	///  @param[in]		startRef		The reference id of the polygon where the search starts.
@@ -137,9 +137,9 @@ type NavMeshQuery interface {
 	///  @param[out]	resultCount		The number of polygons found.
 	///  @param[in]		maxResult		The maximum number of polygons the result arrays can hold.
 	/// @returns The status flags for the query.
-	findPolysAroundShape(startRef dtPolyRef, verts []float64, nverts int,
-		filter *dtQueryFilter,
-		resultRef []dtPolyRef, resultParent []dtPolyRef, resultCost []float64, maxResult int) (resultCount int, status dtStatus)
+	FindPolysAroundShape(startRef DtPolyRef, verts []float64, nverts int,
+		filter *DtQueryFilter,
+		resultRef []DtPolyRef, resultParent []DtPolyRef, resultCost []float64, maxResult int) (resultCount int, status DtStatus)
 	/// Gets a path from the explored nodes in the previous search.
 	///  @param[in]		endRef		The reference id of the end polygon.
 	///  @param[out]	path		An ordered list of polygon references representing the path. (Start to end.)
@@ -152,14 +152,14 @@ type NavMeshQuery interface {
 	///  				Otherwise returns DT_SUCCESS.
 	///  @remarks		The result of this function depends on the state of the query object. For that reason it should only
 	///  				be used immediately after one of the two Dijkstra searches, findPolysAroundCircle or findPolysAroundShape.
-	getPathFromDijkstraSearch(endRef dtPolyRef, path []dtPolyRef, maxPath int) (pathCount int, status dtStatus)
+	GetPathFromDijkstraSearch(endRef DtPolyRef, path []DtPolyRef, maxPath int) (pathCount int, status DtStatus)
 	/// Finds polygons that overlap the search box.
 	///  @param[in]		center		The center of the search box. [(x, y, z)]
 	///  @param[in]		halfExtents		The search distance along each axis. [(x, y, z)]
 	///  @param[in]		filter		The polygon filter to apply to the query.
 	///  @param[in]		query		The query. Polygons found will be batched together and passed to this query.
-	queryPolygons(center []float64, halfExtents []float64,
-		filter *dtQueryFilter, query dtPolyQuery) dtStatus
+	QueryPolygons(center []float64, halfExtents []float64,
+		filter *DtQueryFilter, query dtPolyQuery) DtStatus
 	/// Finds polygons that overlap the search box.
 	///  @param[in]		center		The center of the search box. [(x, y, z)]
 	///  @param[in]		halfExtents		The search distance along each axis. [(x, y, z)]
@@ -168,9 +168,9 @@ type NavMeshQuery interface {
 	///  @param[out]	polyCount	The number of polygons in the search result.
 	///  @param[in]		maxPolys	The maximum number of polygons the search result can hold.
 	/// @returns The status flags for the query.
-	queryPolygons1(center, halfExtents []float64,
-		filter *dtQueryFilter,
-		polys []dtPolyRef, maxPolys int) (polyCount int, status dtStatus)
+	QueryPolygons1(center, halfExtents []float64,
+		filter *DtQueryFilter,
+		polys []DtPolyRef, maxPolys int) (polyCount int, status DtStatus)
 	/// Finds the non-overlapping navigation polygons in the local neighbourhood around the center position.
 	///  @param[in]		startRef		The reference id of the polygon where the search starts.
 	///  @param[in]		centerPos		The center of the query circle. [(x, y, z)]
@@ -182,9 +182,9 @@ type NavMeshQuery interface {
 	///  @param[out]	resultCount		The number of polygons found.
 	///  @param[in]		maxResult		The maximum number of polygons the result arrays can hold.
 	/// @returns The status flags for the query.
-	findLocalNeighbourhood(startRef dtPolyRef, centerPos []float64, radius float64,
-		filter *dtQueryFilter,
-		resultRef []dtPolyRef, resultParent []dtPolyRef, maxResult int) (resultCount int, status dtStatus)
+	FindLocalNeighbourhood(startRef DtPolyRef, centerPos []float64, radius float64,
+		filter *DtQueryFilter,
+		resultRef []DtPolyRef, resultParent []DtPolyRef, maxResult int) (resultCount int, status DtStatus)
 	/// Moves from the start to the end position constrained to the navigation mesh.
 	///  @param[in]		startRef		The reference id of the start polygon.
 	///  @param[in]		startPos		A position of the mover within the start polygon. [(x, y, x)]
@@ -195,8 +195,8 @@ type NavMeshQuery interface {
 	///  @param[out]	visitedCount	The number of polygons visited during the move.
 	///  @param[in]		maxVisitedSize	The maximum number of polygons the @p visited array can hold.
 	/// @returns The status flags for the query.
-	moveAlongSurface(startRef dtPolyRef, startPos, endPos []float64,
-		filter *dtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []dtPolyRef, visitedCount int, status dtStatus)
+	MoveAlongSurface(startRef DtPolyRef, startPos, endPos []float64,
+		filter *DtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []DtPolyRef, visitedCount int, status DtStatus)
 
 	/// Finds the polygon nearest to the specified center point.
 	/// [opt] means the specified parameter can be a null pointer, in that case the output parameter will not be set.
@@ -208,8 +208,8 @@ type NavMeshQuery interface {
 	///  @param[out]	nearestPt	The nearest point on the polygon. Unchanged if no polygon is found. [opt] [(x, y, z)]
 	///  @param[out]	isOverPoly 	Set to true if the point's X/Z coordinate lies inside the polygon, false otherwise. Unchanged if no polygon is found. [opt]
 	/// @returns The status flags for the query.
-	findNearestPoly1(center, halfExtents []float64,
-		filter *dtQueryFilter, nearestPt []float64) (nearestRef dtPolyRef, isOverPoly bool, status dtStatus)
+	FindNearestPoly1(center, halfExtents []float64,
+		filter *DtQueryFilter, nearestPt []float64) (nearestRef DtPolyRef, isOverPoly bool, status DtStatus)
 	/// @}
 	/// @name Local Query Functions
 	///@{
@@ -223,7 +223,7 @@ type NavMeshQuery interface {
 	///  @param[out]	nearestRef	The reference id of the nearest polygon. Will be set to 0 if no polygon is found.
 	///  @param[out]	nearestPt	The nearest point on the polygon. Unchanged if no polygon is found. [opt] [(x, y, z)]
 	/// @returns The status flags for the query.
-	findNearestPoly(center, halfExtents []float64, filter *dtQueryFilter, nearestPt []float64) (nearestRef dtPolyRef, status dtStatus)
+	FindNearestPoly(center, halfExtents []float64, filter *DtQueryFilter, nearestPt []float64) (nearestRef DtPolyRef, status DtStatus)
 	/// Casts a 'walkability' ray along the surface of the navigation mesh from
 	/// the start position toward the end position.
 	/// @note A wrapper around raycast(..., RaycastHit*). Retained for backward compatibility.
@@ -238,8 +238,8 @@ type NavMeshQuery interface {
 	///  @param[out]	pathCount	The number of visited polygons. [opt]
 	///  @param[in]		maxPath		The maximum number of polygons the @p path array can hold.
 	/// @returns The status flags for the query.
-	raycast(startRef dtPolyRef, startPos, endPos []float64,
-		filter *dtQueryFilter, hitNormal []float64, path []dtPolyRef, maxPath int) (t float64, pathCount int, status dtStatus)
+	Raycast(startRef DtPolyRef, startPos, endPos []float64,
+		filter *DtQueryFilter, hitNormal []float64, path []DtPolyRef, maxPath int) (t float64, pathCount int, status DtStatus)
 
 	/// Casts a 'walkability' ray along the surface of the navigation mesh from
 	/// the start position toward the end position.
@@ -252,8 +252,8 @@ type NavMeshQuery interface {
 	///  @param[out]	hit			Pointer to a raycast hit structure which will be filled by the results.
 	///  @param[in]		prevRef		parent of start ref. Used during for cost calculation [opt]
 	/// @returns The status flags for the query.
-	raycast1(startRef dtPolyRef, startPos, endPos []float64,
-		filter *dtQueryFilter, options int, hit *dtRaycastHit, prevRef dtPolyRef) (status dtStatus)
+	Raycast1(startRef DtPolyRef, startPos, endPos []float64,
+		filter *DtQueryFilter, options int, hit *dtRaycastHit, prevRef DtPolyRef) (status DtStatus)
 	/// Finds the distance from the specified position to the nearest polygon wall.
 	///  @param[in]		startRef		The reference id of the polygon containing @p centerPos.
 	///  @param[in]		centerPos		The center of the search circle. [(x, y, z)]
@@ -264,8 +264,8 @@ type NavMeshQuery interface {
 	///  @param[out]	hitNormal		The normalized ray formed from the wall point to the
 	///  								source point. [(x, y, z)]
 	/// @returns The status flags for the query.
-	findDistanceToWall(startRef dtPolyRef, centerPos []float64, maxRadius float64,
-		filter *dtQueryFilter, hitPos []float64, hitNormal []float64) (hitDist float64, status dtStatus)
+	FindDistanceToWall(startRef DtPolyRef, centerPos []float64, maxRadius float64,
+		filter *DtQueryFilter, hitPos []float64, hitNormal []float64) (hitDist float64, status DtStatus)
 	/// Returns random location on navmesh.
 	/// Polygons are chosen weighted by area. The search runs in linear related to number of polygon.
 	///  @param[in]		filter			The polygon filter to apply to the query.
@@ -273,7 +273,7 @@ type NavMeshQuery interface {
 	///  @param[out]	randomRef		The reference id of the random location.
 	///  @param[out]	randomPt		The random location.
 	/// @returns The status flags for the query.
-	findRandomPoint(filter *dtQueryFilter) (randomRef dtPolyRef, randomPt []float64, status dtStatus)
+	FindRandomPoint(filter *DtQueryFilter) (randomRef DtPolyRef, randomPt []float64, status DtStatus)
 	/// Returns the segments for the specified polygon, optionally including portals.
 	///  @param[in]		ref				The reference id of the polygon.
 	///  @param[in]		filter			The polygon filter to apply to the query.
@@ -283,9 +283,9 @@ type NavMeshQuery interface {
 	///  @param[out]	segmentCount	The number of segments returned.
 	///  @param[in]		maxSegments		The maximum number of segments the result arrays can hold.
 	/// @returns The status flags for the query.
-	getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilter,
-		segmentVerts []float64, segmentRefs []dtPolyRef,
-		maxSegments int) (segmentCount int, status dtStatus)
+	GetPolyWallSegments(ref DtPolyRef, filter *DtQueryFilter,
+		segmentVerts []float64, segmentRefs []DtPolyRef,
+		maxSegments int) (segmentCount int, status DtStatus)
 
 	/// Returns random location on navmesh within the reach of specified location.
 	/// Polygons are chosen weighted by area. The search runs in linear related to number of polygon.
@@ -298,29 +298,29 @@ type NavMeshQuery interface {
 	///  @param[out]	randomRef		The reference id of the random location.
 	///  @param[out]	randomPt		The random location. [(x, y, z)]
 	/// @returns The status flags for the query.
-	findRandomPointAroundCircle(startRef dtPolyRef, centerPos []float64, maxRadius float64,
-		filter *dtQueryFilter) (randomRef dtPolyRef, randomPt []float64, status dtStatus)
+	FindRandomPointAroundCircle(startRef DtPolyRef, centerPos []float64, maxRadius float64,
+		filter *DtQueryFilter) (randomRef DtPolyRef, randomPt []float64, status DtStatus)
 	/// Finds the closest point on the specified polygon.
 	///  @param[in]		ref			The reference id of the polygon.
 	///  @param[in]		pos			The position to check. [(x, y, z)]
 	///  @param[out]	closest		The closest point on the polygon. [(x, y, z)]
 	///  @param[out]	posOverPoly	True of the position is over the polygon.
 	/// @returns The status flags for the query.
-	closestPointOnPoly(ref dtPolyRef, pos []float64) (closest []float64, posOverPoly bool, status dtStatus)
+	ClosestPointOnPoly(ref DtPolyRef, pos []float64) (closest []float64, posOverPoly bool, status DtStatus)
 	/// Returns a point on the boundary closest to the source point if the source point is outside the
 	/// polygon's xz-bounds.
 	///  @param[in]		ref			The reference id to the polygon.
 	///  @param[in]		pos			The position to check. [(x, y, z)]
 	///  @param[out]	closest		The closest point. [(x, y, z)]
 	/// @returns The status flags for the query.
-	closestPointOnPolyBoundary(ref dtPolyRef, pos []float64) (closest []float64, status dtStatus)
+	ClosestPointOnPolyBoundary(ref DtPolyRef, pos []float64) (closest []float64, status DtStatus)
 
 	/// Gets the height of the polygon at the provided position using the height detail. (Most accurate.)
 	///  @param[in]		ref			The reference id of the polygon.
 	///  @param[in]		pos			A position within the xz-bounds of the polygon. [(x, y, z)]
 	///  @param[out]	height		The height at the surface of the polygon.
 	/// @returns The status flags for the query.
-	getPolyHeight(ref dtPolyRef, pos []float64) (height float64, status dtStatus)
+	GetPolyHeight(ref DtPolyRef, pos []float64) (height float64, status DtStatus)
 	/// @}
 	/// @name Miscellaneous Functions
 	/// @{
@@ -328,29 +328,29 @@ type NavMeshQuery interface {
 	/// Returns true if the polygon reference is valid and passes the filter restrictions.
 	///  @param[in]		ref			The polygon reference to check.
 	///  @param[in]		filter		The filter to apply.
-	isValidPolyRef(ref dtPolyRef, filter *dtQueryFilter) bool
+	IsValidPolyRef(ref DtPolyRef, filter *DtQueryFilter) bool
 	/// Returns true if the polygon reference is in the closed list.
 	///  @param[in]		ref		The reference id of the polygon to check.
 	/// @returns True if the polygon is in closed list.
-	isInClosedList(ref dtPolyRef) bool
+	IsInClosedList(ref DtPolyRef) bool
 
-	getAttachedNavMesh() *dtNavMesh
+	GetAttachedNavMesh() *DtNavMesh
 }
-type dtNavMeshQuery struct {
-	m_nav          *dtNavMesh ///< Pointer to navmesh data.
-	m_nodePool     map[dtPolyRef]*dtNode
-	m_tinyNodePool map[dtPolyRef]*dtNode
+type DtNavMeshQuery struct {
+	m_nav          *DtNavMesh ///< Pointer to navmesh data.
+	m_nodePool     map[DtPolyRef]*dtNode
+	m_tinyNodePool map[DtPolyRef]*dtNode
 	m_openList     NodeQueue[*dtNode]
 	m_query        dtQueryData
 }
 
 // / Initializes the query object.
-// /  @param[in]		nav			Pointer to the dtNavMesh object to use for all queries.
+// /  @param[in]		nav			Pointer to the DtNavMesh object to use for all queries.
 // /  @param[in]		maxNodes	Maximum number of search nodes. [Limits: 0 < value <= 65535]
 // / @returns The status flags for the query.
-func NewDtNavMeshQuery(nav *dtNavMesh, maxNodes int) NavMeshQuery {
-	query := &dtNavMeshQuery{m_nodePool: map[dtPolyRef]*dtNode{},
-		m_tinyNodePool: map[dtPolyRef]*dtNode{},
+func NewDtNavMeshQuery(nav *DtNavMesh, maxNodes int) NavMeshQuery {
+	query := &DtNavMeshQuery{m_nodePool: map[DtPolyRef]*dtNode{},
+		m_tinyNodePool: map[DtPolyRef]*dtNode{},
 		m_nav:          nav,
 		m_openList: NewNodeQueue(func(t1, t2 *dtNode) bool {
 			return t1.total < t2.total //花费最小
@@ -358,7 +358,7 @@ func NewDtNavMeshQuery(nav *dtNavMesh, maxNodes int) NavMeshQuery {
 
 	return query
 }
-func (query *dtNavMeshQuery) getAttachedNavMesh() *dtNavMesh { return query.m_nav }
+func (query *DtNavMeshQuery) GetAttachedNavMesh() *DtNavMesh { return query.m_nav }
 
 // / Returns random location on navmesh.
 // / Polygons are chosen weighted by area. The search runs in linear related to number of polygon.
@@ -367,7 +367,7 @@ func (query *dtNavMeshQuery) getAttachedNavMesh() *dtNavMesh { return query.m_na
 // /  @param[out]	randomRef		The reference id of the random location.
 // /  @param[out]	randomPt		The random location.
 // / @returns The status flags for the query.
-func (query *dtNavMeshQuery) findRandomPoint(filter *dtQueryFilter) (randomRef dtPolyRef, randomPt []float64, status dtStatus) {
+func (query *DtNavMeshQuery) FindRandomPoint(filter *DtQueryFilter) (randomRef DtPolyRef, randomPt []float64, status DtStatus) {
 	// Randomly pick one tile. Assume that all tiles cover roughly the same area.
 	tsum := 0.0
 	var tile *dtMeshTile
@@ -391,7 +391,7 @@ func (query *dtNavMeshQuery) findRandomPoint(filter *dtQueryFilter) (randomRef d
 	}
 
 	var poly *dtPoly
-	var polyRef dtPolyRef
+	var polyRef DtPolyRef
 	// Randomly pick one polygon weighted by polygon area.
 	base := query.m_nav.getPolyRefBase(tile)
 
@@ -404,7 +404,7 @@ func (query *dtNavMeshQuery) findRandomPoint(filter *dtQueryFilter) (randomRef d
 		}
 
 		// Must pass filter
-		ref := base | dtPolyRef(i)
+		ref := base | DtPolyRef(i)
 		if !filter.passFilter(p) {
 			continue
 		}
@@ -444,7 +444,7 @@ func (query *dtNavMeshQuery) findRandomPoint(filter *dtQueryFilter) (randomRef d
 
 	pt := dtRandomPointInConvexPoly(verts, poly.vertCount, areas, s, t)
 
-	randomPt, _, _ = query.closestPointOnPoly(polyRef, pt)
+	randomPt, _, _ = query.ClosestPointOnPoly(polyRef, pt)
 	randomRef = polyRef
 
 	return randomRef, randomPt, DT_SUCCESS
@@ -460,16 +460,16 @@ func (query *dtNavMeshQuery) findRandomPoint(filter *dtQueryFilter) (randomRef d
 // /
 // / See closestPointOnPolyBoundary() for a limited but faster option.
 // /
-func (query *dtNavMeshQuery) closestPointOnPoly(ref dtPolyRef, pos []float64) (closest []float64, posOverPoly bool, status dtStatus) {
+func (query *DtNavMeshQuery) ClosestPointOnPoly(ref DtPolyRef, pos []float64, closest []float64, posOverPoly *bool) (status DtStatus) {
 	if query.m_nav == nil {
 		panic("")
 	}
 	if query.m_nav.isValidPolyRef(ref) || len(pos) == 0 || !dtVisfinite(pos) {
-		return closest, posOverPoly, DT_FAILURE | DT_INVALID_PARAM
+		return DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	closest, posOverPoly = query.m_nav.closestPointOnPoly(ref, pos)
-	return closest, posOverPoly, DT_SUCCESS
+	query.m_nav.closestPointOnPoly(ref, pos, closest, posOverPoly)
+	return DT_SUCCESS
 }
 
 // / @par
@@ -483,13 +483,13 @@ func (query *dtNavMeshQuery) closestPointOnPoly(ref dtPolyRef, pos []float64) (c
 // /
 // / @p pos does not have to be within the bounds of the polybon or the navigation mesh.
 // /
-func (query *dtNavMeshQuery) closestPointOnPolyBoundary(ref dtPolyRef, pos []float64) (closest []float64, status dtStatus) {
+func (query *DtNavMeshQuery) ClosestPointOnPolyBoundary(ref DtPolyRef, pos []float64) (closest []float64, status DtStatus) {
 	if query.m_nav == nil {
 		panic("")
 	}
 	closest = make([]float64, 3)
 	tile, poly, status := query.m_nav.getTileAndPolyByRef(ref)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return closest, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -529,26 +529,56 @@ func (query *dtNavMeshQuery) closestPointOnPolyBoundary(ref dtPolyRef, pos []flo
 	return closest, DT_SUCCESS
 }
 
-type dtQueryFilter struct {
+type DtQueryFilter struct {
 	m_areaCost     [DT_MAX_AREAS]float64 ///< Cost per area type. (Used by default implementation.)
 	m_includeFlags int                   ///< Flags for polygons that can be visited. (Used by default implementation.)
 	m_excludeFlags int                   ///< Flags for polygons that should not be visited. (Used by default implementation.)
 }
 
-func (filter *dtQueryFilter) getCost(pa, pb []float64, curPoly *dtPoly) float64 {
+/// @name Getters and setters for the default implementation data.
+///@{
+
+// / Returns the traversal cost of the area.
+// /  @param[in]		i		The id of the area.
+// / @returns The traversal cost of the area.
+func (filter *DtQueryFilter) GetAreaCost(i int) float64 { return filter.m_areaCost[i] }
+
+// / Sets the traversal cost of the area.
+// /  @param[in]		i		The id of the area.
+// /  @param[in]		cost	The new cost of traversing the area.
+func (filter *DtQueryFilter) SetAreaCost(i int, cost float64) { filter.m_areaCost[i] = cost }
+
+// / Returns the include flags for the filter.
+// / Any polygons that include one or more of these flags will be
+// / included in the operation.
+func (filter *DtQueryFilter) GetIncludeFlags() int { return filter.m_includeFlags }
+
+// / Sets the include flags for the filter.
+// / @param[in]		flags	The new flags.
+func (filter *DtQueryFilter) SetIncludeFlags(flags int) { filter.m_includeFlags = flags }
+
+// / Returns the exclude flags for the filter.
+// / Any polygons that include one ore more of these flags will be
+// / excluded from the operation.
+func (filter *DtQueryFilter) GetExcludeFlags() int { return filter.m_excludeFlags }
+
+// / Sets the exclude flags for the filter.
+// / @param[in]		flags		The new flags.
+func (filter *DtQueryFilter) SetExcludeFlags(flags int) { filter.m_excludeFlags = flags }
+func (filter *DtQueryFilter) getCost(pa, pb []float64, curPoly *dtPoly) float64 {
 	return dtVdist(pa, pb) * filter.m_areaCost[curPoly.getArea()]
 }
-func (filter *dtQueryFilter) passFilter(poly *dtPoly) bool {
+func (filter *DtQueryFilter) passFilter(poly *dtPoly) bool {
 	return (poly.flags&filter.m_includeFlags) != 0 && (poly.flags&filter.m_excludeFlags) == 0
 }
 
-func (query *dtNavMeshQuery) findRandomPointAroundCircle(startRef dtPolyRef, centerPos []float64, maxRadius float64,
-	filter *dtQueryFilter) (randomRef dtPolyRef, randomPt []float64, status dtStatus) {
+func (query *DtNavMeshQuery) FindRandomPointAroundCircle(startRef DtPolyRef, centerPos []float64, maxRadius float64,
+	filter *DtQueryFilter) (randomRef DtPolyRef, randomPt []float64, status DtStatus) {
 	if query.m_nav == nil {
 		return
 	}
 	query.m_openList.Reset()
-	query.m_nodePool = map[dtPolyRef]*dtNode{}
+	query.m_nodePool = map[DtPolyRef]*dtNode{}
 	// Validate input
 	if !query.m_nav.isValidPolyRef(startRef) || len(centerPos) == 0 || !dtVisfinite(centerPos) || maxRadius < 0 || !dtIsFinite(maxRadius) || filter == nil {
 		return randomRef, randomPt, DT_FAILURE | DT_INVALID_PARAM
@@ -572,7 +602,7 @@ func (query *dtNavMeshQuery) findRandomPointAroundCircle(startRef dtPolyRef, cen
 
 	var randomTile *dtMeshTile
 	var randomPoly *dtPoly
-	var randomPolyRef dtPolyRef
+	var randomPolyRef DtPolyRef
 
 	for !query.m_openList.Empty() {
 		bestNode := query.m_openList.Poll()
@@ -605,7 +635,7 @@ func (query *dtNavMeshQuery) findRandomPointAroundCircle(startRef dtPolyRef, cen
 		}
 
 		// Get parent poly and tile.
-		var parentRef dtPolyRef
+		var parentRef DtPolyRef
 		if bestNode.pidx != nil {
 			parentRef = bestNode.pidx.id
 		}
@@ -633,7 +663,7 @@ func (query *dtNavMeshQuery) findRandomPointAroundCircle(startRef dtPolyRef, cen
 			// Find edge and calc distance to the edge.
 
 			va, vb, status := query.getPortalPoints1(bestRef, bestPoly, bestTile, neighbourRef, neighbourPoly, neighbourTile)
-			if status.dtStatusFailed() {
+			if status.DtStatusFailed() {
 				continue
 			}
 
@@ -697,14 +727,14 @@ func (query *dtNavMeshQuery) findRandomPointAroundCircle(startRef dtPolyRef, cen
 
 	pt := dtRandomPointInConvexPoly(verts[:], randomPoly.vertCount, areas[:], s, t)
 
-	randomPt, _, _ = query.closestPointOnPoly(randomPolyRef, pt)
+	randomPt, _, _ = query.ClosestPointOnPoly(randomPolyRef, pt)
 
 	randomRef = randomPolyRef
 
 	return randomRef, randomPt, status
 }
 
-func (query *dtNavMeshQuery) getPortalPoints(from dtPolyRef, to dtPolyRef) (left, right []float64, fromType int, toType int, status dtStatus) {
+func (query *DtNavMeshQuery) getPortalPoints(from DtPolyRef, to DtPolyRef) (left, right []float64, fromType int, toType int, status DtStatus) {
 	left = make([]float64, 3)
 	right = make([]float64, 3)
 	if query.m_nav == nil {
@@ -712,14 +742,14 @@ func (query *dtNavMeshQuery) getPortalPoints(from dtPolyRef, to dtPolyRef) (left
 	}
 
 	fromTile, fromPoly, status := query.m_nav.getTileAndPolyByRef(from)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return left, right, fromType, toType, DT_FAILURE | DT_INVALID_PARAM
 	}
 
 	fromType = fromPoly.getType()
 
 	toTile, toPoly, status := query.m_nav.getTileAndPolyByRef(to)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return left, right, fromType, toType, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -729,8 +759,8 @@ func (query *dtNavMeshQuery) getPortalPoints(from dtPolyRef, to dtPolyRef) (left
 }
 
 // Returns portal points between two polygons.
-func (query *dtNavMeshQuery) getPortalPoints1(from dtPolyRef, fromPoly *dtPoly, fromTile *dtMeshTile,
-	to dtPolyRef, toPoly *dtPoly, toTile *dtMeshTile) (left, right []float64, status dtStatus) {
+func (query *DtNavMeshQuery) getPortalPoints1(from DtPolyRef, fromPoly *dtPoly, fromTile *dtMeshTile,
+	to DtPolyRef, toPoly *dtPoly, toTile *dtMeshTile) (left, right []float64, status DtStatus) {
 	// Find the link that points to the 'to' polygon.
 	// Find the link that points to the 'to' polygon.
 	left = make([]float64, 3)
@@ -793,12 +823,12 @@ func (query *dtNavMeshQuery) getPortalPoints1(from dtPolyRef, fromPoly *dtPoly, 
 	return left, right, DT_SUCCESS
 }
 
-func (q *dtNavMeshQuery) queryPolygonsInTile(tile *dtMeshTile, qmin, qmax []float64, filter *dtQueryFilter, query dtPolyQuery) {
+func (q *DtNavMeshQuery) QueryPolygonsInTile(tile *dtMeshTile, qmin, qmax []float64, filter *DtQueryFilter, query dtPolyQuery) {
 	if q.m_nav == nil {
 		panic("")
 	}
 	batchSize := 32
-	var polyRefs [32]dtPolyRef
+	var polyRefs [32]DtPolyRef
 	var polys [32]*dtPoly
 	n := 0
 
@@ -835,7 +865,7 @@ func (q *dtNavMeshQuery) queryPolygonsInTile(tile *dtMeshTile, qmin, qmax []floa
 			isLeafNode := tile.bvTree[node].i >= 0
 
 			if isLeafNode && overlap {
-				ref := base | dtPolyRef(tile.bvTree[node].i)
+				ref := base | DtPolyRef(tile.bvTree[node].i)
 				if filter.passFilter(tile.polys[tile.bvTree[node].i]) {
 					polyRefs[n] = ref
 					polys[n] = tile.polys[tile.bvTree[node].i]
@@ -868,7 +898,7 @@ func (q *dtNavMeshQuery) queryPolygonsInTile(tile *dtMeshTile, qmin, qmax []floa
 			}
 
 			// Must pass filter
-			ref := base | dtPolyRef(i)
+			ref := base | DtPolyRef(i)
 			if filter != nil && filter.passFilter(p) {
 				continue
 			}
@@ -904,38 +934,40 @@ func (q *dtNavMeshQuery) queryPolygonsInTile(tile *dtMeshTile, qmin, qmax []floa
 }
 
 // / Provides custom polygon query behavior.
-// / Used by dtNavMeshQuery::queryPolygons.
+// / Used by DtNavMeshQuery::queryPolygons.
 // / @ingroup detour
 type dtPolyQuery interface {
-	/// Called for each batch of unique polygons touched by the search area in dtNavMeshQuery::queryPolygons.
+	/// Called for each batch of unique polygons touched by the search area in DtNavMeshQuery::queryPolygons.
 	/// This can be called multiple times for a single query.
-	process(tile *dtMeshTile, refs []dtPolyRef, count int)
+	process(tile *dtMeshTile, refs []DtPolyRef, count int)
 }
 
 type dtFindNearestPolyQuery struct {
-	m_query              *dtNavMeshQuery
+	m_query              *DtNavMeshQuery
 	m_center             []float64
 	m_nearestDistanceSqr float64
-	m_nearestRef         dtPolyRef
+	m_nearestRef         DtPolyRef
 	m_nearestPoint       [3]float64
 	m_overPoly           bool
 }
 
-func newDtFindNearestPolyQuery(query *dtNavMeshQuery, center []float64) *dtFindNearestPolyQuery {
+func newDtFindNearestPolyQuery(query *DtNavMeshQuery, center []float64) *dtFindNearestPolyQuery {
 	return &dtFindNearestPolyQuery{
 		m_center: center,
 		m_query:  query,
 	}
 }
-func (query *dtFindNearestPolyQuery) nearestRef() dtPolyRef   { return query.m_nearestRef }
+func (query *dtFindNearestPolyQuery) nearestRef() DtPolyRef   { return query.m_nearestRef }
 func (query *dtFindNearestPolyQuery) nearestPoint() []float64 { return query.m_nearestPoint[:] }
 func (query *dtFindNearestPolyQuery) isOverPoly() bool        { return query.m_overPoly }
-func (query *dtFindNearestPolyQuery) process(tile *dtMeshTile, refs []dtPolyRef, count int) {
+func (query *dtFindNearestPolyQuery) process(tile *dtMeshTile, refs []DtPolyRef, count int) {
 
 	for i := 0; i < count; i++ {
 		ref := refs[i]
 		var d float64
-		closestPtPoly, posOverPoly, _ := query.m_query.closestPointOnPoly(ref, query.m_center)
+		closestPtPoly := make([]float64, 3)
+		posOverPoly := false
+		query.m_query.ClosestPointOnPoly(ref, query.m_center, closestPtPoly, &posOverPoly)
 
 		// If a point is directly over a polygon and closer than
 		// climb height, favor that instead of straight line nearest point.
@@ -961,13 +993,13 @@ func (query *dtFindNearestPolyQuery) process(tile *dtMeshTile, refs []dtPolyRef,
 }
 
 type dtCollectPolysQuery struct {
-	m_polys        []dtPolyRef
+	m_polys        []DtPolyRef
 	m_maxPolys     int
 	m_numCollected int
 	m_overflow     bool
 }
 
-func newDtCollectPolysQuery(polys []dtPolyRef, maxPolys int) *dtCollectPolysQuery {
+func newDtCollectPolysQuery(polys []DtPolyRef, maxPolys int) *dtCollectPolysQuery {
 	return &dtCollectPolysQuery{
 		m_polys:    polys,
 		m_maxPolys: maxPolys,
@@ -976,7 +1008,7 @@ func newDtCollectPolysQuery(polys []dtPolyRef, maxPolys int) *dtCollectPolysQuer
 func (query *dtCollectPolysQuery) numCollected() int { return query.m_numCollected }
 func (query *dtCollectPolysQuery) overflowed() bool  { return query.m_overflow }
 
-func (query *dtCollectPolysQuery) process(tile *dtMeshTile, refs []dtPolyRef, count int) {
+func (query *dtCollectPolysQuery) process(tile *dtMeshTile, refs []DtPolyRef, count int) {
 	numLeft := query.m_maxPolys - query.m_numCollected
 	toCopy := count
 	if toCopy > numLeft {
@@ -988,11 +1020,11 @@ func (query *dtCollectPolysQuery) process(tile *dtMeshTile, refs []dtPolyRef, co
 }
 
 type dtSegInterval struct {
-	ref        dtPolyRef
+	ref        DtPolyRef
 	tmin, tmax int
 }
 
-func insertInterval(ints []*dtSegInterval, maxInts int, tmin, tmax int, ref dtPolyRef) (nints int) {
+func insertInterval(ints []*dtSegInterval, maxInts int, tmin, tmax int, ref DtPolyRef) (nints int) {
 	if nints+1 > maxInts {
 		return
 	}
@@ -1027,8 +1059,8 @@ func insertInterval(ints []*dtSegInterval, maxInts int, tmin, tmax int, ref dtPo
 // /
 // / The normal will become unpredicable if @p hitDist is a very small number.
 // /
-func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []float64, maxRadius float64,
-	filter *dtQueryFilter, hitPos []float64, hitNormal []float64) (hitDist float64, status dtStatus) {
+func (q *DtNavMeshQuery) FindDistanceToWall(startRef DtPolyRef, centerPos []float64, maxRadius float64,
+	filter *DtQueryFilter, hitPos []float64, hitNormal []float64) (hitDist float64, status DtStatus) {
 
 	// Validate input
 	if !q.m_nav.isValidPolyRef(startRef) ||
@@ -1036,7 +1068,7 @@ func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []floa
 		return hitDist, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	q.m_nodePool = map[dtPolyRef]*dtNode{}
+	q.m_nodePool = map[DtPolyRef]*dtNode{}
 	q.m_openList.Reset()
 
 	startNode := q.m_nodePool[startRef]
@@ -1063,7 +1095,7 @@ func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []floa
 		bestTile, bestPoly = q.m_nav.getTileAndPolyByRefUnsafe(bestRef)
 
 		// Get parent poly and tile.
-		var parentRef dtPolyRef
+		var parentRef DtPolyRef
 
 		if bestNode.pidx != nil {
 			parentRef = bestNode.pidx.id
@@ -1216,7 +1248,7 @@ func (q *dtNavMeshQuery) findDistanceToWall(startRef dtPolyRef, centerPos []floa
 // / The closed list is the list of polygons that were fully evaluated during
 // / the last navigation graph search. (A* or Dijkstra)
 // /
-func (q *dtNavMeshQuery) isInClosedList(ref dtPolyRef) bool {
+func (q *DtNavMeshQuery) IsInClosedList(ref DtPolyRef) bool {
 	if q.m_nodePool == nil {
 		return false
 	}
@@ -1228,10 +1260,10 @@ func (q *dtNavMeshQuery) isInClosedList(ref dtPolyRef) bool {
 }
 
 // Returns edge mid point between two polygons.
-func (q *dtNavMeshQuery) getEdgeMidPoint(from, to dtPolyRef) (mid []float64, status dtStatus) {
+func (q *DtNavMeshQuery) getEdgeMidPoint(from, to DtPolyRef) (mid []float64, status DtStatus) {
 	mid = make([]float64, 3)
 	left, right, _, _, status := q.getPortalPoints(from, to)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return mid, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -1241,12 +1273,12 @@ func (q *dtNavMeshQuery) getEdgeMidPoint(from, to dtPolyRef) (mid []float64, sta
 	return mid, DT_SUCCESS
 }
 
-func (q *dtNavMeshQuery) getEdgeMidPoint1(from dtPolyRef, fromPoly *dtPoly, fromTile *dtMeshTile,
-	to dtPolyRef, toPoly *dtPoly, toTile *dtMeshTile) (mid []float64, status dtStatus) {
+func (q *DtNavMeshQuery) getEdgeMidPoint1(from DtPolyRef, fromPoly *dtPoly, fromTile *dtMeshTile,
+	to DtPolyRef, toPoly *dtPoly, toTile *dtMeshTile) (mid []float64, status DtStatus) {
 	mid = make([]float64, 3)
 
 	left, right, status := q.getPortalPoints1(from, fromPoly, fromTile, to, toPoly, toTile)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return mid, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -1256,8 +1288,8 @@ func (q *dtNavMeshQuery) getEdgeMidPoint1(from dtPolyRef, fromPoly *dtPoly, from
 	return mid, DT_SUCCESS
 }
 
-func (q *dtNavMeshQuery) appendVertex(pos []float64, flags int, ref dtPolyRef,
-	straightPath []float64, straightPathFlags []int, straightPathRefs []dtPolyRef, straightPathCount, maxStraightPath int) (int, dtStatus) {
+func (q *DtNavMeshQuery) appendVertex(pos []float64, flags int, ref DtPolyRef,
+	straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef, straightPathCount, maxStraightPath int) (int, DtStatus) {
 	if (straightPathCount) > 0 && dtVequal(straightPath[((straightPathCount)-1)*3:((straightPathCount)-1)*3+3], pos) {
 		// The vertices are equal, update flags and poly.
 		if len(straightPathFlags) > 0 {
@@ -1311,10 +1343,10 @@ func (q *dtNavMeshQuery) appendVertex(pos []float64, flags int, ref dtPolyRef,
 // / they will be filled as far as possible from the start toward the end
 // / position.
 // /
-func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
-	path []dtPolyRef, pathSize int,
-	straightPath []float64, straightPathFlags []int, straightPathRefs []dtPolyRef,
-	maxStraightPath int, options int) (straightPathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FindStraightPath(startPos, endPos []float64,
+	path []DtPolyRef, pathSize int,
+	straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef,
+	maxStraightPath int, options int) (straightPathCount int, status DtStatus) {
 	if q.m_nav == nil {
 		panic("")
 	}
@@ -1328,13 +1360,13 @@ func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
 
 	// TODO: Should this be callers responsibility?
 
-	closestStartPos, _ := q.closestPointOnPolyBoundary(path[0], startPos)
-	if status.dtStatusFailed() {
+	closestStartPos, _ := q.ClosestPointOnPolyBoundary(path[0], startPos)
+	if status.DtStatusFailed() {
 		return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	closestEndPos, status := q.closestPointOnPolyBoundary(path[pathSize-1], endPos)
-	if status.dtStatusFailed() {
+	closestEndPos, status := q.ClosestPointOnPolyBoundary(path[pathSize-1], endPos)
+	if status.DtStatusFailed() {
 		return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -1358,8 +1390,8 @@ func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
 		var leftPolyType = 0
 		var rightPolyType = 0
 
-		var leftPolyRef dtPolyRef = path[0]
-		var rightPolyRef dtPolyRef = path[0]
+		var leftPolyRef DtPolyRef = path[0]
+		var rightPolyRef DtPolyRef = path[0]
 
 		for i := 0; i < pathSize; i++ {
 			var left, right []float64
@@ -1368,11 +1400,11 @@ func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
 
 				left, right, _, toType, status = q.getPortalPoints(path[i], path[i+1])
 				// Next portal.
-				if status.dtStatusFailed() {
+				if status.DtStatusFailed() {
 					// Failed to get portal points, in practice this means that path[i+1] is invalid polygon.
 					// Clamp the end point to path[i], and return the path so far.
-					closestEndPos, status = q.closestPointOnPolyBoundary(path[i], endPos)
-					if status.dtStatusFailed() {
+					closestEndPos, status = q.ClosestPointOnPolyBoundary(path[i], endPos)
+					if status.DtStatusFailed() {
 						// This should only happen when the first polygon is invalid.
 						return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
 					}
@@ -1393,7 +1425,7 @@ func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
 					if straightPathCount >= maxStraightPath {
 						tmp = DT_BUFFER_TOO_SMALL
 					}
-					return straightPathCount, DT_SUCCESS | DT_PARTIAL_RESULT | dtStatus(tmp)
+					return straightPathCount, DT_SUCCESS | DT_PARTIAL_RESULT | DtStatus(tmp)
 				}
 
 				// If starting really close the portal, advance.
@@ -1542,30 +1574,30 @@ func (q *dtNavMeshQuery) findStraightPath(startPos, endPos []float64,
 	if straightPathCount >= maxStraightPath {
 		tmp = DT_BUFFER_TOO_SMALL
 	}
-	return straightPathCount, DT_SUCCESS | dtStatus(tmp)
+	return straightPathCount, DT_SUCCESS | DtStatus(tmp)
 }
 
-func (q *dtNavMeshQuery) appendPortals(startIdx int, endIdx int, endPos []float64, path []dtPolyRef,
-	straightPath []float64, straightPathFlags []int, straightPathRefs []dtPolyRef,
-	straightPathCount int, maxStraightPath int, options int) (int, dtStatus) {
+func (q *DtNavMeshQuery) appendPortals(startIdx int, endIdx int, endPos []float64, path []DtPolyRef,
+	straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef,
+	straightPathCount int, maxStraightPath int, options int) (int, DtStatus) {
 	startPos := straightPath[(straightPathCount-1)*3 : (straightPathCount-1)*3+3]
 	// Append or update last vertex
 	for i := startIdx; i < endIdx; i++ {
 		// Calculate portal
 		from := path[i]
 		fromTile, fromPoly, status := q.m_nav.getTileAndPolyByRef(from)
-		if status.dtStatusFailed() {
+		if status.DtStatusFailed() {
 			return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
 		}
 
 		to := path[i+1]
 		toTile, toPoly, status := q.m_nav.getTileAndPolyByRef(to)
-		if status.dtStatusFailed() {
+		if status.DtStatusFailed() {
 			return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
 		}
 
 		left, right, status := q.getPortalPoints1(from, fromPoly, fromTile, to, toPoly, toTile)
-		if status.dtStatusFailed() {
+		if status.DtStatusFailed() {
 			break
 		}
 
@@ -1615,8 +1647,8 @@ func (q *dtNavMeshQuery) appendPortals(startIdx int, endIdx int, endPos []float6
 // / be filled as far as possible from the start position toward the end
 // / position.
 // /
-func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos []float64,
-	filter *dtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []dtPolyRef, visitedCount int, status dtStatus) {
+func (q *DtNavMeshQuery) MoveAlongSurface(startRef DtPolyRef, startPos, endPos []float64,
+	filter *DtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []DtPolyRef, visitedCount int, status DtStatus) {
 	//if (!m_nav->isValidPolyRef(startRef) ||
 	// !startPos || !dtVisfinite(startPos) ||
 	// !endPos || !dtVisfinite(endPos) ||
@@ -1625,14 +1657,14 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 	//{
 	// return DT_FAILURE | DT_INVALID_PARAM;
 	//}
-	visited = make([]dtPolyRef, maxVisitedSize)
+	visited = make([]DtPolyRef, maxVisitedSize)
 	resultPos = make([]float64, 3)
 	status = DT_SUCCESS
 	MAX_STACK := 48
 	var stack [48]*dtNode
 	nstack := 0
 
-	q.m_tinyNodePool = map[dtPolyRef]*dtNode{}
+	q.m_tinyNodePool = map[DtPolyRef]*dtNode{}
 	var startNode dtNode
 	startNode.pidx = nil
 	startNode.cost = 0
@@ -1685,7 +1717,7 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 			// Find links to neighbours.
 			MAX_NEIS := 8
 			nneis := 0
-			var neis [8]dtPolyRef
+			var neis [8]DtPolyRef
 
 			if curPoly.neis[j]&DT_EXT_LINK > 0 {
 				// Tile border.
@@ -1707,7 +1739,7 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 				}
 			} else if curPoly.neis[j] > 0 {
 				idx := (curPoly.neis[j] - 1)
-				ref := q.m_nav.getPolyRefBase(curTile) | dtPolyRef(idx)
+				ref := q.m_nav.getPolyRefBase(curTile) | DtPolyRef(idx)
 				if filter.passFilter(curTile.polys[idx]) {
 					// Internal edge, encode id.
 					neis[nneis] = ref
@@ -1838,9 +1870,9 @@ func (q *dtNavMeshQuery) moveAlongSurface(startRef dtPolyRef, startPos, endPos [
 /// filled to capacity.
 ///
 
-func (q *dtNavMeshQuery) findPolysAroundCircle(startRef dtPolyRef, centerPos []float64, radius float64,
-	filter *dtQueryFilter,
-	resultCost []float64, resultRef []dtPolyRef, resultParent []dtPolyRef, maxResult int) (resultCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FindPolysAroundCircle(startRef DtPolyRef, centerPos []float64, radius float64,
+	filter *DtQueryFilter,
+	resultCost []float64, resultRef []DtPolyRef, resultParent []DtPolyRef, maxResult int) (resultCount int, status DtStatus) {
 	dtAssert(q.m_nav)
 	dtAssert(q.m_nodePool)
 	dtAssert(q.m_openList)
@@ -1853,7 +1885,7 @@ func (q *dtNavMeshQuery) findPolysAroundCircle(startRef dtPolyRef, centerPos []f
 	//return DT_FAILURE | DT_INVALID_PARAM;
 	//}
 
-	q.m_nodePool = map[dtPolyRef]*dtNode{}
+	q.m_nodePool = map[DtPolyRef]*dtNode{}
 	q.m_openList.Reset()
 	var startNode dtNode
 	copy(startNode.pos[:], centerPos)
@@ -1880,7 +1912,7 @@ func (q *dtNavMeshQuery) findPolysAroundCircle(startRef dtPolyRef, centerPos []f
 		bestTile, bestPoly := q.m_nav.getTileAndPolyByRefUnsafe(bestRef)
 
 		// Get parent poly and tile.
-		var parentRef dtPolyRef
+		var parentRef DtPolyRef
 		if bestNode.pidx != nil {
 			parentRef = bestNode.pidx.id
 		}
@@ -1927,7 +1959,7 @@ func (q *dtNavMeshQuery) findPolysAroundCircle(startRef dtPolyRef, centerPos []f
 			// Find edge and calc distance to the edge.
 
 			va, vb, status := q.getPortalPoints1(bestRef, bestPoly, bestTile, neighbourRef, neighbourPoly, neighbourTile)
-			if status.dtStatusFailed() {
+			if status.DtStatusFailed() {
 				continue
 			}
 
@@ -2002,9 +2034,9 @@ func (q *dtNavMeshQuery) findPolysAroundCircle(startRef dtPolyRef, centerPos []f
 // / If the result arrays are is too small to hold the entire result set, they will
 // / be filled to capacity.
 // /
-func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float64, nverts int,
-	filter *dtQueryFilter,
-	resultRef []dtPolyRef, resultParent []dtPolyRef, resultCost []float64, maxResult int) (resultCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FindPolysAroundShape(startRef DtPolyRef, verts []float64, nverts int,
+	filter *DtQueryFilter,
+	resultRef []DtPolyRef, resultParent []DtPolyRef, resultCost []float64, maxResult int) (resultCount int, status DtStatus) {
 	dtAssert(q.m_nav)
 	dtAssert(q.m_nodePool)
 	dtAssert(q.m_openList)
@@ -2020,7 +2052,7 @@ func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float6
 		return resultCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	q.m_nodePool = map[dtPolyRef]*dtNode{}
+	q.m_nodePool = map[DtPolyRef]*dtNode{}
 	q.m_openList.Reset()
 
 	var centerPos = []float64{0, 0, 0}
@@ -2057,7 +2089,7 @@ func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float6
 		bestTile, bestPoly := q.m_nav.getTileAndPolyByRefUnsafe(bestRef)
 
 		// Get parent poly and tile.
-		var parentRef dtPolyRef
+		var parentRef DtPolyRef
 
 		if bestNode.pidx != nil {
 			parentRef = bestNode.pidx.id
@@ -2105,7 +2137,7 @@ func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float6
 			// Find edge and calc distance to the edge.
 
 			va, vb, status := q.getPortalPoints1(bestRef, bestPoly, bestTile, neighbourRef, neighbourPoly, neighbourTile)
-			if status.dtStatusFailed() {
+			if status.DtStatusFailed() {
 				continue
 			}
 
@@ -2132,7 +2164,7 @@ func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float6
 
 			// Cost
 			if neighbourNode.flags == 0 {
-				copy(neighbourNode.pos[:], dtVlerp(va, vb, 0.5))
+				dtVlerp(neighbourNode.pos[:], va, vb, 0.5)
 
 			}
 
@@ -2163,7 +2195,7 @@ func (q *dtNavMeshQuery) findPolysAroundShape(startRef dtPolyRef, verts []float6
 	return resultCount, status
 }
 
-func (q *dtNavMeshQuery) getPathFromDijkstraSearch(endRef dtPolyRef, path []dtPolyRef, maxPath int) (pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) GetPathFromDijkstraSearch(endRef DtPolyRef, path []DtPolyRef, maxPath int) (pathCount int, status DtStatus) {
 	if !q.m_nav.isValidPolyRef(endRef) || len(path) == 0 || maxPath < 0 {
 		return pathCount, DT_FAILURE | DT_INVALID_PARAM
 	}
@@ -2177,7 +2209,7 @@ func (q *dtNavMeshQuery) getPathFromDijkstraSearch(endRef dtPolyRef, path []dtPo
 	return
 }
 
-func (q *dtNavMeshQuery) getPathToNode(endNode *dtNode, path []dtPolyRef, maxPath int) (pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) getPathToNode(endNode *dtNode, path []DtPolyRef, maxPath int) (pathCount int, status DtStatus) {
 	// Find the length of the entire path.
 	curNode := endNode
 	var length = 0
@@ -2216,13 +2248,13 @@ Begin8:
 	return pathCount, DT_SUCCESS
 }
 
-func (q *dtNavMeshQuery) finalizeSlicedFindPath(path []dtPolyRef, maxPath int) (pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FinalizeSlicedFindPath(path []DtPolyRef, maxPath int) (pathCount int, status DtStatus) {
 
 	if len(path) == 0 || maxPath <= 0 {
 		return pathCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	//if (dtStatusFailed(q.m_query.status)) {//TODO
+	//if (DtStatusFailed(q.m_query.status)) {//TODO
 	//// Reset query.
 	//memset(&m_query, 0, sizeof(dtQueryData));
 	//return pathCount,DT_FAILURE;
@@ -2265,7 +2297,7 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPath(path []dtPolyRef, maxPath int) (
 		status = 0
 		if node.flags&DT_NODE_PARENT_DETACHED > 0 {
 			var normal [3]float64
-			_, m, status := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
+			_, m, status := q.Raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
 			n += m
 			// raycast ends on poly boundary and the path might include the next poly boundary.
 			if path[n-1] == next.id {
@@ -2303,7 +2335,7 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPath(path []dtPolyRef, maxPath int) (
 }
 
 // / Provides information about raycast hit
-// / filled by dtNavMeshQuery::raycast
+// / filled by DtNavMeshQuery::raycast
 // / @ingroup detour
 type dtRaycastHit struct {
 
@@ -2317,7 +2349,7 @@ type dtRaycastHit struct {
 	hitEdgeIndex int
 
 	/// Pointer to an array of reference ids of the visited polygons. [opt]
-	path []dtPolyRef
+	path []DtPolyRef
 
 	/// The number of visited polygons. [opt]
 	pathCount int
@@ -2367,13 +2399,13 @@ type dtRaycastHit struct {
 // / (no wall hit), meaning it reached the end position. This is one example of why
 // / this method is meant for short distance checks.
 // /
-func (q *dtNavMeshQuery) raycast(startRef dtPolyRef, startPos, endPos []float64,
-	filter *dtQueryFilter, hitNormal []float64, path []dtPolyRef, maxPath int) (t float64, pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) Raycast(startRef DtPolyRef, startPos, endPos []float64,
+	filter *DtQueryFilter, hitNormal []float64, path []DtPolyRef, maxPath int) (t float64, pathCount int, status DtStatus) {
 	var hit dtRaycastHit
 	hit.path = path
 	hit.maxPath = maxPath
 
-	status = q.raycast1(startRef, startPos, endPos, filter, 0, &hit, 0)
+	status = q.Raycast1(startRef, startPos, endPos, filter, 0, &hit, 0)
 
 	t = hit.t
 	if len(hitNormal) > 0 {
@@ -2421,8 +2453,8 @@ func (q *dtNavMeshQuery) raycast(startRef dtPolyRef, startPos, endPos []float64,
 // / (no wall hit), meaning it reached the end position. This is one example of why
 // / this method is meant for short distance checks.
 // /
-func (q *dtNavMeshQuery) raycast1(startRef dtPolyRef, startPos, endPos []float64,
-	filter *dtQueryFilter, options int, hit *dtRaycastHit, prevRef dtPolyRef) (status dtStatus) {
+func (q *DtNavMeshQuery) Raycast1(startRef DtPolyRef, startPos, endPos []float64,
+	filter *DtQueryFilter, options int, hit *dtRaycastHit, prevRef DtPolyRef) (status DtStatus) {
 	dtAssert(q.m_nav)
 
 	if hit == nil {
@@ -2452,7 +2484,7 @@ func (q *dtNavMeshQuery) raycast1(startRef dtPolyRef, startPos, endPos []float64
 
 	var prevTile, tile, nextTile *dtMeshTile
 	var prevPoly, poly, nextPoly *dtPoly
-	var curRef dtPolyRef
+	var curRef DtPolyRef
 
 	// The API input has been checked already, skip checking internal data.
 	curRef = startRef
@@ -2513,7 +2545,7 @@ func (q *dtNavMeshQuery) raycast1(startRef dtPolyRef, startPos, endPos []float64
 		}
 
 		// Follow neighbours.
-		var nextRef dtPolyRef
+		var nextRef DtPolyRef
 
 		for i := poly.firstLink; i != DT_NULL_LINK; i = tile.links[i].next {
 			link := tile.links[i]
@@ -2655,8 +2687,8 @@ func (q *dtNavMeshQuery) raycast1(startRef dtPolyRef, startPos, endPos []float64
 // / The @p filter pointer is stored and used for the duration of the sliced
 // / path query.
 // /
-func (q *dtNavMeshQuery) initSlicedFindPath(startRef, endRef dtPolyRef,
-	startPos, endPos []float64, filter *dtQueryFilter, options int) dtStatus {
+func (q *DtNavMeshQuery) InitSlicedFindPath(startRef, endRef DtPolyRef,
+	startPos, endPos []float64, filter *DtQueryFilter, options int) DtStatus {
 	dtAssert(q.m_nav)
 	dtAssert(q.m_nodePool)
 	dtAssert(q.m_openList)
@@ -2689,7 +2721,7 @@ func (q *dtNavMeshQuery) initSlicedFindPath(startRef, endRef dtPolyRef,
 	if options&DT_FINDPATH_ANY_ANGLE > 0 {
 		// limiting to several times the character radius yields nice results. It is not sensitive
 		// so it is enough to compute it from the first tile.
-		tile := q.m_nav.getTileByRef(dtTileRef(startRef))
+		tile := q.m_nav.getTileByRef(DtTileRef(startRef))
 		agentRadius := tile.header.walkableRadius
 		q.m_query.raycastLimitSqr = dtSqr(float64(agentRadius * DT_RAY_CAST_LIMIT_PROPORTIONS))
 	}
@@ -2699,7 +2731,7 @@ func (q *dtNavMeshQuery) initSlicedFindPath(startRef, endRef dtPolyRef,
 		return DT_SUCCESS
 	}
 
-	q.m_nodePool = map[dtPolyRef]*dtNode{}
+	q.m_nodePool = map[DtPolyRef]*dtNode{}
 	q.m_openList.Reset()
 	var startNode dtNode
 
@@ -2719,8 +2751,8 @@ func (q *dtNavMeshQuery) initSlicedFindPath(startRef, endRef dtPolyRef,
 	return q.m_query.status
 }
 
-func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, status dtStatus) {
-	if !q.m_query.status.dtStatusInProgress() {
+func (q *DtNavMeshQuery) UpdateSlicedFindPath(maxIter int) (doneIters int, status DtStatus) {
+	if !q.m_query.status.DtStatusInProgress() {
 		return doneIters, q.m_query.status
 	}
 
@@ -2756,7 +2788,7 @@ func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, statu
 		// The API input has been checked already, skip checking internal data.
 		bestRef := bestNode.id
 		bestTile, bestPoly, status := q.m_nav.getTileAndPolyByRef(bestRef)
-		if status.dtStatusFailed() {
+		if status.DtStatusFailed() {
 			// The polygon has disappeared during the sliced query, fail.
 			q.m_query.status = DT_FAILURE
 			doneIters = iter
@@ -2765,7 +2797,7 @@ func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, statu
 		}
 
 		// Get parent and grand parent poly and tile.
-		var parentRef, grandpaRef dtPolyRef
+		var parentRef, grandpaRef DtPolyRef
 		var parentNode *dtNode
 		if bestNode.pidx != nil {
 			parentNode = bestNode.pidx
@@ -2777,7 +2809,7 @@ func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, statu
 		}
 		if parentRef > 0 {
 			_, _, status := q.m_nav.getTileAndPolyByRef(parentRef)
-			invalidParent := status.dtStatusFailed()
+			invalidParent := status.DtStatusFailed()
 			if invalidParent || (grandpaRef > 0 && !q.m_nav.isValidPolyRef(grandpaRef)) {
 				// The polygon has disappeared during the sliced query, fail.
 				q.m_query.status = DT_FAILURE
@@ -2842,7 +2874,7 @@ func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, statu
 			rayHit.t = 0
 			rayHit.pathCost = rayHit.t
 			if tryLOS {
-				q.raycast1(parentRef, parentNode.pos[:], neighbourNode.pos[:], q.m_query.filter, DT_RAYCAST_USE_COSTS, &rayHit, grandpaRef)
+				q.Raycast1(parentRef, parentNode.pos[:], neighbourNode.pos[:], q.m_query.filter, DT_RAYCAST_USE_COSTS, &rayHit, grandpaRef)
 				foundShortCut = rayHit.t >= 1.0
 			}
 
@@ -2931,8 +2963,8 @@ func (q *dtNavMeshQuery) updateSlicedFindPath(maxIter int) (doneIters int, statu
 // / The start and end positions are used to calculate traversal costs.
 // / (The y-values impact the result.)
 // /
-func (q *dtNavMeshQuery) findPath(startRef, endRef dtPolyRef,
-	startPos, endPos []float64, filter *dtQueryFilter, path []dtPolyRef, maxPath int) (pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FindPath(startRef, endRef DtPolyRef,
+	startPos, endPos []float64, filter *DtQueryFilter, path []DtPolyRef, maxPath int) (pathCount int, status DtStatus) {
 	dtAssert(q.m_nav)
 	dtAssert(q.m_nodePool)
 	dtAssert(q.m_openList)
@@ -2950,7 +2982,7 @@ func (q *dtNavMeshQuery) findPath(startRef, endRef dtPolyRef,
 		return pathCount, DT_SUCCESS
 	}
 
-	q.m_nodePool = map[dtPolyRef]*dtNode{}
+	q.m_nodePool = map[DtPolyRef]*dtNode{}
 	q.m_openList.Reset()
 	var startNode dtNode
 	copy(startNode.pos[:], startPos)
@@ -2985,7 +3017,7 @@ func (q *dtNavMeshQuery) findPath(startRef, endRef dtPolyRef,
 		bestTile, bestPoly := q.m_nav.getTileAndPolyByRefUnsafe(bestRef)
 
 		// Get parent poly and tile.
-		var parentRef dtPolyRef
+		var parentRef DtPolyRef
 
 		if bestNode.pidx != nil {
 			parentRef = bestNode.pidx.id
@@ -3110,8 +3142,8 @@ func (q *dtNavMeshQuery) findPath(startRef, endRef dtPolyRef,
 // / passed to this function. The dtPolyQuery::process function is invoked multiple
 // / times until all overlapping polygons have been processed.
 // /
-func (q *dtNavMeshQuery) queryPolygons(center []float64, halfExtents []float64,
-	filter *dtQueryFilter, query dtPolyQuery) dtStatus {
+func (q *DtNavMeshQuery) QueryPolygons(center []float64, halfExtents []float64,
+	filter *DtQueryFilter, query dtPolyQuery) DtStatus {
 	dtAssert(q.m_nav)
 
 	if len(center) == 0 ||
@@ -3134,7 +3166,7 @@ func (q *dtNavMeshQuery) queryPolygons(center []float64, halfExtents []float64,
 		for x := minx; x <= maxx; x++ {
 			neis, nneis := q.m_nav.getTilesAt(x, y, MAX_NEIS)
 			for j := 0; j < nneis; j++ {
-				q.queryPolygonsInTile(neis[j], bmin, bmax, filter, query)
+				q.QueryPolygonsInTile(neis[j], bmin, bmax, filter, query)
 			}
 		}
 	}
@@ -3142,14 +3174,14 @@ func (q *dtNavMeshQuery) queryPolygons(center []float64, halfExtents []float64,
 	return DT_SUCCESS
 }
 
-func (q *dtNavMeshQuery) finalizeSlicedFindPathPartial(existing []dtPolyRef, existingSize int,
-	path []dtPolyRef, maxPath int) (pathCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FinalizeSlicedFindPathPartial(existing []DtPolyRef, existingSize int,
+	path []DtPolyRef, maxPath int) (pathCount int, status DtStatus) {
 
 	if len(existing) == 0 || existingSize <= 0 || len(path) == 0 || maxPath <= 0 {
 		return pathCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	if q.m_query.status.dtStatusFailed() {
+	if q.m_query.status.DtStatusFailed() {
 		// Reset query.
 		q.m_query = dtQueryData{}
 		return pathCount, DT_FAILURE
@@ -3201,7 +3233,7 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPathPartial(existing []dtPolyRef, exi
 		status = 0
 		if node.flags&DT_NODE_PARENT_DETACHED > 0 {
 			var normal [3]float64
-			_, m, _ := q.raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
+			_, m, _ := q.Raycast(node.id, node.pos[:], next.pos[:], q.m_query.filter, normal[:], path[n:], maxPath-n)
 			n += m
 			// raycast ends on poly boundary and the path might include the next poly boundary.
 			if path[n-1] == next.id {
@@ -3260,9 +3292,9 @@ func (q *dtNavMeshQuery) finalizeSlicedFindPathPartial(existing []dtPolyRef, exi
 // / If the result arrays are is too small to hold the entire result set, they will
 // / be filled to capacity.
 // /
-func (q *dtNavMeshQuery) findLocalNeighbourhood(startRef dtPolyRef, centerPos []float64, radius float64,
-	filter *dtQueryFilter,
-	resultRef []dtPolyRef, resultParent []dtPolyRef, maxResult int) (resultCount int, status dtStatus) {
+func (q *DtNavMeshQuery) FindLocalNeighbourhood(startRef DtPolyRef, centerPos []float64, radius float64,
+	filter *DtQueryFilter,
+	resultRef []DtPolyRef, resultParent []DtPolyRef, maxResult int) (resultCount int, status DtStatus) {
 	dtAssert(q.m_nav)
 	dtAssert(q.m_tinyNodePool)
 	if !q.m_nav.isValidPolyRef(startRef) ||
@@ -3276,7 +3308,7 @@ func (q *dtNavMeshQuery) findLocalNeighbourhood(startRef dtPolyRef, centerPos []
 	var stack [48]*dtNode
 	nstack := 0
 
-	q.m_tinyNodePool = map[dtPolyRef]*dtNode{}
+	q.m_tinyNodePool = map[DtPolyRef]*dtNode{}
 
 	startNode := q.m_tinyNodePool[startRef]
 	startNode.pidx = nil
@@ -3354,7 +3386,7 @@ func (q *dtNavMeshQuery) findLocalNeighbourhood(startRef dtPolyRef, centerPos []
 
 			// Find edge and calc distance to the edge.
 			va, vb, status := q.getPortalPoints1(curRef, curPoly, curTile, neighbourRef, neighbourPoly, neighbourTile)
-			if status.dtStatusFailed() {
+			if status.DtStatusFailed() {
 				continue
 			}
 
@@ -3446,20 +3478,20 @@ func (q *dtNavMeshQuery) findLocalNeighbourhood(startRef dtPolyRef, centerPos []
 // / return #DT_SUCCESS, but @p nearestRef will be zero. So if in doubt, check
 // / @p nearestRef before using @p nearestPt.
 // /
-func (q *dtNavMeshQuery) findNearestPoly(center, halfExtents []float64, filter *dtQueryFilter, nearestPt []float64) (nearestRef dtPolyRef, status dtStatus) {
-	nearestRef, _, status = q.findNearestPoly1(center, halfExtents, filter, nearestPt)
+func (q *DtNavMeshQuery) FindNearestPoly(center, halfExtents []float64, filter *DtQueryFilter, nearestPt []float64) (nearestRef DtPolyRef, status DtStatus) {
+	nearestRef, _, status = q.FindNearestPoly1(center, halfExtents, filter, nearestPt)
 	return
 }
 
 // If center and nearestPt point to an equal position, isOverPoly will be true;
 // however there's also a special case of climb height inside the polygon (see dtFindNearestPolyQuery)
-func (q *dtNavMeshQuery) findNearestPoly1(center, halfExtents []float64,
-	filter *dtQueryFilter, nearestPt []float64) (nearestRef dtPolyRef, isOverPoly bool, status dtStatus) {
+func (q *DtNavMeshQuery) FindNearestPoly1(center, halfExtents []float64,
+	filter *DtQueryFilter, nearestPt []float64) (nearestRef DtPolyRef, isOverPoly bool, status DtStatus) {
 	dtAssert(q.m_nav)
 	// queryPolygons below will check rest of params
 	query := newDtFindNearestPolyQuery(q, center)
-	status = q.queryPolygons(center, halfExtents, filter, query)
-	if status.dtStatusFailed() {
+	status = q.QueryPolygons(center, halfExtents, filter, query)
+	if status.DtStatusFailed() {
 		return nearestRef, isOverPoly, status
 	}
 
@@ -3484,16 +3516,16 @@ func (q *dtNavMeshQuery) findNearestPoly1(center, halfExtents []float64,
 // / be filled to capacity. The method of choosing which polygons from the
 // / full set are included in the partial result set is undefined.
 // /
-func (q *dtNavMeshQuery) queryPolygons1(center, halfExtents []float64,
-	filter *dtQueryFilter,
-	polys []dtPolyRef, maxPolys int) (polyCount int, status dtStatus) {
+func (q *DtNavMeshQuery) QueryPolygons1(center, halfExtents []float64,
+	filter *DtQueryFilter,
+	polys []DtPolyRef, maxPolys int) (polyCount int, status DtStatus) {
 	if len(polys) == 0 || maxPolys < 0 {
 		return polyCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
 	collector := newDtCollectPolysQuery(polys, maxPolys)
-	status = q.queryPolygons(center, halfExtents, filter, collector)
-	if status.dtStatusFailed() {
+	status = q.QueryPolygons(center, halfExtents, filter, collector)
+	if status.DtStatusFailed() {
 		return polyCount, status
 	}
 	polyCount = collector.numCollected()
@@ -3514,13 +3546,13 @@ func (q *dtNavMeshQuery) queryPolygons1(center, halfExtents []float64,
 // / The @p segmentVerts and @p segmentRefs buffers should normally be sized for the
 // / maximum segments per polygon of the source navigation mesh.
 // /
-func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilter,
-	segmentVerts []float64, segmentRefs []dtPolyRef,
-	maxSegments int) (segmentCount int, status dtStatus) {
+func (q *DtNavMeshQuery) GetPolyWallSegments(ref DtPolyRef, filter *DtQueryFilter,
+	segmentVerts []float64, segmentRefs []DtPolyRef,
+	maxSegments int) (segmentCount int, status DtStatus) {
 	dtAssert(q.m_nav)
 
 	tile, poly, status := q.m_nav.getTileAndPolyByRef(ref)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return segmentCount, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -3559,7 +3591,7 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 			neiRef := 0
 			if poly.neis[j] > 0 {
 				idx := (poly.neis[j] - 1)
-				neiRef = int(q.m_nav.getPolyRefBase(tile) | dtPolyRef(idx))
+				neiRef = int(q.m_nav.getPolyRefBase(tile) | DtPolyRef(idx))
 				if !filter.passFilter(tile.polys[idx]) {
 					neiRef = 0
 				}
@@ -3580,7 +3612,7 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 				copy(seg[:3], vj)
 				copy(seg[3:], vi)
 				if len(segmentRefs) > 0 {
-					segmentRefs[n] = dtPolyRef(neiRef)
+					segmentRefs[n] = DtPolyRef(neiRef)
 				}
 
 				n++
@@ -3606,8 +3638,8 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 				tmax := float64(ints[k].tmax) / 255.0
 				if n < maxSegments {
 					seg := segmentVerts[n*6 : n*6+6]
-					copy(seg[:3], dtVlerp(vj, vi, tmin))
-					copy(seg[3:], dtVlerp(vj, vi, tmax))
+					dtVlerp(seg[:3], vj, vi, tmin)
+					dtVlerp(seg[3:], vj, vi, tmax)
 
 					if len(segmentRefs) > 0 {
 						segmentRefs[n] = ints[k].ref
@@ -3627,8 +3659,8 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 				tmax := float64(imax) / 255.0
 				if n < maxSegments {
 					seg := segmentVerts[n*6 : n*6+6]
-					copy(seg[:3], dtVlerp(vj, vi, tmin))
-					copy(seg[3:], dtVlerp(vj, vi, tmax))
+					dtVlerp(seg[:3], vj, vi, tmin)
+					dtVlerp(seg[3:], vj, vi, tmax)
 
 					if len(segmentRefs) > 0 {
 						segmentRefs[n] = 0
@@ -3654,10 +3686,10 @@ func (q *dtNavMeshQuery) getPolyWallSegments(ref dtPolyRef, filter *dtQueryFilte
 // / Will return #DT_FAILURE | DT_INVALID_PARAM if the provided position is outside the xz-bounds
 // / of the polygon.
 // /
-func (q *dtNavMeshQuery) getPolyHeight(ref dtPolyRef, pos []float64) (height float64, status dtStatus) {
+func (q *DtNavMeshQuery) GetPolyHeight(ref DtPolyRef, pos []float64) (height float64, status DtStatus) {
 	dtAssert(q.m_nav)
 	tile, poly, status := q.m_nav.getTileAndPolyByRef(ref)
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return height, DT_FAILURE | DT_INVALID_PARAM
 	}
 
@@ -3684,11 +3716,11 @@ func (q *dtNavMeshQuery) getPolyHeight(ref dtPolyRef, pos []float64) (height flo
 
 }
 
-func (q *dtNavMeshQuery) isValidPolyRef(ref dtPolyRef, filter *dtQueryFilter) bool {
+func (q *DtNavMeshQuery) IsValidPolyRef(ref DtPolyRef, filter *DtQueryFilter) bool {
 
 	_, poly, status := q.m_nav.getTileAndPolyByRef(ref)
 	// If cannot get polygon, assume it does not exists and boundary is invalid.
-	if status.dtStatusFailed() {
+	if status.DtStatusFailed() {
 		return false
 	}
 
