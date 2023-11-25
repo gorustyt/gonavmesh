@@ -210,7 +210,7 @@ func TestCreateHeightfield(t *testing.T) {
 	var height int
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
-	heightfield := &rcHeightfield{}
+	heightfield := &RcHeightfield{}
 
 	result := rcCreateHeightfield(heightfield, width, height, bmin, bmax, cellSize, cellHeight)
 	msg := "create a heightfield"
@@ -326,7 +326,7 @@ func TestAddSpan(t *testing.T) {
 		cellHeight   float64
 		width        int
 		height       int
-		hf           rcHeightfield
+		hf           RcHeightfield
 		x            int
 		y            int
 		smin         int
@@ -350,7 +350,7 @@ func TestAddSpan(t *testing.T) {
 
 		rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-		hf = rcHeightfield{}
+		hf = RcHeightfield{}
 		if !rcCreateHeightfield(&hf, width, height, bmin, bmax, cellSize, cellHeight) {
 			t.Errorf("rcAddSpan")
 		}
@@ -495,7 +495,7 @@ func TestRasterizeTriangle(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	var solid rcHeightfield
+	var solid RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "Rasterize a triangle")
 
 	area := 42
@@ -534,7 +534,7 @@ func TestRasterizeTriangle1(t *testing.T) {
 	height := 10
 	bmin := []float64{0, 0, 0}
 	bmax := []float64{10, 10, 10}
-	var heightfield rcHeightfield
+	var heightfield RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&heightfield, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangle overlapping bb but non-overlapping triangle")
 
 	// rasterize a triangle outside of the heightfield.
@@ -580,7 +580,7 @@ func TestRasterizeTriangle2(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	var solid rcHeightfield
+	var solid RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "Skinny triangle along x axis")
 
 	areas := []int{42, 42}
@@ -608,7 +608,7 @@ func TestRasterizeTriangle2(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	solid = rcHeightfield{}
+	solid = RcHeightfield{}
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "Skinny triangle along z axis")
 
 	areas = []int{42, 42}
@@ -645,7 +645,7 @@ func TestRasterizeTriangles1(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	var solid rcHeightfield
+	var solid RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangles")
 	msg := "Rasterize some triangles"
 	flagMergeThr := 1
@@ -715,7 +715,7 @@ func TestRasterizeTriangles2(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	var solid rcHeightfield
+	var solid RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangles")
 
 	flagMergeThr := 1
@@ -789,7 +789,7 @@ func TestRasterizeTriangles3(t *testing.T) {
 
 	rcCalcGridSize(bmin, bmax, cellSize, &width, &height)
 
-	var solid rcHeightfield
+	var solid RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangles")
 
 	flagMergeThr := 1

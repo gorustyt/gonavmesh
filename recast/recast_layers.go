@@ -1,5 +1,7 @@
 package recast
 
+import "gonavamesh/common"
+
 const RC_MAX_LAYERS_DEF = 63
 const RC_MAX_NEIS_DEF = 16
 
@@ -59,14 +61,14 @@ type rcLayerSweepSpan struct {
 // / Represents a set of heightfield layers.
 // / @ingroup recast
 // / @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
-type rcHeightfieldLayerSet struct {
-	layers  []*rcHeightfieldLayer ///< The layers in the set. [Size: #nlayers]
+type RcHeightfieldLayerSet struct {
+	layers  []*RcHeightfieldLayer ///< The layers in the set. [Size: #nlayers]
 	nlayers int                   ///< The number of layers in the set.
 }
 
 // / Represents a heightfield layer within a layer set.
-// / @see rcHeightfieldLayerSet
-type rcHeightfieldLayer struct {
+// / @see RcHeightfieldLayerSet
+type RcHeightfieldLayer struct {
 	bmin    [3]float64 ///< The minimum bounds in world space. [(x, y, z)]
 	bmax    [3]float64 ///< The maximum bounds in world space. [(x, y, z)]
 	cs      float64    ///< The size of each cell. (On the xz-plane.)
@@ -86,10 +88,10 @@ type rcHeightfieldLayer struct {
 
 // / @par
 // /
-// / See the #rcConfig documentation for more information on the configuration parameters.
+// / See the #RcConfig documentation for more information on the configuration parameters.
 // /
-// / @see rcAllocHeightfieldLayerSet, rcCompactHeightfield, rcHeightfieldLayerSet, rcConfig
-func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHeight int, lset *rcHeightfieldLayerSet) bool {
+// / @see rcAllocHeightfieldLayerSet, RcCompactHeightfield, RcHeightfieldLayerSet, RcConfig
+func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHeight int, lset *RcHeightfieldLayerSet) bool {
 
 	w := chf.width
 	h := chf.height
@@ -122,8 +124,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 
 				// -x
 				if rcGetCon(s, 0) != RC_NOT_CONNECTED {
-					ax := x + rcGetDirOffsetX(0)
-					ay := y + rcGetDirOffsetY(0)
+					ax := x + common.GetDirOffsetX(0)
+					ay := y + common.GetDirOffsetY(0)
 					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 0)
 					if chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xff {
 						sid = srcReg[ai]
@@ -140,8 +142,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 
 				// -y
 				if rcGetCon(s, 3) != RC_NOT_CONNECTED {
-					ax := x + rcGetDirOffsetX(3)
-					ay := y + rcGetDirOffsetY(3)
+					ax := x + common.GetDirOffsetX(3)
+					ay := y + common.GetDirOffsetY(3)
 					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 3)
 					nr := srcReg[ai]
 					if nr != 0xff {
@@ -223,8 +225,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 					continue
 				}
 
-				regs[ri].ymin = rcMin(regs[ri].ymin, s.y)
-				regs[ri].ymax = rcMax(regs[ri].ymax, s.y)
+				regs[ri].ymin = common.Min(regs[ri].ymin, s.y)
+				regs[ri].ymax = common.Max(regs[ri].ymax, s.y)
 
 				// Collect all region layers.
 				if nlregs < RC_MAX_LAYERS {
@@ -234,8 +236,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 				// Update neighbours
 				for dir := 0; dir < 4; dir++ {
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-						ax := x + rcGetDirOffsetX(dir)
-						ay := y + rcGetDirOffsetY(dir)
+						ax := x + common.GetDirOffsetX(dir)
+						ay := y + common.GetDirOffsetY(dir)
 						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
 						rai := srcReg[ai]
 						if rai != 0xff && rai != ri {
@@ -311,8 +313,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 				}
 
 				// Skip if the height range would become too large.
-				ymin := rcMin(root.ymin, regn.ymin)
-				ymax := rcMax(root.ymax, regn.ymax)
+				ymin := common.Min(root.ymin, regn.ymin)
+				ymax := common.Max(root.ymax, regn.ymax)
 				if (ymax - ymin) >= 255 {
 					continue
 				}
@@ -330,8 +332,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 							return false
 						}
 					}
-					root.ymin = rcMin(root.ymin, regn.ymin)
-					root.ymax = rcMax(root.ymax, regn.ymax)
+					root.ymin = common.Min(root.ymin, regn.ymin)
+					root.ymax = common.Max(root.ymax, regn.ymax)
 				}
 			}
 		}
@@ -368,8 +370,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 				}
 
 				// Skip if the height range would become too large.
-				ymin := rcMin(ri.ymin, rj.ymin)
-				ymax := rcMax(ri.ymax, rj.ymax)
+				ymin := common.Min(ri.ymin, rj.ymin)
+				ymax := common.Max(ri.ymax, rj.ymax)
 				if (ymax - ymin) >= 255 {
 					continue
 				}
@@ -419,8 +421,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 					}
 
 					// Update height bounds.
-					ri.ymin = rcMin(ri.ymin, rj.ymin)
-					ri.ymax = rcMax(ri.ymax, rj.ymax)
+					ri.ymin = common.Min(ri.ymin, rj.ymin)
+					ri.ymax = common.Max(ri.ymax, rj.ymax)
 				}
 			}
 		}
@@ -469,9 +471,9 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 
 	lset.nlayers = layerId
 
-	lset.layers = make([]*rcHeightfieldLayer, lset.nlayers)
+	lset.layers = make([]*RcHeightfieldLayer, lset.nlayers)
 	for i := range lset.layers {
-		lset.layers[i] = &rcHeightfieldLayer{}
+		lset.layers[i] = &RcHeightfieldLayer{}
 	}
 
 	// Store layers.
@@ -540,10 +542,10 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 					}
 
 					// Update data bounds.
-					layer.minx = rcMin(layer.minx, x)
-					layer.maxx = rcMax(layer.maxx, x)
-					layer.miny = rcMin(layer.miny, y)
-					layer.maxy = rcMax(layer.maxy, y)
+					layer.minx = common.Min(layer.minx, x)
+					layer.maxx = common.Max(layer.maxx, x)
+					layer.miny = common.Min(layer.miny, y)
+					layer.maxy = common.Max(layer.maxy, y)
 
 					// Store height and area type.
 					idx := x + y*lw
@@ -555,8 +557,8 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 					con := 0
 					for dir := 0; dir < 4; dir++ {
 						if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-							ax := cx + rcGetDirOffsetX(dir)
-							ay := cy + rcGetDirOffsetY(dir)
+							ax := cx + common.GetDirOffsetX(dir)
+							ay := cy + common.GetDirOffsetY(dir)
 							ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
 							alid := 0xff
 							if srcReg[ai] != 0xff {
@@ -568,7 +570,7 @@ func rcBuildHeightfieldLayers(chf *rcCompactHeightfield, borderSize, walkableHei
 								// Update height so that it matches on both sides of the portal.
 								as := chf.spans[ai]
 								if as.y > hmin {
-									layer.heights[idx] = rcMax(layer.heights[idx], (as.y - hmin))
+									layer.heights[idx] = common.Max(layer.heights[idx], (as.y - hmin))
 								}
 
 							}

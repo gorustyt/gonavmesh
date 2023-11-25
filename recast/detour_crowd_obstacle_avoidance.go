@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 type dtObstacleCircle struct {
 	p      [3]float64 ///< Position of the obstacle
@@ -15,7 +18,7 @@ type dtObstacleSegment struct {
 	touch bool
 }
 
-type dtObstacleAvoidanceDebugData struct {
+type DtObstacleAvoidanceDebugData struct {
 	m_nsamples   int
 	m_maxSamples int
 	m_vel        []float64
@@ -27,24 +30,41 @@ type dtObstacleAvoidanceDebugData struct {
 	m_tpen       []float64
 }
 
+func (d *DtObstacleAvoidanceDebugData) GetSampleCount() int             { return d.m_nsamples }
+func (d *DtObstacleAvoidanceDebugData) GetSampleVelocity(i int) float64 { return d.m_vel[i*3] }
+func (d *DtObstacleAvoidanceDebugData) GetSampleSize(i int) float64     { return d.m_ssize[i] }
+func (d *DtObstacleAvoidanceDebugData) GetSamplePenalty(i int) float64  { return d.m_pen[i] }
+func (d *DtObstacleAvoidanceDebugData) GetSampleDesiredVelocityPenalty(i int) float64 {
+	return d.m_vpen[i]
+}
+func (d *DtObstacleAvoidanceDebugData) GetSampleCurrentVelocityPenalty(i int) float64 {
+	return d.m_vcpen[i]
+}
+func (d *DtObstacleAvoidanceDebugData) GetSamplePreferredSidePenalty(i int) float64 {
+	return d.m_spen[i]
+}
+func (d *DtObstacleAvoidanceDebugData) GetSampleCollisionTimePenalty(i int) float64 {
+	return d.m_tpen[i]
+}
+
 const DT_MAX_PATTERN_DIVS = 32 ///< Max numver of adaptive divs.
 const DT_MAX_PATTERN_RINGS = 4 ///< Max number of adaptive rings.
 
-type dtObstacleAvoidanceParams struct {
-	velBias       float64
-	weightDesVel  float64
-	weightCurVel  float64
-	weightSide    float64
-	weightToi     float64
-	horizTime     float64
-	gridSize      int ///< grid
-	adaptiveDivs  int ///< adaptive
-	adaptiveRings int ///< adaptive
-	adaptiveDepth int ///< adaptive
+type DtObstacleAvoidanceParams struct {
+	VelBias       float64
+	WeightDesVel  float64
+	WeightCurVel  float64
+	WeightSide    float64
+	WeightToi     float64
+	HorizTime     float64
+	GridSize      int ///< grid
+	AdaptiveDivs  int ///< adaptive
+	AdaptiveRings int ///< adaptive
+	AdaptiveDepth int ///< adaptive
 }
 
 type dtObstacleAvoidanceQuery struct {
-	m_params       dtObstacleAvoidanceParams
+	m_params       DtObstacleAvoidanceParams
 	m_invHorizTime float64
 	m_vmax         float64
 	m_invVmax      float64
@@ -62,16 +82,16 @@ const DT_PI = 3.14159265
 
 func sweepCircleCircle(c0 []float64, r0 float64, v, c1 []float64, r1 float64, tmin, tmax *float64) int {
 	EPS := 0.0001
-	s := dtVsub(c1, c0)
+	s := common.Vsub(c1, c0)
 	r := r0 + r1
-	c := dtVdot2D(s, s) - r*r
-	a := dtVdot2D(v, v)
+	c := common.Vdot2D(s, s) - r*r
+	a := common.Vdot2D(v, v)
 	if a < EPS {
 		return 0
 	} // not moving
 
 	// Overlap, calc time to exit.
-	b := dtVdot2D(v, s)
+	b := common.Vdot2D(v, s)
 	d := b*b - a*c
 	if d < 0.0 {
 		return 0
@@ -84,25 +104,25 @@ func sweepCircleCircle(c0 []float64, r0 float64, v, c1 []float64, r1 float64, tm
 }
 
 func isectRaySeg(ap, u []float64, bp, bq []float64, t *float64) int {
-	v := dtVsub(bq, bp)
-	w := dtVsub(ap, bp)
-	d := dtVperp2D(u, v)
+	v := common.Vsub(bq, bp)
+	w := common.Vsub(ap, bp)
+	d := common.Vperp2D(u, v)
 	if math.Abs(d) < 1e-6 {
 		return 0
 	}
 	d = 1.0 / d
-	*t = dtVperp2D(v, w) * d
+	*t = common.Vperp2D(v, w) * d
 	if *t < 0 || *t > 1 {
 		return 0
 	}
-	s := dtVperp2D(u, w) * d
+	s := common.Vperp2D(u, w) * d
 	if s < 0 || s > 1 {
 		return 0
 	}
 	return 1
 }
-func newDtObstacleAvoidanceDebugData(maxSamples int) *dtObstacleAvoidanceDebugData {
-	d := &dtObstacleAvoidanceDebugData{}
+func NewDtObstacleAvoidanceDebugData(maxSamples int) *DtObstacleAvoidanceDebugData {
+	d := &DtObstacleAvoidanceDebugData{}
 	d.m_maxSamples = maxSamples
 	d.m_vel = make([]float64, 3*d.m_maxSamples)
 	d.m_pen = make([]float64, d.m_maxSamples)
@@ -113,11 +133,11 @@ func newDtObstacleAvoidanceDebugData(maxSamples int) *dtObstacleAvoidanceDebugDa
 	d.m_tpen = make([]float64, d.m_maxSamples)
 	return d
 }
-func (d *dtObstacleAvoidanceDebugData) reset() {
+func (d *DtObstacleAvoidanceDebugData) reset() {
 	d.m_nsamples = 0
 }
 
-func (d *dtObstacleAvoidanceDebugData) addSample(vel []float64, ssize float64, pen float64,
+func (d *DtObstacleAvoidanceDebugData) addSample(vel []float64, ssize float64, pen float64,
 	vpen, vcpen, spen, tpen float64) {
 	if d.m_nsamples >= d.m_maxSamples {
 		return
@@ -132,13 +152,13 @@ func (d *dtObstacleAvoidanceDebugData) addSample(vel []float64, ssize float64, p
 	d.m_nsamples++
 }
 
-func (d *dtObstacleAvoidanceDebugData) normalizeArray(arr []float64, n int) {
+func (d *DtObstacleAvoidanceDebugData) NormalizeArray(arr []float64, n int) {
 	// Normalize penaly range.
 	minPen := math.MaxFloat64
 	maxPen := math.SmallestNonzeroFloat64
 	for i := 0; i < n; i++ {
-		minPen = dtMin(minPen, arr[i])
-		maxPen = dtMax(maxPen, arr[i])
+		minPen = common.Min(minPen, arr[i])
+		maxPen = common.Max(maxPen, arr[i])
 	}
 	penRange := maxPen - minPen
 	s := float64(1)
@@ -146,17 +166,17 @@ func (d *dtObstacleAvoidanceDebugData) normalizeArray(arr []float64, n int) {
 		s = 1.0 / penRange
 	}
 	for i := 0; i < n; i++ {
-		arr[i] = dtClamp((arr[i]-minPen)*s, 0.0, 1.0)
+		arr[i] = common.Clamp((arr[i]-minPen)*s, 0.0, 1.0)
 	}
 
 }
 
-func (d *dtObstacleAvoidanceDebugData) normalizeSamples() {
-	d.normalizeArray(d.m_pen, d.m_nsamples)
-	d.normalizeArray(d.m_vpen, d.m_nsamples)
-	d.normalizeArray(d.m_vcpen, d.m_nsamples)
-	d.normalizeArray(d.m_spen, d.m_nsamples)
-	d.normalizeArray(d.m_tpen, d.m_nsamples)
+func (d *DtObstacleAvoidanceDebugData) NormalizeSamples() {
+	d.NormalizeArray(d.m_pen, d.m_nsamples)
+	d.NormalizeArray(d.m_vpen, d.m_nsamples)
+	d.NormalizeArray(d.m_vcpen, d.m_nsamples)
+	d.NormalizeArray(d.m_spen, d.m_nsamples)
+	d.NormalizeArray(d.m_tpen, d.m_nsamples)
 }
 
 func (d *dtObstacleAvoidanceQuery) init(maxCircles, maxSegments int) bool {
@@ -209,11 +229,11 @@ func (d *dtObstacleAvoidanceQuery) prepare(pos, dvel []float64) {
 		pb := cir.p
 
 		orig := []float64{0, 0, 0}
-		copy(cir.dp[:], dtVsub(pb[:], pa))
-		dtVnormalize(cir.dp[:])
-		dv := dtVsub(cir.dvel[:], dvel)
+		copy(cir.dp[:], common.Vsub(pb[:], pa))
+		common.Vnormalize(cir.dp[:])
+		dv := common.Vsub(cir.dvel[:], dvel)
 
-		a := dtTriArea2D(orig, cir.dp[:], dv)
+		a := common.TriArea2D(orig, cir.dp[:], dv)
 		if a < 0.01 {
 			cir.np[0] = -cir.dp[2]
 			cir.np[2] = cir.dp[0]
@@ -229,7 +249,7 @@ func (d *dtObstacleAvoidanceQuery) prepare(pos, dvel []float64) {
 		// Precalc if the agent is really close to the segment.
 		r := 0.01
 		_, res := dtDistancePtSegSqr2D(pos, seg.p[:], seg.q[:])
-		seg.touch = res < dtSqr(r)
+		seg.touch = res < common.Sqr(r)
 	}
 }
 
@@ -243,20 +263,20 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 	pos []float64, rad float64,
 	vel, dvel []float64,
 	minPenalty float64,
-	debug *dtObstacleAvoidanceDebugData) float64 {
+	debug *DtObstacleAvoidanceDebugData) float64 {
 	// penalty for straying away from the desired and current velocities
-	vpen := d.m_params.weightDesVel * (dtVdist2D(vcand, dvel) * d.m_invVmax)
-	vcpen := d.m_params.weightCurVel * (dtVdist2D(vcand, vel) * d.m_invVmax)
+	vpen := d.m_params.WeightDesVel * (common.Vdist2D(vcand, dvel) * d.m_invVmax)
+	vcpen := d.m_params.WeightCurVel * (common.Vdist2D(vcand, vel) * d.m_invVmax)
 
 	// find the threshold hit time to bail out based on the early out penalty
 	// (see how the penalty is calculated below to understand)
 	minPen := minPenalty - vpen - vcpen
-	tThresold := (d.m_params.weightToi/minPen - 0.1) * d.m_params.horizTime
-	if tThresold-d.m_params.horizTime > math.MaxFloat32 {
+	tThresold := (d.m_params.WeightToi/minPen - 0.1) * d.m_params.HorizTime
+	if tThresold-d.m_params.HorizTime > math.MaxFloat32 {
 		return minPenalty
 	} // already too much
 	// Find min time of impact and exit amongst all obstacles.
-	tmin := d.m_params.horizTime
+	tmin := d.m_params.HorizTime
 	side := float64(0)
 	nside := 0
 
@@ -265,12 +285,12 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 
 		// RVO
 		vab := make([]float64, 3)
-		vab = dtVscale(vcand, 2)
-		vab = dtVsub(vab, vel)
-		vab = dtVsub(vab, cir.vel[:])
+		vab = common.Vscale(vcand, 2)
+		vab = common.Vsub(vab, vel)
+		vab = common.Vsub(vab, cir.vel[:])
 
 		// Side
-		side += dtClamp(dtMin(dtVdot2D(cir.dp[:], vab)*0.5+0.5, dtVdot2D(cir.np[:], vab)*2), 0.0, 1.0)
+		side += common.Clamp(common.Min(common.Vdot2D(cir.dp[:], vab)*0.5+0.5, common.Vdot2D(cir.np[:], vab)*2), 0.0, 1.0)
 		nside++
 
 		var htmin = float64(0)
@@ -305,11 +325,11 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 			// Special case when the agent is very close to the segment.
 			sdir := make([]float64, 3)
 			snorm := make([]float64, 3)
-			sdir = dtVsub(seg.q[:], seg.p[:])
+			sdir = common.Vsub(seg.q[:], seg.p[:])
 			snorm[0] = -sdir[2]
 			snorm[2] = sdir[0]
 			// If the velocity is pointing towards the segment, no collision.
-			if dtVdot2D(snorm, vcand) < 0.0 {
+			if common.Vdot2D(snorm, vcand) < 0.0 {
 				continue
 			}
 			// Else immediate collision.
@@ -339,8 +359,8 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 		side /= float64(nside)
 	}
 
-	spen := d.m_params.weightSide * side
-	tpen := d.m_params.weightToi * (1.0 / (0.1 + tmin*d.m_invHorizTime))
+	spen := d.m_params.WeightSide * side
+	tpen := d.m_params.WeightToi * (1.0 / (0.1 + tmin*d.m_invHorizTime))
 
 	penalty := vpen + vcpen + spen + tpen
 
@@ -353,39 +373,39 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 }
 
 func (d *dtObstacleAvoidanceQuery) sampleVelocityGrid(pos []float64, rad float64, vmax float64, vel, dvel, nvel []float64,
-	params *dtObstacleAvoidanceParams,
-	debug *dtObstacleAvoidanceDebugData) int {
+	params *DtObstacleAvoidanceParams,
+	debug *DtObstacleAvoidanceDebugData) int {
 	d.prepare(pos, dvel)
 	d.m_params = *params
-	d.m_invHorizTime = 1.0 / d.m_params.horizTime
+	d.m_invHorizTime = 1.0 / d.m_params.HorizTime
 	d.m_vmax = vmax
 	d.m_invVmax = math.MaxFloat64
 	if vmax > 0 {
 		d.m_invVmax = 1.0 / vmax
 	}
 
-	dtVset(nvel, 0, 0, 0)
+	common.Vset(nvel, 0, 0, 0)
 
 	if debug != nil {
 		debug.reset()
 	}
 
-	cvx := dvel[0] * d.m_params.velBias
-	cvz := dvel[2] * d.m_params.velBias
-	cs := vmax * 2 * (1 - d.m_params.velBias) / float64((d.m_params.gridSize - 1))
-	half := float64(d.m_params.gridSize-1) * cs * 0.5
+	cvx := dvel[0] * d.m_params.VelBias
+	cvz := dvel[2] * d.m_params.VelBias
+	cs := vmax * 2 * (1 - d.m_params.VelBias) / float64((d.m_params.GridSize - 1))
+	half := float64(d.m_params.GridSize-1) * cs * 0.5
 
 	minPenalty := math.MaxFloat64
 	ns := 0
 
-	for y := 0; y < d.m_params.gridSize; y++ {
-		for x := 0; x < d.m_params.gridSize; x++ {
+	for y := 0; y < d.m_params.GridSize; y++ {
+		for x := 0; x < d.m_params.GridSize; x++ {
 			vcand := make([]float64, 3)
 			vcand[0] = cvx + float64(x)*cs - half
 			vcand[1] = 0
 			vcand[2] = cvz + float64(y)*cs - half
 
-			if dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+cs/2) {
+			if common.Sqr(vcand[0])+common.Sqr(vcand[2]) > common.Sqr(vmax+cs/2) {
 				continue
 			}
 
@@ -423,18 +443,18 @@ func dtRorate2D(dest, v []float64, ang float64) {
 }
 
 func (d *dtObstacleAvoidanceQuery) sampleVelocityAdaptive(pos []float64, rad, vmax float64,
-	vel, dvel, nvel []float64, params *dtObstacleAvoidanceParams,
-	debug *dtObstacleAvoidanceDebugData) int {
+	vel, dvel, nvel []float64, params *DtObstacleAvoidanceParams,
+	debug *DtObstacleAvoidanceDebugData) int {
 	d.prepare(pos, dvel)
 	d.m_params = *params
-	d.m_invHorizTime = 1.0 / d.m_params.horizTime
+	d.m_invHorizTime = 1.0 / d.m_params.HorizTime
 	d.m_vmax = vmax
 	d.m_invVmax = math.MaxFloat64
 	if vmax > 0 {
 		d.m_invVmax = 1.0 / vmax
 	}
 
-	dtVset(nvel, 0, 0, 0)
+	common.Vset(nvel, 0, 0, 0)
 
 	if debug != nil {
 		debug.reset()
@@ -444,12 +464,12 @@ func (d *dtObstacleAvoidanceQuery) sampleVelocityAdaptive(pos []float64, rad, vm
 	pat := make([]float64, (DT_MAX_PATTERN_DIVS*DT_MAX_PATTERN_RINGS+1)*2)
 	npat := 0
 
-	ndivs := d.m_params.adaptiveDivs
-	nrings := d.m_params.adaptiveRings
-	depth := d.m_params.adaptiveDepth
+	ndivs := d.m_params.AdaptiveDivs
+	nrings := d.m_params.AdaptiveRings
+	depth := d.m_params.AdaptiveDepth
 
-	nd := dtClamp(ndivs, 1, DT_MAX_PATTERN_DIVS)
-	nr := dtClamp(nrings, 1, DT_MAX_PATTERN_RINGS)
+	nd := common.Clamp(ndivs, 1, DT_MAX_PATTERN_DIVS)
+	nr := common.Clamp(nrings, 1, DT_MAX_PATTERN_RINGS)
 	da := (1.0 / float64(nd)) * DT_PI * 2
 	ca := math.Cos(da)
 	sa := math.Sin(da)
@@ -494,15 +514,15 @@ func (d *dtObstacleAvoidanceQuery) sampleVelocityAdaptive(pos []float64, rad, vm
 	}
 
 	// Start sampling.
-	cr := vmax * (1.0 - d.m_params.velBias)
+	cr := vmax * (1.0 - d.m_params.VelBias)
 	res := make([]float64, 3)
-	dtVset(res, dvel[0]*d.m_params.velBias, 0, dvel[2]*d.m_params.velBias)
+	common.Vset(res, dvel[0]*d.m_params.VelBias, 0, dvel[2]*d.m_params.VelBias)
 	ns := 0
 
 	for k := 0; k < depth; k++ {
 		minPenalty := math.MaxFloat64
 		bvel := make([]float64, 3)
-		dtVset(bvel, 0, 0, 0)
+		common.Vset(bvel, 0, 0, 0)
 
 		for i := 0; i < npat; i++ {
 			vcand := make([]float64, 3)
@@ -510,7 +530,7 @@ func (d *dtObstacleAvoidanceQuery) sampleVelocityAdaptive(pos []float64, rad, vm
 			vcand[1] = 0
 			vcand[2] = res[2] + pat[i*2+1]*cr
 
-			if dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+0.001) {
+			if common.Sqr(vcand[0])+common.Sqr(vcand[2]) > common.Sqr(vmax+0.001) {
 				continue
 			}
 

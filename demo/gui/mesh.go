@@ -21,6 +21,12 @@ type mesh struct {
 	m_triCount  int
 }
 
+func (m *mesh) getVerts() []float64   { return m.m_verts }
+func (m *mesh) getNormals() []float64 { return m.m_normals }
+func (m *mesh) getTris() []int        { return m.m_tris }
+func (m *mesh) getVertCount() int     { return m.m_vertCount }
+func (m *mesh) getTriCount() int      { return m.m_triCount }
+func (m *mesh) getFileName() string   { return m.m_filename }
 func mewMesh() *mesh {
 	return &mesh{m_scale: 1}
 }

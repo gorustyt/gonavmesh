@@ -1,8 +1,8 @@
 package recast
 
 import (
+	"gonavamesh/common"
 	"math"
-	"reflect"
 )
 
 func dtDistancePtSegSqr2D(pt, p, q []float64) (t float64, res float64) {
@@ -45,9 +45,9 @@ func dtCalcPolyCenter(idx []int, nidx int, verts []float64) (tc []float64) {
 func dtClosestHeightPointTriangle(p, a, b, c []float64) (h float64, ok bool) {
 	EPS := 1e-6
 
-	v0 := dtVsub(c, a)
-	v1 := dtVsub(b, a)
-	v2 := dtVsub(p, a)
+	v0 := common.Vsub(c, a)
+	v1 := common.Vsub(b, a)
+	v2 := common.Vsub(p, a)
 
 	// Compute scaled barycentric coordinates
 	denom := v0[0]*v1[2] - v0[2]*v1[0]
@@ -116,47 +116,6 @@ func dtOverlapBounds(amin, amax, bmin, bmax []float64) bool {
 	return overlap
 }
 
-// https://blog.csdn.net/u012138730/article/details/79818162
-func dtIlog2(v int) int {
-	var r int
-	var shift int
-	if v > 0xffff {
-		r <<= 4
-	}
-	v >>= r
-	if v > 0xff {
-		shift <<= 3
-	}
-
-	v >>= shift
-	r |= shift
-	if v > 0xf {
-		shift <<= 2
-	}
-
-	v >>= shift
-	r |= shift
-	if v > 0x3 {
-		shift <<= 1
-	}
-
-	v >>= shift
-	r |= shift
-	r |= (v >> 1)
-	return r
-}
-
-func dtNextPow2(v int) int {
-	v--
-	v |= v >> 1
-	v |= v >> 2
-	v |= v >> 4
-	v |= v >> 8
-	v |= v >> 16
-	v++
-	return v
-}
-
 // 在凸多边形里面随机一个点
 // Returns a random point in a convex polygon.
 // Adapted from Graphics Gems article.
@@ -165,8 +124,8 @@ func dtRandomPointInConvexPoly(pts []float64, npts int, areas []float64, s, t fl
 	// Calc triangle araes
 	areasum := 0.0
 	for i := 2; i < npts; i++ {
-		areas[i] = dtTriArea2D(rcGetVert(pts, 0), rcGetVert(pts, i-1), rcGetVert(pts, i))
-		areasum += dtMax(0.001, areas[i])
+		areas[i] = common.TriArea2D(rcGetVert(pts, 0), rcGetVert(pts, i-1), rcGetVert(pts, i))
+		areasum += common.Max(0.001, areas[i])
 	}
 	// Find sub triangle weighted by area.
 	thr := s * areasum
@@ -216,9 +175,9 @@ func dtDistancePtPolyEdgesSqr(pt, verts []float64, nverts int, ed, et []float64)
 }
 func vperpXZ(a, b []float64) float64 { return a[0]*b[2] - a[2]*b[0] }
 func dtIntersectSegSeg2D(ap, aq, bp, bq []float64) (s, t float64, ok bool) {
-	u := dtVsub(aq, ap)
-	v := dtVsub(bq, bp)
-	w := dtVsub(ap, bp)
+	u := common.Vsub(aq, ap)
+	v := common.Vsub(bq, bp)
+	w := common.Vsub(ap, bp)
 	d := vperpXZ(u, v)
 	if math.Abs(d) < 1e-6 {
 		return s, t, false
@@ -232,11 +191,6 @@ func dtAssertTrue(ok bool) {
 		panic("")
 	}
 }
-func dtAssert(v interface{}) {
-	if v == nil || reflect.ValueOf(v).IsNil() {
-		panic("")
-	}
-}
 
 func dtIntersectSegmentPoly2D(p0, p1, verts []float64, nverts int) (tmin, tmax float64, segMin, segMax int, ok bool) {
 	EPS := 0.000001
@@ -246,16 +200,16 @@ func dtIntersectSegmentPoly2D(p0, p1, verts []float64, nverts int) (tmin, tmax f
 	segMin = -1
 	segMax = -1
 
-	dir := dtVsub(p1, p0)
+	dir := common.Vsub(p1, p0)
 
 	i := 0
 	j := nverts - 1
 	for i < nverts {
 
-		edge := dtVsub(rcGetVert(verts, i), rcGetVert(verts, j))
-		diff := dtVsub(p0, rcGetVert(verts, j))
-		n := dtVperp2D(edge, diff)
-		d := dtVperp2D(dir, edge)
+		edge := common.Vsub(rcGetVert(verts, i), rcGetVert(verts, j))
+		diff := common.Vsub(p0, rcGetVert(verts, j))
+		n := common.Vperp2D(edge, diff)
+		d := common.Vperp2D(dir, edge)
 		if math.Abs(d) < EPS {
 			// S is nearly parallel to this edge
 			if n < 0 {
@@ -338,12 +292,12 @@ func dtOverlapPolyPoly2D(polya []float64, npolya int,
 }
 
 func projectPoly(axis, poly []float64, npoly int) (rmin, rmax float64) {
-	rmax = dtVdot2D(axis, poly[0:3])
+	rmax = common.Vdot2D(axis, poly[0:3])
 	rmin = rmax
 	for i := 1; i < npoly; i++ {
-		d := dtVdot2D(axis, poly[i*3:i*3+3])
-		rmin = dtMin(rmin, d)
-		rmax = dtMax(rmax, d)
+		d := common.Vdot2D(axis, poly[i*3:i*3+3])
+		rmin = common.Min(rmin, d)
+		rmax = common.Max(rmax, d)
 	}
 	return rmin, rmax
 }

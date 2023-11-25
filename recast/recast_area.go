@@ -1,6 +1,9 @@
 package recast
 
-import "sort"
+import (
+	"gonavamesh/common"
+	"sort"
+)
 
 const (
 	RC_NOT_CONNECTED = 0x3f
@@ -40,13 +43,13 @@ func rcGetCon(span *rcCompactSpan, direction int) int {
 
 // / A compact, static heightfield representing unobstructed space.
 // / @ingroup recast
-type rcCompactHeightfield struct {
+type RcCompactHeightfield struct {
 	width          int              ///< The width of the heightfield. (Along the x-axis in cell units.)
 	height         int              ///< The height of the heightfield. (Along the z-axis in cell units.)
 	spanCount      int              ///< The number of spans in the heightfield.
-	walkableHeight int              ///< The walkable height used during the build of the field.  (See: rcConfig::walkableHeight)
-	walkableClimb  int              ///< The walkable climb used during the build of the field. (See: rcConfig::walkableClimb)
-	borderSize     int              ///< The AABB border size used during the build of the field. (See: rcConfig::borderSize)
+	walkableHeight int              ///< The walkable height used during the build of the field.  (See: RcConfig::walkableHeight)
+	walkableClimb  int              ///< The walkable climb used during the build of the field. (See: RcConfig::walkableClimb)
+	borderSize     int              ///< The AABB border size used during the build of the field. (See: RcConfig::borderSize)
 	maxDistance    int              ///< The maximum distance value of any span within the field.
 	maxRegions     int              ///< The maximum region id of any span within the field.
 	bmin           [3]float64       ///< The minimum bounds in world space. [(x, y, z)]
@@ -92,7 +95,7 @@ func pointInPoly(numVerts int, verts []float64, point []float64) bool {
 	return inPoly
 }
 
-func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightfield) bool {
+func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightfield) bool {
 
 	xSize := compactHeightfield.width
 	zSize := compactHeightfield.height
@@ -123,8 +126,8 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 						break
 					}
 
-					neighborX := x + rcGetDirOffsetX(direction)
-					neighborZ := z + rcGetDirOffsetY(direction)
+					neighborX := x + common.GetDirOffsetX(direction)
+					neighborZ := z + common.GetDirOffsetY(direction)
 					neighborSpanIndex := compactHeightfield.cells[neighborX+neighborZ*zStride].index + neighborConnection
 
 					if compactHeightfield.areas[neighborSpanIndex] == RC_NULL_AREA {
@@ -150,21 +153,21 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 
 				if rcGetCon(span, 0) != RC_NOT_CONNECTED {
 					// (-1,0)
-					aX := x + rcGetDirOffsetX(0)
-					aY := z + rcGetDirOffsetY(0)
+					aX := x + common.GetDirOffsetX(0)
+					aY := z + common.GetDirOffsetY(0)
 					aIndex := compactHeightfield.cells[aX+aY*xSize].index + rcGetCon(span, 0)
 					aSpan := compactHeightfield.spans[aIndex]
-					newDistance := rcMin(distanceToBoundary[aIndex]+2, 255)
+					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
 
 					// (-1,-1)
 					if rcGetCon(aSpan, 3) != RC_NOT_CONNECTED {
-						bX := aX + rcGetDirOffsetX(3)
-						bY := aY + rcGetDirOffsetY(3)
+						bX := aX + common.GetDirOffsetX(3)
+						bY := aY + common.GetDirOffsetY(3)
 						bIndex := compactHeightfield.cells[bX+bY*xSize].index + rcGetCon(aSpan, 3)
-						newDistance = rcMin(distanceToBoundary[bIndex]+3, 255)
+						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -172,21 +175,21 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 				}
 				if rcGetCon(span, 3) != RC_NOT_CONNECTED {
 					// (0,-1)
-					aX := x + rcGetDirOffsetX(3)
-					aY := z + rcGetDirOffsetY(3)
+					aX := x + common.GetDirOffsetX(3)
+					aY := z + common.GetDirOffsetY(3)
 					aIndex := compactHeightfield.cells[aX+aY*xSize].index + rcGetCon(span, 3)
 					aSpan := compactHeightfield.spans[aIndex]
-					newDistance := rcMin(distanceToBoundary[aIndex]+2, 255)
+					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
 
 					// (1,-1)
 					if rcGetCon(aSpan, 2) != RC_NOT_CONNECTED {
-						bX := aX + rcGetDirOffsetX(2)
-						bY := aY + rcGetDirOffsetY(2)
+						bX := aX + common.GetDirOffsetX(2)
+						bY := aY + common.GetDirOffsetY(2)
 						bIndex := compactHeightfield.cells[bX+bY*xSize].index + rcGetCon(aSpan, 2)
-						newDistance := rcMin(distanceToBoundary[bIndex]+3, 255)
+						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -206,21 +209,21 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 
 				if rcGetCon(span, 2) != RC_NOT_CONNECTED {
 					// (1,0)
-					aX := x + rcGetDirOffsetX(2)
-					aY := z + rcGetDirOffsetY(2)
+					aX := x + common.GetDirOffsetX(2)
+					aY := z + common.GetDirOffsetY(2)
 					aIndex := compactHeightfield.cells[aX+aY*xSize].index + rcGetCon(span, 2)
 					aSpan := compactHeightfield.spans[aIndex]
-					newDistance := rcMin(distanceToBoundary[aIndex]+2, 255)
+					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
 
 					// (1,1)
 					if rcGetCon(aSpan, 1) != RC_NOT_CONNECTED {
-						bX := aX + rcGetDirOffsetX(1)
-						bY := aY + rcGetDirOffsetY(1)
+						bX := aX + common.GetDirOffsetX(1)
+						bY := aY + common.GetDirOffsetY(1)
 						bIndex := compactHeightfield.cells[bX+bY*xSize].index + rcGetCon(aSpan, 1)
-						newDistance = rcMin(distanceToBoundary[bIndex]+3, 255)
+						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -228,21 +231,21 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 				}
 				if rcGetCon(span, 1) != RC_NOT_CONNECTED {
 					// (0,1)
-					aX := x + rcGetDirOffsetX(1)
-					aY := z + rcGetDirOffsetY(1)
+					aX := x + common.GetDirOffsetX(1)
+					aY := z + common.GetDirOffsetY(1)
 					aIndex := compactHeightfield.cells[aX+aY*xSize].index + rcGetCon(span, 1)
 					aSpan := compactHeightfield.spans[aIndex]
-					newDistance := rcMin(distanceToBoundary[aIndex]+2, 255)
+					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
 
 					// (-1,1)
 					if rcGetCon(aSpan, 0) != RC_NOT_CONNECTED {
-						bX := aX + rcGetDirOffsetX(0)
-						bY := aY + rcGetDirOffsetY(0)
+						bX := aX + common.GetDirOffsetX(0)
+						bY := aY + common.GetDirOffsetY(0)
 						bIndex := compactHeightfield.cells[bX+bY*xSize].index + rcGetCon(aSpan, 0)
-						newDistance := rcMin(distanceToBoundary[bIndex]+3, 255)
+						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -262,7 +265,7 @@ func rcErodeWalkableArea(erosionRadius int, compactHeightfield *rcCompactHeightf
 	return true
 }
 
-func rcMedianFilterWalkableArea(compactHeightfield *rcCompactHeightfield) bool {
+func rcMedianFilterWalkableArea(compactHeightfield *RcCompactHeightfield) bool {
 
 	xSize := compactHeightfield.width
 	zSize := compactHeightfield.height
@@ -295,8 +298,8 @@ func rcMedianFilterWalkableArea(compactHeightfield *rcCompactHeightfield) bool {
 						continue
 					}
 
-					aX := x + rcGetDirOffsetX(dir)
-					aZ := z + rcGetDirOffsetY(dir)
+					aX := x + common.GetDirOffsetX(dir)
+					aZ := z + common.GetDirOffsetY(dir)
 					aIndex := compactHeightfield.cells[aX+aZ*zStride].index + rcGetCon(span, dir)
 					if compactHeightfield.areas[aIndex] != RC_NULL_AREA {
 						neighborAreas[dir*2+0] = compactHeightfield.areas[aIndex]
@@ -306,8 +309,8 @@ func rcMedianFilterWalkableArea(compactHeightfield *rcCompactHeightfield) bool {
 					dir2 := (dir + 1) & 0x3
 					neighborConnection2 := rcGetCon(aSpan, dir2)
 					if neighborConnection2 != RC_NOT_CONNECTED {
-						bX := aX + rcGetDirOffsetX(dir2)
-						bZ := aZ + rcGetDirOffsetY(dir2)
+						bX := aX + common.GetDirOffsetX(dir2)
+						bZ := aZ + common.GetDirOffsetY(dir2)
 						bIndex := compactHeightfield.cells[bX+bZ*zStride].index + neighborConnection2
 						if compactHeightfield.areas[bIndex] != RC_NULL_AREA {
 							neighborAreas[dir*2+1] = compactHeightfield.areas[bIndex]
@@ -330,7 +333,7 @@ func rcMedianFilterWalkableArea(compactHeightfield *rcCompactHeightfield) bool {
 	return true
 }
 
-func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeightfield *rcCompactHeightfield) {
+func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.width
 	zSize := compactHeightfield.height
@@ -397,7 +400,7 @@ func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeig
 	}
 }
 
-func rcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, areaId int, compactHeightfield *rcCompactHeightfield) {
+func RcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, areaId int, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.width
 	zSize := compactHeightfield.height
@@ -409,8 +412,8 @@ func rcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, are
 	copy(bmin, verts)
 	copy(bmax, verts)
 	for i := 1; i < numVerts; i++ {
-		rcVmin(bmin, verts[i*3:i*3+3])
-		rcVmax(bmax, verts[i*3:i*3+3])
+		common.Vmin(bmin, verts[i*3:i*3+3])
+		common.Vmax(bmax, verts[i*3:i*3+3])
 	}
 	bmin[1] = minY
 	bmax[1] = maxY
@@ -491,20 +494,19 @@ const (
 // / If the magnitude is zero, the vector is unchanged.
 // / @param[in,out]	v	The vector to normalize. [(x, y, z)]
 func rcVsafeNormalize(v []float64) {
-	sqMag := rcSqr(v[0]) + rcSqr(v[1]) + rcSqr(v[2])
+	sqMag := common.Sqr(v[0]) + common.Sqr(v[1]) + common.Sqr(v[2])
 	if sqMag > EPSILON {
-		inverseMag := 1.0 / rcSqrt(sqMag)
+		inverseMag := 1.0 / common.Sqrt(sqMag)
 		v[0] *= inverseMag
 		v[1] *= inverseMag
 		v[2] *= inverseMag
 	}
 }
 
-func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int) ([]float64, int) {
+func RcOffsetPoly(verts []float64, numVerts int, offset float64, outVerts []float64, maxOutVerts int) int {
 	// Defines the limit at which a miter becomes a bevel.
 	// Similar in behavior to https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit
 	const MITER_LIMIT float64 = 1.20
-	var outVerts = make([]float64, 0)
 	numOutVerts := 0
 
 	for vertIndex := 0; vertIndex < numVerts; vertIndex++ {
@@ -518,13 +520,13 @@ func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int
 
 		// From A to B on the x/z plane
 
-		prevSegmentDir := rcVsub(vertB, vertA)
+		prevSegmentDir := common.Vsub(vertB, vertA)
 		prevSegmentDir[1] = 0 // Squash onto x/z plane
 		rcVsafeNormalize(prevSegmentDir)
 
 		// From B to C on the x/z plane
 
-		currSegmentDir := rcVsub(vertC, vertB)
+		currSegmentDir := common.Vsub(vertC, vertB)
 		currSegmentDir[1] = 0 // Squash onto x/z plane
 		rcVsafeNormalize(currSegmentDir)
 
@@ -546,7 +548,7 @@ func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int
 		// adjusted proportionally to the edge offsets to properly miter the adjoining edges.
 		cornerMiterX := (prevSegmentNormX + currSegmentNormX) * 0.5
 		cornerMiterZ := (prevSegmentNormZ + currSegmentNormZ) * 0.5
-		cornerMiterSqMag := rcSqr(cornerMiterX) + rcSqr(cornerMiterZ)
+		cornerMiterSqMag := common.Sqr(cornerMiterX) + common.Sqr(cornerMiterZ)
 
 		// If the magnitude of the segment normal average is less than about .69444,
 		// the corner is an acute enough angle that the result should be beveled.
@@ -562,7 +564,7 @@ func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int
 		if bevel && cross < 0.0 { // If the corner is convex and an acute enough angle, generate a bevel.
 
 			if numOutVerts+2 > maxOutVerts {
-				return outVerts, 0
+				return 0
 			}
 
 			// Generate two bevel vertices at a distances from B proportional to the angle between the two segments.
@@ -580,7 +582,7 @@ func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int
 			numOutVerts++
 		} else {
 			if numOutVerts+1 > maxOutVerts {
-				return outVerts, 0
+				return 0
 			}
 
 			// Move B along the miter direction by the specified offset.
@@ -591,10 +593,10 @@ func rcOffsetPoly(verts []float64, numVerts int, offset float64, maxOutVerts int
 		}
 	}
 
-	return outVerts, numOutVerts
+	return numOutVerts
 }
 
-func rcMarkCylinderArea(position []float64, radius float64, height float64, areaId int, compactHeightfield *rcCompactHeightfield) {
+func rcMarkCylinderArea(position []float64, radius float64, height float64, areaId int, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.width
 	zSize := compactHeightfield.height
@@ -659,7 +661,7 @@ func rcMarkCylinderArea(position []float64, radius float64, height float64, area
 			deltaZ := cellZ - position[2]
 
 			// Skip this column if it's too far from the center point of the cylinder.
-			if rcSqr(deltaX)+rcSqr(deltaZ) >= radiusSq {
+			if common.Sqr(deltaX)+common.Sqr(deltaZ) >= radiusSq {
 				continue
 			}
 

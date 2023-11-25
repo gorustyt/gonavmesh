@@ -80,155 +80,164 @@ func InitMesh(dT_POLYREF64 int) {
 type DtPolyRef int
 type DtTileRef int
 
-// / Defines a polygon within a dtMeshTile object.
+// / Defines a polygon within a DtMeshTile object.
 // / @ingroup detour
-type dtPoly struct {
+type DtPoly struct {
 	/// Index to first link in linked list. (Or #DT_NULL_LINK if there is no link.)
-	firstLink int
+	FirstLink int
 
 	/// The indices of the polygon's vertices.
-	/// The actual vertices are located in dtMeshTile::verts.
-	verts [DT_VERTS_PER_POLYGON]int
+	/// The actual vertices are located in DtMeshTile::verts.
+	Verts [DT_VERTS_PER_POLYGON]int
 
 	/// Packed data representing neighbor polygons references and flags for each edge.
-	neis [DT_VERTS_PER_POLYGON]int
+	Neis [DT_VERTS_PER_POLYGON]int
 
 	/// The user defined polygon flags.
-	flags int
+	Flags int
 
 	/// The number of vertices in the polygon.
-	vertCount int
+	VertCount int
 
 	/// The bit packed area id and polygon type.
 	/// @note Use the structure's set and get methods to access this value.
-	areaAndtype int
+	AreaAndtype int
 }
 
 // / Sets the user defined area id. [Limit: < #DT_MAX_AREAS]
-func (p *dtPoly) setArea(a int) { p.areaAndtype = (p.areaAndtype & 0xc0) | (a & 0x3f) }
+func (p *DtPoly) SetArea(a int) { p.AreaAndtype = (p.AreaAndtype & 0xc0) | (a & 0x3f) }
 
 // / Sets the polygon type. (See: #dtPolyTypes.)
-func (p *dtPoly) setType(t int) { p.areaAndtype = (p.areaAndtype & 0x3f) | (t << 6) }
+func (p *DtPoly) SetType(t int) { p.AreaAndtype = (p.AreaAndtype & 0x3f) | (t << 6) }
 
 // / Gets the user defined area id.
-func (p *dtPoly) getArea() int { return p.areaAndtype & 0x3f }
+func (p *DtPoly) GetArea() int { return p.AreaAndtype & 0x3f }
 
 // / Gets the polygon type. (See: #dtPolyTypes)
-func (p *dtPoly) getType() int { return p.areaAndtype >> 6 }
+func (p *DtPoly) GetType() int { return p.AreaAndtype >> 6 }
 
-// / Defines the location of detail sub-mesh data within a dtMeshTile.
-type dtPolyDetail struct {
-	vertBase  int ///< The offset of the vertices in the dtMeshTile::detailVerts array.
-	triBase   int ///< The offset of the triangles in the dtMeshTile::detailTris array.
-	vertCount int ///< The number of vertices in the sub-mesh.
-	triCount  int ///< The number of triangles in the sub-mesh.
+// / Defines the location of detail sub-mesh data within a DtMeshTile.
+type DtPolyDetail struct {
+	VertBase  int ///< The offset of the vertices in the DtMeshTile::detailVerts array.
+	TriBase   int ///< The offset of the triangles in the DtMeshTile::detailTris array.
+	VertCount int ///< The number of vertices in the sub-mesh.
+	TriCount  int ///< The number of triangles in the sub-mesh.
 }
 
 // Defines a link between polygons.
 // / @note This structure is rarely if ever used by the end user.
-// / @see dtMeshTile
-type dtLink struct {
-	ref  DtPolyRef ///< Neighbour reference. (The neighbor that is linked to.)
-	next int       ///< Index of the next link.
-	edge int       ///< Index of the polygon edge that owns this link.
-	side int       ///< If a boundary link, defines on which side the link is.
-	bmin int       ///< If a boundary link, defines the minimum sub-edge area.
-	bmax int       ///< If a boundary link, defines the maximum sub-edge area.
+// / @see DtMeshTile
+type DtLink struct {
+	Ref  DtPolyRef ///< Neighbour reference. (The neighbor that is linked to.)
+	Next int       ///< Index of the next link.
+	Edge int       ///< Index of the polygon edge that owns this link.
+	Side int       ///< If a boundary link, defines on which side the link is.
+	Bmin int       ///< If a boundary link, defines the minimum sub-edge area.
+	Bmax int       ///< If a boundary link, defines the maximum sub-edge area.
 }
 
 // / Bounding volume node.
 // / @note This structure is rarely if ever used by the end user.
-// / @see dtMeshTile
-type dtBVNode struct {
-	bmin [3]int ///< Minimum bounds of the node's AABB. [(x, y, z)]
-	bmax [3]int ///< Maximum bounds of the node's AABB. [(x, y, z)]
-	i    int    ///< The node's index. (Negative for escape sequence.)
+// / @see DtMeshTile
+type DtBVNode struct {
+	Bmin [3]int ///< Minimum bounds of the node's AABB. [(x, y, z)]
+	Bmax [3]int ///< Maximum bounds of the node's AABB. [(x, y, z)]
+	I    int    ///< The node's index. (Negative for escape sequence.)
 }
 
 // / Defines a navigation mesh tile.
 // / @ingroup detour
-type dtMeshTile struct {
+type DtMeshTile struct {
 	salt int ///< Counter describing modifications to the tile.
 
 	linksFreeList int             ///< Index to the next free link.
-	header        *dtMeshHeader   ///< The tile header.
-	polys         []*dtPoly       ///< The tile polygons. [Size: dtMeshHeader::polyCount]
-	verts         []float64       ///< The tile vertices. [(x, y, z) * dtMeshHeader::vertCount]
-	links         []*dtLink       ///< The tile links. [Size: dtMeshHeader::maxLinkCount]
-	detailMeshes  []*dtPolyDetail ///< The tile's detail sub-meshes. [Size: dtMeshHeader::detailMeshCount]
+	Header        *DtMeshHeader   ///< The tile header.
+	Polys         []*DtPoly       ///< The tile polygons. [Size: DtMeshHeader::polyCount]
+	Verts         []float64       ///< The tile vertices. [(x, y, z) * DtMeshHeader::vertCount]
+	Links         []*DtLink       ///< The tile links. [Size: DtMeshHeader::maxLinkCount]
+	DetailMeshes  []*DtPolyDetail ///< The tile's detail sub-meshes. [Size: DtMeshHeader::detailMeshCount]
 
-	/// The detail mesh's unique vertices. [(x, y, z) * dtMeshHeader::detailVertCount]
-	detailVerts []float64
+	/// The detail mesh's unique vertices. [(x, y, z) * DtMeshHeader::detailVertCount]
+	DetailVerts []float64
 
-	/// The detail mesh's triangles. [(vertA, vertB, vertC, triFlags) * dtMeshHeader::detailTriCount].
+	/// The detail mesh's triangles. [(vertA, vertB, vertC, triFlags) * DtMeshHeader::detailTriCount].
 	/// See dtDetailTriEdgeFlags and dtGetDetailTriEdgeFlags.
-	detailTris []int
+	DetailTris []int
 
-	/// The tile bounding volume nodes. [Size: dtMeshHeader::bvNodeCount]
+	/// The tile bounding volume nodes. [Size: DtMeshHeader::bvNodeCount]
 	/// (Will be null if bounding volumes are disabled.)
-	bvTree []*dtBVNode
+	BvTree []*DtBVNode
 
-	offMeshCons []*dtOffMeshConnection ///< The tile off-mesh connections. [Size: dtMeshHeader::offMeshConCount]
+	OffMeshCons []*DtOffMeshConnection ///< The tile off-mesh connections. [Size: DtMeshHeader::offMeshConCount]
 
 	data     []int       ///< The tile data. (Not directly accessed under normal situations.)
 	dataSize int         ///< Size of the tile data.
 	flags    int         ///< Tile flags. (See: #dtTileFlags)
-	next     *dtMeshTile ///< The next free tile, or the next tile in the spatial grid.
+	next     *DtMeshTile ///< The next free tile, or the next tile in the spatial grid.
 }
 
-// / Provides high level information related to a dtMeshTile object.
+func (d *DtMeshTile) GetIndexByPloy(ploy *DtPoly) int {
+	for i, v := range d.Polys {
+		if v == ploy {
+			return i
+		}
+	}
+	return -1
+}
+
+// / Provides high level information related to a DtMeshTile object.
 // / @ingroup detour
-type dtMeshHeader struct {
-	magic           int ///< Tile magic number. (Used to identify the data format.)
-	version         int ///< Tile data format version number.
-	x               int ///< The x-position of the tile within the DtNavMesh tile grid. (x, y, layer)
-	y               int ///< The y-position of the tile within the DtNavMesh tile grid. (x, y, layer)
-	layer           int ///< The layer of the tile within the DtNavMesh tile grid. (x, y, layer)
-	userId          int ///< The user defined id of the tile.
-	polyCount       int ///< The number of polygons in the tile.
-	vertCount       int ///< The number of vertices in the tile.
-	maxLinkCount    int ///< The number of allocated links.
-	detailMeshCount int ///< The number of sub-meshes in the detail mesh.
+type DtMeshHeader struct {
+	Magic           int ///< Tile magic number. (Used to identify the data format.)
+	Version         int ///< Tile data format version number.
+	X               int ///< The x-position of the tile within the DtNavMesh tile grid. (x, y, layer)
+	Y               int ///< The y-position of the tile within the DtNavMesh tile grid. (x, y, layer)
+	Layer           int ///< The layer of the tile within the DtNavMesh tile grid. (x, y, layer)
+	UserId          int ///< The user defined id of the tile.
+	PolyCount       int ///< The number of polygons in the tile.
+	VertCount       int ///< The number of vertices in the tile.
+	MaxLinkCount    int ///< The number of allocated links.
+	DetailMeshCount int ///< The number of sub-meshes in the detail mesh.
 
 	/// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
-	detailVertCount int
+	DetailVertCount int
 
-	detailTriCount  int        ///< The number of triangles in the detail mesh.
-	bvNodeCount     int        ///< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
-	offMeshConCount int        ///< The number of off-mesh connections.
-	offMeshBase     int        ///< The index of the first polygon which is an off-mesh connection.
-	walkableHeight  float64    ///< The height of the agents using the tile.
-	walkableRadius  float64    ///< The radius of the agents using the tile.
-	walkableClimb   float64    ///< The maximum climb height of the agents using the tile.
-	bmin            [3]float64 ///< The minimum bounds of the tile's AABB. [(x, y, z)]
-	bmax            [3]float64 ///< The maximum bounds of the tile's AABB. [(x, y, z)]
+	DetailTriCount  int        ///< The number of triangles in the detail mesh.
+	BvNodeCount     int        ///< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
+	OffMeshConCount int        ///< The number of off-mesh connections.
+	OffMeshBase     int        ///< The index of the first polygon which is an off-mesh connection.
+	WalkableHeight  float64    ///< The height of the agents using the tile.
+	WalkableRadius  float64    ///< The radius of the agents using the tile.
+	WalkableClimb   float64    ///< The maximum climb height of the agents using the tile.
+	Bmin            [3]float64 ///< The minimum bounds of the tile's AABB. [(x, y, z)]
+	Bmax            [3]float64 ///< The maximum bounds of the tile's AABB. [(x, y, z)]
 
 	/// The bounding volume quantization factor.
-	bvQuantFactor float64
+	BvQuantFactor float64
 }
 
-// / Defines an navigation mesh off-mesh connection within a dtMeshTile object.
+// / Defines an navigation mesh off-mesh connection within a DtMeshTile object.
 // / An off-mesh connection is a user defined traversable connection made up to two vertices.
-type dtOffMeshConnection struct {
+type DtOffMeshConnection struct {
 	/// The endpoints of the connection. [(ax, ay, az, bx, by, bz)]
-	pos [6]float64
+	Pos [6]float64
 
 	/// The radius of the endpoints. [Limit: >= 0]
-	rad float64
+	Rad float64
 
 	/// The polygon reference of the connection within the tile.
-	poly int
+	Poly int
 
 	/// Link flags.
 	/// @note These are not the connection's user defined flags. Those are assigned via the
-	/// connection's dtPoly definition. These are link flags used for internal purposes.
-	flags int
+	/// connection's DtPoly definition. These are link flags used for internal purposes.
+	Flags int
 
 	/// End point side.
-	side int
+	Side int
 
 	/// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
-	userId int
+	UserId int
 }
 
 // / Configuration parameters used to define multi-tile navigation meshes.
@@ -251,85 +260,85 @@ type IDtNavMesh interface {
 	///  @param[in]		lastRef		The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
 	///  @param[out]	result		The tile reference. (If the tile was succesfully added.) [opt]
 	/// @return The status flags for the operation.
-	addTile(header *dtMeshHeader, titleData *dtMeshTile, dataSize int, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus)
+	AddTile(header *DtMeshHeader, titleData *DtMeshTile, dataSize int, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus)
 	/// Removes the specified tile from the navigation mesh.
 	///  @param[in]		ref			The reference of the tile to remove.
 	///  @param[out]	data		Data associated with deleted tile.
 	///  @param[out]	dataSize	Size of the data associated with deleted tile.
 	/// @return The status flags for the operation.
-	removeTile(ref DtTileRef) (data []int, dataSize int, status DtStatus)
+	RemoveTile(ref DtTileRef) (data []int, dataSize int, status DtStatus)
 	/// @name Query Functions
 
 	/// Calculates the tile grid location for the specified world position.
 	///  @param[in]	pos  The world position for the query. [(x, y, z)]
 	///  @param[out]	tx		The tile's x-location. (x, y)
 	///  @param[out]	ty		The tile's y-location. (x, y)
-	calcTileLoc(pos []float64) (tx, ty int)
+	CalcTileLoc(pos []float64) (tx, ty int)
 	/// Gets the tile at the specified grid location.
 	///  @param[in]	x		The tile's x-location. (x, y, layer)
 	///  @param[in]	y		The tile's y-location. (x, y, layer)
 	///  @param[in]	layer	The tile's layer. (x, y, layer)
 	/// @return The tile, or null if the tile does not exist.
-	getTileAt(x, y, layer int) *dtMeshTile
+	GetTileAt(x, y, layer int) *DtMeshTile
 	/// Gets all tiles at the specified grid location. (All layers.)
 	///  @param[in]		x			The tile's x-location. (x, y)
 	///  @param[in]		y			The tile's y-location. (x, y)
 	///  @param[out]	tiles		A pointer to an array of tiles that will hold the result.
 	///  @param[in]		maxTiles	The maximum tiles the tiles parameter can hold.
 	/// @return The number of tiles returned in the tiles array.
-	getTilesAt(x, y int, maxTiles int) ([]*dtMeshTile, int)
+	GetTilesAt(x, y int, maxTiles int) ([]*DtMeshTile, int)
 	/// Gets the tile reference for the tile at specified grid location.
 	///  @param[in]	x		The tile's x-location. (x, y, layer)
 	///  @param[in]	y		The tile's y-location. (x, y, layer)
 	///  @param[in]	layer	The tile's layer. (x, y, layer)
 	/// @return The tile reference of the tile, or 0 if there is none.
-	getTileRefAt(x, y, layer int) DtTileRef
+	GetTileRefAt(x, y, layer int) DtTileRef
 	/// Gets the tile reference for the specified tile.
 	///  @param[in]	tile	The tile.
 	/// @return The tile reference of the tile.
-	getTileRef(tile *dtMeshTile) DtTileRef
+	GetTileRef(tile *DtMeshTile) DtTileRef
 	/// Gets the tile for the specified tile reference.
 	///  @param[in]	ref		The tile reference of the tile to retrieve.
 	/// @return The tile for the specified reference, or null if the
 	///		reference is invalid.
-	getTileByRef(ref DtTileRef) *dtMeshTile
+	GetTileByRef(ref DtTileRef) *DtMeshTile
 	/// The maximum number of tiles supported by the navigation mesh.
 	/// @return The maximum number of tiles supported by the navigation mesh.
-	getMaxTiles() int
+	GetMaxTiles() int
 	/// Gets the tile at the specified index.
 	///  @param[in]	i		The tile index. [Limit: 0 >= index < #getMaxTiles()]
 	/// @return The tile at the specified index.
-	getTile(i int) *dtMeshTile
+	GetTile(i int) *DtMeshTile
 	/// Gets the tile and polygon for the specified polygon reference.
 	///  @param[in]		ref		The reference for the a polygon.
 	///  @param[out]	tile	The tile containing the polygon.
 	///  @param[out]	poly	The polygon.
 	/// @return The status flags for the operation.
-	getTileAndPolyByRef(ref DtPolyRef) (tile *dtMeshTile, poly *dtPoly, status DtStatus)
+	GetTileAndPolyByRef(ref DtPolyRef) (tile *DtMeshTile, poly *DtPoly, status DtStatus)
 	/// Returns the tile and polygon for the specified polygon reference.
 	///  @param[in]		ref		A known valid reference for a polygon.
 	///  @param[out]	tile	The tile containing the polygon.
 	///  @param[out]	poly	The polygon.
-	getTileAndPolyByRefUnsafe(ref DtPolyRef) (tile *dtMeshTile, poly *dtPoly)
+	GetTileAndPolyByRefUnsafe(ref DtPolyRef) (tile *DtMeshTile, poly *DtPoly)
 	/// Checks the validity of a polygon reference.
 	///  @param[in]	ref		The polygon reference to check.
 	/// @return True if polygon reference is valid for the navigation mesh.
-	isValidPolyRef(ref DtPolyRef) bool
+	IsValidPolyRef(ref DtPolyRef) bool
 	/// Gets the polygon reference for the tile's base polygon.
 	///  @param[in]	tile		The tile.
 	/// @return The polygon reference for the base polygon in the specified tile.
-	getPolyRefBase(tile *dtMeshTile) DtPolyRef
+	GetPolyRefBase(tile *DtMeshTile) DtPolyRef
 	/// Gets the endpoints for an off-mesh connection, ordered by "direction of travel".
 	///  @param[in]		prevRef		The reference of the polygon before the connection.
 	///  @param[in]		polyRef		The reference of the off-mesh connection polygon.
 	///  @param[out]	startPos	The start position of the off-mesh connection. [(x, y, z)]
 	///  @param[out]	endPos		The end position of the off-mesh connection. [(x, y, z)]
 	/// @return The status flags for the operation.
-	getOffMeshConnectionPolyEndPoints(prevRef DtPolyRef, polyRef DtPolyRef, startPos []float64, endPos []float64) DtStatus
+	GetOffMeshConnectionPolyEndPoints(prevRef DtPolyRef, polyRef DtPolyRef, startPos []float64, endPos []float64) DtStatus
 	/// Gets the specified off-mesh connection.
 	///  @param[in]	ref		The polygon reference of the off-mesh connection.
 	/// @return The specified off-mesh connection, or null if the polygon reference is not valid
-	getOffMeshConnectionByRef(ref DtPolyRef) *dtOffMeshConnection
+	GetOffMeshConnectionByRef(ref DtPolyRef) *DtOffMeshConnection
 	/// @}
 
 	/// @{
@@ -340,24 +349,24 @@ type IDtNavMesh interface {
 	///  @param[in]	ref		The polygon reference.
 	///  @param[in]	flags	The new flags for the polygon.
 	/// @return The status flags for the operation.
-	setPolyFlags(ref DtPolyRef, flags int) DtStatus
+	SetPolyFlags(ref DtPolyRef, flags int) DtStatus
 
 	/// Gets the user defined flags for the specified polygon.
 	///  @param[in]		ref				The polygon reference.
 	///  @param[out]	resultFlags		The polygon flags.
 	/// @return The status flags for the operation.
-	getPolyFlags(ref DtPolyRef) (resultFlags int, status DtStatus)
+	GetPolyFlags(ref DtPolyRef) (resultFlags int, status DtStatus)
 
 	/// Sets the user defined area for the specified polygon.
 	///  @param[in]	ref		The polygon reference.
 	///  @param[in]	area	The new area id for the polygon. [Limit: < #DT_MAX_AREAS]
 	/// @return The status flags for the operation.
-	setPolyArea(ref DtPolyRef, area int) DtStatus
+	SetPolyArea(ref DtPolyRef, area int) DtStatus
 	/// Gets the user defined area for the specified polygon.
 	///  @param[in]		ref			The polygon reference.
 	///  @param[out]	resultArea	The area id for the polygon.
 	/// @return The status flags for the operation.
-	getPolyArea(ref DtPolyRef) (resultArea int, status DtStatus)
+	GetPolyArea(ref DtPolyRef) (resultArea int, status DtStatus)
 
 	/// Gets the size of the buffer required by #storeTileState to store the specified tile's state.
 	///  @param[in]	tile	The tile.
@@ -368,7 +377,7 @@ type IDtNavMesh interface {
 	///  @param[in]	data			The new state. (Obtained from #storeTileState.)
 	///  @param[in]	maxDataSize		The size of the state within the data buffer.
 	/// @return The status flags for the operation.
-	restoreTileState(tile *dtMeshTile, tileState *dtTileState, polyStates []*dtPolyState, maxDataSize int) DtStatus
+	RestoreTileState(tile *DtMeshTile, tileState *dtTileState, polyStates []*dtPolyState, maxDataSize int) DtStatus
 	/// @name Encoding and Decoding
 	/// These functions are generally meant for internal use only.
 
@@ -377,7 +386,7 @@ type IDtNavMesh interface {
 	///  @param[in]	salt	The tile's salt value.
 	///  @param[in]	it		The index of the tile.
 	///  @param[in]	ip		The index of the polygon within the tile.
-	encodePolyId(salt, it, ip int) DtPolyRef
+	EncodePolyId(salt, it, ip int) DtPolyRef
 	/// Decodes a standard polygon reference.
 	///  @note This function is generally meant for internal use only.
 	///  @param[in]	ref   The polygon reference to decode.
@@ -385,22 +394,25 @@ type IDtNavMesh interface {
 	///  @param[out]	it		The index of the tile.
 	///  @param[out]	ip		The index of the polygon within the tile.
 	///  @see #encodePolyId
-	decodePolyId(ref DtPolyRef) (salt, it, ip int)
+	DecodePolyId(ref DtPolyRef) (salt, it, ip int)
 	/// Extracts a tile's salt value from the specified polygon reference.
 	///  @note This function is generally meant for internal use only.
 	///  @param[in]	ref		The polygon reference.
 	///  @see #encodePolyId
-	decodePolyIdPoly(ref DtPolyRef) int
+	DecodePolyIdPoly(ref DtPolyRef) int
 	/// Extracts the tile's index from the specified polygon reference.
 	///  @note This function is generally meant for internal use only.
 	///  @param[in]	ref		The polygon reference.
 	///  @see #encodePolyId
-	decodePolyIdTile(ref DtPolyRef) int
+	DecodePolyIdTile(ref DtPolyRef) int
 	/// Extracts a tile's salt value from the specified polygon reference.
 	///  @note This function is generally meant for internal use only.
 	///  @param[in]	ref		The polygon reference.
 	///  @see #encodePolyId
-	decodePolyIdSalt(ref DtPolyRef) int
+	DecodePolyIdSalt(ref DtPolyRef) int
+
+	GetPolyHeight(tile *DtMeshTile, poly *DtPoly, pos []float64) (height float64, ok bool)
+	ClosestPointOnPoly(ref DtPolyRef, pos []float64, closest []float64, posOverPoly *bool)
 }
 
 type DtNavMesh struct {
@@ -410,19 +422,19 @@ type DtNavMesh struct {
 	m_maxTiles                int            ///< Max number of tiles.
 	m_tileLutSize             int            ///< Tile hash lookup size (must be pot).
 	m_tileLutMask             int            ///< Tile hash lookup mask.
-	m_posLookup               []*dtMeshTile  ///< Tile hash lookup.
-	m_nextFree                *dtMeshTile    ///< Freelist of tiles.
-	m_tiles                   []*dtMeshTile  ///< List of tiles.
+	m_posLookup               []*DtMeshTile  ///< Tile hash lookup.
+	m_nextFree                *DtMeshTile    ///< Freelist of tiles.
+	m_tiles                   []*DtMeshTile  ///< List of tiles.
 
 	m_saltBits int ///< Number of salt bits in the tile ID.
 	m_tileBits int ///< Number of tile bits in the tile ID.
 	m_polyBits int ///< Number of poly bits in the tile ID.
 }
 
-func (mesh *DtNavMesh) getTile(i int) *dtMeshTile {
+func (mesh *DtNavMesh) GetTile(i int) *DtMeshTile {
 	return mesh.m_tiles[i]
 }
-func (mesh *DtNavMesh) getMaxTiles() int {
+func (mesh *DtNavMesh) GetMaxTiles() int {
 	return mesh.m_maxTiles
 }
 
@@ -435,7 +447,7 @@ func (mesh *DtNavMesh) getMaxTiles() int {
 // /  @param[in]	salt	The tile's salt value.
 // /  @param[in]	it		The index of the tile.
 // /  @param[in]	ip		The index of the polygon within the tile.
-func (mesh *DtNavMesh) encodePolyId(salt, it, ip int) DtPolyRef {
+func (mesh *DtNavMesh) EncodePolyId(salt, it, ip int) DtPolyRef {
 	if DT_POLYREF64 == 1 {
 		return DtPolyRef(salt<<(DT_POLY_BITS+DT_TILE_BITS) | (it << DT_POLY_BITS) | ip)
 	} else {
@@ -443,7 +455,7 @@ func (mesh *DtNavMesh) encodePolyId(salt, it, ip int) DtPolyRef {
 	}
 }
 
-func (mesh *DtNavMesh) decodePolyIdTile(ref DtPolyRef) int {
+func (mesh *DtNavMesh) DecodePolyIdTile(ref DtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		tileMask := (1 << DT_TILE_BITS) - 1
 		return int((int(ref) >> DT_POLY_BITS) & tileMask)
@@ -460,7 +472,7 @@ func (mesh *DtNavMesh) decodePolyIdTile(ref DtPolyRef) int {
 // /  @param[out]	it		The index of the tile.
 // /  @param[out]	ip		The index of the polygon within the tile.
 // /  @see #encodePolyId
-func (mesh *DtNavMesh) decodePolyId(r DtPolyRef) (salt, it, ip int) {
+func (mesh *DtNavMesh) DecodePolyId(r DtPolyRef) (salt, it, ip int) {
 	ref := int(r)
 	if DT_POLYREF64 == 1 {
 		saltMask := (1 << DT_SALT_BITS) - 1
@@ -484,11 +496,11 @@ func (mesh *DtNavMesh) decodePolyId(r DtPolyRef) (salt, it, ip int) {
 // / @param[in]	triFlags		The flags for the triangle (last component of detail vertices above).
 // / @param[in]	edgeIndex		The index of the first vertex of the edge. For instance, if 0,
 // /								returns flags for edge AB.
-func dtGetDetailTriEdgeFlags(triFlags int, edgeIndex int) int {
+func DtGetDetailTriEdgeFlags(triFlags int, edgeIndex int) int {
 	return (triFlags >> (edgeIndex * 2)) & 0x3
 }
 
-func (mesh *DtNavMesh) decodePolyIdPoly(ref DtPolyRef) int {
+func (mesh *DtNavMesh) DecodePolyIdPoly(ref DtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		polyMask := (1 << DT_POLY_BITS) - 1
 		return int(ref) & polyMask
@@ -503,7 +515,7 @@ func (mesh *DtNavMesh) decodePolyIdPoly(ref DtPolyRef) int {
 // /  @note This function is generally meant for internal use only.
 // /  @param[in]	ref		The polygon reference.
 // /  @see #encodePolyId
-func (mesh *DtNavMesh) decodePolyIdSalt(ref DtPolyRef) int {
+func (mesh *DtNavMesh) DecodePolyIdSalt(ref DtPolyRef) int {
 	if DT_POLYREF64 == 1 {
 		saltMask := (1 << DT_SALT_BITS) - 1
 		return ((int(ref) >> (DT_POLY_BITS + DT_TILE_BITS)) & saltMask)
@@ -513,19 +525,19 @@ func (mesh *DtNavMesh) decodePolyIdSalt(ref DtPolyRef) int {
 
 }
 
-func (mesh *DtNavMesh) calcTileLoc(pos []float64) (tx, ty int) {
+func (mesh *DtNavMesh) CalcTileLoc(pos []float64) (tx, ty int) {
 	tx = int(math.Floor((pos[0] - mesh.m_orig[0]) / mesh.m_tileWidth))
 	ty = int(math.Floor((pos[2] - mesh.m_orig[2]) / mesh.m_tileHeight))
 	return tx, ty
 }
 
-func (mesh *DtNavMesh) getTileByRef(ref DtTileRef) *dtMeshTile {
+func (mesh *DtNavMesh) GetTileByRef(ref DtTileRef) *DtMeshTile {
 	if ref == 0 {
 		return nil
 	}
 
-	tileIndex := mesh.decodePolyIdTile(DtPolyRef(ref))
-	tileSalt := mesh.decodePolyIdSalt(DtPolyRef(ref))
+	tileIndex := mesh.DecodePolyIdTile(DtPolyRef(ref))
+	tileSalt := mesh.DecodePolyIdSalt(DtPolyRef(ref))
 	if tileIndex >= mesh.m_maxTiles {
 		return nil
 	}

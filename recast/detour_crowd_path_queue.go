@@ -1,5 +1,7 @@
 package recast
 
+import "gonavamesh/common"
+
 type dtPathQueueRef int
 
 const DT_PATHQ_INVALID = 0
@@ -42,7 +44,7 @@ func (d *dtPathQueue) purge() {
 	}
 }
 
-func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav *DtNavMesh) bool {
+func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMesh) bool {
 	d.purge()
 	d.m_navquery = NewDtNavMeshQuery(nav, maxSearchNodeCount)
 	d.m_maxPathSize = maxPathSize
@@ -163,7 +165,7 @@ func (d *dtPathQueue) getPathResult(ref dtPathQueueRef, path []DtPolyRef, pathSi
 			q.ref = DT_PATHQ_INVALID
 			q.status = 0
 			// Copy path
-			n := dtMin(q.npath, maxPath)
+			n := common.Min(q.npath, maxPath)
 			copy(path, q.path[:n])
 			*pathSize = n
 			return details | DT_SUCCESS

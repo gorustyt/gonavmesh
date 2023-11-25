@@ -35,10 +35,10 @@ func NewGui(title string) *Gui {
 		mesh:      mewMesh(),
 		logger:    newLogger(),
 		InputGeom: newInputGeom(),
-		sample:    newSample(),
 	}
 	ui.width, ui.height = getWH()
 	ui.layout = newLayout(ui)
+	ui.sample = newSample(ui.gs)
 	ui.render = newImguiRender(ui)
 	ui.mainWindow = g.NewMasterWindow(ui.title, ui.width, ui.height, 0)
 	ui.mainWindow.SetCloseCallback(ui.shutdown)

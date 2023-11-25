@@ -1,6 +1,9 @@
 package recast
 
-import "sort"
+import (
+	"gonavamesh/common"
+	"sort"
+)
 
 const (
 	/// Contour build flags.
@@ -66,7 +69,7 @@ func intersectSegContour(d0, d1 []int, i, n int, verts []int) bool {
 	}
 	return false
 }
-func getCornerHeight(x, y, i, dir int, chf *rcCompactHeightfield,
+func getCornerHeight(x, y, i, dir int, chf *RcCompactHeightfield,
 	isBorderVertex *bool) int {
 	s := chf.spans[i]
 	ch := s.y
@@ -79,34 +82,34 @@ func getCornerHeight(x, y, i, dir int, chf *rcCompactHeightfield,
 	regs[0] = chf.spans[i].reg | (chf.areas[i] << 16)
 
 	if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-		ax := x + rcGetDirOffsetX(dir)
-		ay := y + rcGetDirOffsetY(dir)
+		ax := x + common.GetDirOffsetX(dir)
+		ay := y + common.GetDirOffsetY(dir)
 		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
 		as := chf.spans[ai]
-		ch = rcMax(ch, as.y)
+		ch = common.Max(ch, as.y)
 		regs[1] = chf.spans[ai].reg | (chf.areas[ai] << 16)
 		if rcGetCon(as, dirp) != RC_NOT_CONNECTED {
-			ax2 := ax + rcGetDirOffsetX(dirp)
-			ay2 := ay + rcGetDirOffsetY(dirp)
+			ax2 := ax + common.GetDirOffsetX(dirp)
+			ay2 := ay + common.GetDirOffsetY(dirp)
 			ai2 := chf.cells[ax2+ay2*chf.width].index + rcGetCon(as, dirp)
 			as2 := chf.spans[ai2]
-			ch = rcMax(ch, as2.y)
+			ch = common.Max(ch, as2.y)
 			regs[2] = chf.spans[ai2].reg | (chf.areas[ai2] << 16)
 		}
 	}
 	if rcGetCon(s, dirp) != RC_NOT_CONNECTED {
-		ax := x + rcGetDirOffsetX(dirp)
-		ay := y + rcGetDirOffsetY(dirp)
+		ax := x + common.GetDirOffsetX(dirp)
+		ay := y + common.GetDirOffsetY(dirp)
 		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dirp)
 		as := chf.spans[ai]
-		ch = rcMax(ch, as.y)
+		ch = common.Max(ch, as.y)
 		regs[3] = chf.spans[ai].reg | (chf.areas[ai] << 16)
 		if rcGetCon(as, dir) != RC_NOT_CONNECTED {
-			ax2 := ax + rcGetDirOffsetX(dir)
-			ay2 := ay + rcGetDirOffsetY(dir)
+			ax2 := ax + common.GetDirOffsetX(dir)
+			ay2 := ay + common.GetDirOffsetY(dir)
 			ai2 := chf.cells[ax2+ay2*chf.width].index + rcGetCon(as, dir)
 			as2 := chf.spans[ai2]
-			ch = rcMax(ch, as2.y)
+			ch = common.Max(ch, as2.y)
 			regs[2] = chf.spans[ai2].reg | (chf.areas[ai2] << 16)
 		}
 	}
@@ -155,7 +158,7 @@ func contourdistancePtSeg(x, z, px, pz, qx, qz int) float64 {
 
 	return dx*dx + dz*dz
 }
-func walkContour(x, y, i int, chf *rcCompactHeightfield,
+func walkContour(x, y, i int, chf *RcCompactHeightfield,
 	flags []int, points Stack[int]) {
 	// Choose the first non-connected edge
 	dir := 0
@@ -196,8 +199,8 @@ func walkContour(x, y, i int, chf *rcCompactHeightfield,
 			r := 0
 			s := chf.spans[i]
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-				ax := x + rcGetDirOffsetX(dir)
-				ay := y + rcGetDirOffsetY(dir)
+				ax := x + common.GetDirOffsetX(dir)
+				ay := y + common.GetDirOffsetY(dir)
 				ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
 				r = chf.spans[ai].reg
 				if area != chf.areas[ai] {
@@ -222,8 +225,8 @@ func walkContour(x, y, i int, chf *rcCompactHeightfield,
 			dir = (dir + 1) & 0x3   // Rotate CW
 		} else {
 			ni := -1
-			nx := x + rcGetDirOffsetX(dir)
-			ny := y + rcGetDirOffsetY(dir)
+			nx := x + common.GetDirOffsetX(dir)
+			ny := y + common.GetDirOffsetY(dir)
 			s := chf.spans[i]
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 				nc := chf.cells[nx+ny*chf.width]
@@ -702,12 +705,12 @@ func mergeRegionHoles(region *rcContourRegion) {
 // /
 // / Setting @p maxEdgeLength to zero will disabled the edge length feature.
 // /
-// / See the #rcConfig documentation for more information on the configuration parameters.
+// / See the #RcConfig documentation for more information on the configuration parameters.
 // /
-// / @see rcAllocContourSet, rcCompactHeightfield, rcContourSet, rcConfig
-func rcBuildContours(chf *rcCompactHeightfield,
+// / @see rcAllocContourSet, RcCompactHeightfield, RcContourSet, RcConfig
+func RcBuildContours(chf *RcCompactHeightfield,
 	maxError float64, maxEdgeLen int,
-	cset *rcContourSet, buildFlags int) bool {
+	cset *RcContourSet, buildFlags int) bool {
 
 	w := chf.width
 	h := chf.height
@@ -730,10 +733,10 @@ func rcBuildContours(chf *rcCompactHeightfield,
 	cset.borderSize = chf.borderSize
 	cset.maxError = maxError
 
-	maxContours := rcMax(chf.maxRegions, 8)
+	maxContours := common.Max(chf.maxRegions, 8)
 
 	cset.conts = make([]*rcContour, maxContours)
-	cset.nconts = 0
+	cset.Nconts = 0
 	flags := make([]int, chf.spanCount)
 	// Mark boundaries.
 	for y := 0; y < h; y++ {
@@ -751,8 +754,8 @@ func rcBuildContours(chf *rcCompactHeightfield,
 				for dir := 0; dir < 4; dir++ {
 					r := 0
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-						ax := x + rcGetDirOffsetX(dir)
-						ay := y + rcGetDirOffsetY(dir)
+						ax := x + common.GetDirOffsetX(dir)
+						ay := y + common.GetDirOffsetY(dir)
 						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
 						r = chf.spans[ai].reg
 					}
@@ -797,12 +800,12 @@ func rcBuildContours(chf *rcCompactHeightfield,
 				// Store region->contour remap info.
 				// Create contour.
 				if simplified.Len()/4 >= 3 {
-					if cset.nconts >= maxContours {
+					if cset.Nconts >= maxContours {
 						// Allocate more contours.
 						// This happens when a region has holes.
 						maxContours *= 2
 						newConts := make([]*rcContour, maxContours)
-						for j := 0; j < cset.nconts; j++ {
+						for j := 0; j < cset.Nconts; j++ {
 							newConts[j] = cset.conts[j]
 							// Reset source pointers to prevent data deletion.
 							cset.conts[j].verts = []int{}
@@ -811,8 +814,8 @@ func rcBuildContours(chf *rcCompactHeightfield,
 						cset.conts = newConts
 					}
 
-					cont := cset.conts[cset.nconts]
-					cset.nconts++
+					cont := cset.conts[cset.Nconts]
+					cset.Nconts++
 
 					cont.nverts = simplified.Len() / 4
 					cont.verts = make([]int, cont.nverts*4)
@@ -847,11 +850,11 @@ func rcBuildContours(chf *rcCompactHeightfield,
 	}
 
 	// Merge holes if needed.
-	if cset.nconts > 0 {
+	if cset.Nconts > 0 {
 		// Calculate winding of all polygons.
-		winding := make([]int, cset.nconts)
+		winding := make([]int, cset.Nconts)
 		nholes := 0
-		for i := 0; i < cset.nconts; i++ {
+		for i := 0; i < cset.Nconts; i++ {
 			cont := cset.conts[i]
 			// If the contour is wound backwards, it is a hole.
 			winding[i] = 1
@@ -872,11 +875,11 @@ func rcBuildContours(chf *rcCompactHeightfield,
 			for i := range regions {
 				regions[i] = &rcContourRegion{}
 			}
-			holes := make([]*rcContourHole, cset.nconts)
+			holes := make([]*rcContourHole, cset.Nconts)
 			for i := range holes {
 				holes[i] = &rcContourHole{}
 			}
-			for i := 0; i < cset.nconts; i++ {
+			for i := 0; i < cset.Nconts; i++ {
 				cont := cset.conts[i]
 				// Positively would contours are outlines, negative holes.
 				if winding[i] > 0 {
@@ -896,7 +899,7 @@ func rcBuildContours(chf *rcCompactHeightfield,
 					regions[i].nholes = 0
 				}
 			}
-			for i := 0; i < cset.nconts; i++ {
+			for i := 0; i < cset.Nconts; i++ {
 				cont := cset.conts[i]
 				reg := regions[cont.reg]
 				if winding[i] < 0 {

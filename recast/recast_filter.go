@@ -1,5 +1,7 @@
 package recast
 
+import "gonavamesh/common"
+
 const (
 	/// The number of spans allocated per span spool.
 	/// @see rcSpanPool
@@ -30,7 +32,7 @@ func NewRcSpan() *rcSpan {
 }
 
 // / A memory pool used for quick allocation of spans within a heightfield.
-// / @see rcHeightfield
+// / @see RcHeightfield
 type rcSpanPool struct {
 	next  *rcSpanPool               ///< The next span pool.
 	items [RC_SPANS_PER_POOL]rcSpan ///< Array of spans in the pool.
@@ -38,7 +40,7 @@ type rcSpanPool struct {
 
 // / A dynamic heightfield representing obstructed space.
 // / @ingroup recast
-type rcHeightfield struct {
+type RcHeightfield struct {
 	width    int         ///< The width of the heightfield. (Along the x-axis in cell units.)
 	height   int         ///< The height of the heightfield. (Along the z-axis in cell units.)
 	bmin     [3]float64  ///< The minimum bounds in world space. [(x, y, z)]
@@ -51,7 +53,7 @@ type rcHeightfield struct {
 	// Explicitly-disabled copy constructor and copy assignment operator.
 }
 
-func rcFilterLowHangingWalkableObstacles(walkableClimb int, heightfield *rcHeightfield) {
+func RcFilterLowHangingWalkableObstacles(walkableClimb int, heightfield *RcHeightfield) {
 	xSize := heightfield.width
 	zSize := heightfield.height
 
@@ -66,7 +68,7 @@ func rcFilterLowHangingWalkableObstacles(walkableClimb int, heightfield *rcHeigh
 				// If current span is not walkable, but there is walkable
 				// span just below it, mark the span above it walkable too.
 				if !walkable && previousWasWalkable {
-					if rcAbs(span.smax-previousSpan.smax) <= walkableClimb {
+					if common.Abs(span.smax-previousSpan.smax) <= walkableClimb {
 						span.area = previousArea
 					}
 				}
@@ -81,7 +83,7 @@ func rcFilterLowHangingWalkableObstacles(walkableClimb int, heightfield *rcHeigh
 	}
 }
 
-func rcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *rcHeightfield) {
+func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHeightfield) {
 	xSize := heightfield.width
 	zSize := heightfield.height
 	MAX_HEIGHT := 0xffff // TODO (graham): Move this to a more visible constant and update usages.
@@ -108,11 +110,11 @@ func rcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *rcHe
 				accessibleNeighborMaxHeight := span.smax
 
 				for direction := 0; direction < 4; direction++ {
-					dx := x + rcGetDirOffsetX(direction)
-					dy := z + rcGetDirOffsetY(direction)
+					dx := x + common.GetDirOffsetX(direction)
+					dy := z + common.GetDirOffsetY(direction)
 					// Skip neighbours which are out of bounds.
 					if dx < 0 || dy < 0 || dx >= xSize || dy >= zSize {
-						minNeighborHeight = rcMin(minNeighborHeight, -walkableClimb-bot)
+						minNeighborHeight = common.Min(minNeighborHeight, -walkableClimb-bot)
 						continue
 					}
 
@@ -124,8 +126,8 @@ func rcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *rcHe
 						neighborTop = neighborSpan.smin
 					}
 					// Skip neighbour if the gap between the spans is too small.
-					if rcMin(top, neighborTop)-rcMax(bot, neighborBot) > walkableHeight {
-						minNeighborHeight = rcMin(minNeighborHeight, neighborBot-bot)
+					if common.Min(top, neighborTop)-common.Max(bot, neighborBot) > walkableHeight {
+						minNeighborHeight = common.Min(minNeighborHeight, neighborBot-bot)
 					}
 
 					// Rest of the spans.
@@ -137,11 +139,11 @@ func rcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *rcHe
 						}
 
 						// Skip neighbour if the gap between the spans is too small.
-						if rcMin(top, neighborTop)-rcMax(bot, neighborBot) > walkableHeight {
-							minNeighborHeight = rcMin(minNeighborHeight, neighborBot-bot)
+						if common.Min(top, neighborTop)-common.Max(bot, neighborBot) > walkableHeight {
+							minNeighborHeight = common.Min(minNeighborHeight, neighborBot-bot)
 
 							// Find min/max accessible neighbour height.
-							if rcAbs(neighborBot-bot) <= walkableClimb {
+							if common.Abs(neighborBot-bot) <= walkableClimb {
 								if neighborBot < accessibleNeighborMinHeight {
 									accessibleNeighborMinHeight = neighborBot
 								}
@@ -168,7 +170,7 @@ func rcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *rcHe
 	}
 }
 
-func rcFilterWalkableLowHeightSpans(walkableHeight int, heightfield *rcHeightfield) {
+func RcFilterWalkableLowHeightSpans(walkableHeight int, heightfield *RcHeightfield) {
 	var (
 		xSize      = heightfield.width
 		zSize      = heightfield.height

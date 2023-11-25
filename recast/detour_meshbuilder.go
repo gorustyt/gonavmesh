@@ -1,6 +1,7 @@
 package recast
 
 import (
+	"gonavamesh/common"
 	"math"
 	"sort"
 )
@@ -11,27 +12,27 @@ type DtNavMeshCreateParams struct {
 
 	/// @name Polygon Mesh Attributes
 	/// Used to create the base navigation graph.
-	/// See #rcPolyMesh for details related to these attributes.
+	/// See #RcPolyMesh for details related to these attributes.
 	/// @{
 
-	verts     []int ///< The polygon mesh vertices. [(x, y, z) * #vertCount] [Unit: vx]
-	vertCount int   ///< The number vertices in the polygon mesh. [Limit: >= 3]
-	polys     []int ///< The polygon data. [Size: #polyCount * 2 * #nvp]
-	polyFlags []int ///< The user defined flags assigned to each polygon. [Size: #polyCount]
-	polyAreas []int ///< The user defined area ids assigned to each polygon. [Size: #polyCount]
-	polyCount int   ///< Number of polygons in the mesh. [Limit: >= 1]
-	nvp       int   ///< Number maximum number of vertices per polygon. [Limit: >= 3]
+	Verts     []int ///< The polygon mesh vertices. [(x, y, z) * #vertCount] [Unit: vx]
+	VertCount int   ///< The number vertices in the polygon mesh. [Limit: >= 3]
+	Polys     []int ///< The polygon data. [Size: #polyCount * 2 * #nvp]
+	PolyFlags []int ///< The user defined flags assigned to each polygon. [Size: #polyCount]
+	PolyAreas []int ///< The user defined area ids assigned to each polygon. [Size: #polyCount]
+	PolyCount int   ///< Number of polygons in the mesh. [Limit: >= 1]
+	Nvp       int   ///< Number maximum number of vertices per polygon. [Limit: >= 3]
 
 	/// @}
 	/// @name Height Detail Attributes (Optional)
-	/// See #rcPolyMeshDetail for details related to these attributes.
+	/// See #RcPolyMeshDetail for details related to these attributes.
 	/// @{
 
-	detailMeshes     []int     ///< The height detail sub-mesh data. [Size: 4 * #polyCount]
-	detailVerts      []float64 ///< The detail mesh vertices. [Size: 3 * #detailVertsCount] [Unit: wu]
-	detailVertsCount int       ///< The number of vertices in the detail mesh.
-	detailTris       []int     ///< The detail mesh triangles. [Size: 4 * #detailTriCount]
-	detailTriCount   int       ///< The number of triangles in the detail mesh.
+	DetailMeshes     []int     ///< The height detail sub-mesh data. [Size: 4 * #polyCount]
+	DetailVerts      []float64 ///< The detail mesh vertices. [Size: 3 * #detailVertsCount] [Unit: wu]
+	DetailVertsCount int       ///< The number of vertices in the detail mesh.
+	DetailTris       []int     ///< The detail mesh triangles. [Size: 4 * #detailTriCount]
+	DetailTriCount   int       ///< The number of triangles in the detail mesh.
 
 	/// @}
 	/// @name Off-Mesh Connections Attributes (Optional)
@@ -41,48 +42,48 @@ type DtNavMeshCreateParams struct {
 	/// @{
 
 	/// Off-mesh connection vertices. [(ax, ay, az, bx, by, bz) * #offMeshConCount] [Unit: wu]
-	offMeshConVerts []float64
+	OffMeshConVerts []float64
 	/// Off-mesh connection radii. [Size: #offMeshConCount] [Unit: wu]
-	offMeshConRad []float64
+	OffMeshConRad []float64
 	/// User defined flags assigned to the off-mesh connections. [Size: #offMeshConCount]
-	offMeshConFlags []int
+	OffMeshConFlags []int
 	/// User defined area ids assigned to the off-mesh connections. [Size: #offMeshConCount]
-	offMeshConAreas []int
+	OffMeshConAreas []int
 	/// The permitted travel direction of the off-mesh connections. [Size: #offMeshConCount]
 	///
 	/// 0 = Travel only from endpoint A to endpoint B.<br/>
 	/// #DT_OFFMESH_CON_BIDIR = Bidirectional travel.
-	offMeshConDir []int
+	OffMeshConDir []int
 	/// The user defined ids of the off-mesh connection. [Size: #offMeshConCount]
-	offMeshConUserID []int
+	OffMeshConUserID []int
 	/// The number of off-mesh connections. [Limit: >= 0]
-	offMeshConCount int
+	OffMeshConCount int
 
 	/// @}
 	/// @name Tile Attributes
 	/// @note The tile grid/layer data can be left at zero if the destination is a single tile mesh.
 	/// @{
 
-	userId    int        ///< The user defined id of the tile.
-	tileX     int        ///< The tile's x-grid location within the multi-tile destination mesh. (Along the x-axis.)
-	tileY     int        ///< The tile's y-grid location within the multi-tile destination mesh. (Along the z-axis.)
-	tileLayer int        ///< The tile's layer within the layered destination mesh. [Limit: >= 0] (Along the y-axis.)
-	bmin      [3]float64 ///< The minimum bounds of the tile. [(x, y, z)] [Unit: wu]
-	bmax      [3]float64 ///< The maximum bounds of the tile. [(x, y, z)] [Unit: wu]
+	UserId    int        ///< The user defined id of the tile.
+	TileX     int        ///< The tile's x-grid location within the multi-tile destination mesh. (Along the x-axis.)
+	TileY     int        ///< The tile's y-grid location within the multi-tile destination mesh. (Along the z-axis.)
+	TileLayer int        ///< The tile's layer within the layered destination mesh. [Limit: >= 0] (Along the y-axis.)
+	Bmin      [3]float64 ///< The minimum bounds of the tile. [(x, y, z)] [Unit: wu]
+	Bmax      [3]float64 ///< The maximum bounds of the tile. [(x, y, z)] [Unit: wu]
 
 	/// @}
 	/// @name General Configuration Attributes
 	/// @{
 
-	walkableHeight float64 ///< The agent height. [Unit: wu]
-	walkableRadius float64 ///< The agent radius. [Unit: wu]
-	walkableClimb  float64 ///< The agent maximum traversable ledge. (Up/Down) [Unit: wu]
-	cs             float64 ///< The xz-plane cell size of the polygon mesh. [Limit: > 0] [Unit: wu]
-	ch             float64 ///< The y-axis cell height of the polygon mesh. [Limit: > 0] [Unit: wu]
+	WalkableHeight float64 ///< The agent height. [Unit: wu]
+	WalkableRadius float64 ///< The agent radius. [Unit: wu]
+	WalkableClimb  float64 ///< The agent maximum traversable ledge. (Up/Down) [Unit: wu]
+	Cs             float64 ///< The xz-plane cell size of the polygon mesh. [Limit: > 0] [Unit: wu]
+	Ch             float64 ///< The y-axis cell height of the polygon mesh. [Limit: > 0] [Unit: wu]
 
 	/// True if a bounding volume tree should be built for the tile.
 	/// @note The BVTree is not normally needed for layered navigation meshes.
-	buildBvTree bool
+	BuildBvTree bool
 
 	/// @}
 }
@@ -231,7 +232,7 @@ func classifyOffMeshPoint(pt, bmin, bmax []float64) int {
 	return 0xff
 }
 
-func subdivide(items []*BVItem, nitems int, imin, imax int, curNode *int, nodes []*dtBVNode) {
+func subdivide(items []*BVItem, nitems int, imin, imax int, curNode *int, nodes []*DtBVNode) {
 	inum := imax - imin
 	icur := curNode
 
@@ -239,23 +240,23 @@ func subdivide(items []*BVItem, nitems int, imin, imax int, curNode *int, nodes 
 	*curNode++
 	if inum == 1 {
 		// Leaf
-		node.bmin[0] = items[imin].bmin[0]
-		node.bmin[1] = items[imin].bmin[1]
-		node.bmin[2] = items[imin].bmin[2]
+		node.Bmin[0] = items[imin].bmin[0]
+		node.Bmin[1] = items[imin].bmin[1]
+		node.Bmin[2] = items[imin].bmin[2]
 
-		node.bmax[0] = items[imin].bmax[0]
-		node.bmax[1] = items[imin].bmax[1]
-		node.bmax[2] = items[imin].bmax[2]
+		node.Bmax[0] = items[imin].bmax[0]
+		node.Bmax[1] = items[imin].bmax[1]
+		node.Bmax[2] = items[imin].bmax[2]
 
-		node.i = items[imin].i
+		node.I = items[imin].i
 	} else {
 		// Split
 		bmin, bmax := calcExtends(items, imin, imax)
-		copy(node.bmin[:], bmin)
-		copy(node.bmax[:], bmax)
-		axis := longestAxis(node.bmax[0]-node.bmin[0],
-			node.bmax[1]-node.bmin[1],
-			node.bmax[2]-node.bmin[2])
+		copy(node.Bmin[:], bmin)
+		copy(node.Bmax[:], bmax)
+		axis := longestAxis(node.Bmax[0]-node.Bmin[0],
+			node.Bmax[1]-node.Bmin[1],
+			node.Bmax[2]-node.Bmin[2])
 
 		if axis == 0 {
 			sort.Slice(items[imin:inum], func(i, j int) bool {
@@ -284,25 +285,25 @@ func subdivide(items []*BVItem, nitems int, imin, imax int, curNode *int, nodes 
 
 		iescape := *curNode - *icur
 		// Negative index means escape.
-		node.i = -iescape
+		node.I = -iescape
 	}
 }
 
-func createBVTree(params *DtNavMeshCreateParams, nodes []*dtBVNode) int {
+func createBVTree(params *DtNavMeshCreateParams, nodes []*DtBVNode) int {
 	// Build tree
-	quantFactor := 1 / params.cs
-	var items = make([]*BVItem, params.polyCount)
-	for i := 0; i < params.polyCount; i++ {
+	quantFactor := 1 / params.Cs
+	var items = make([]*BVItem, params.PolyCount)
+	for i := 0; i < params.PolyCount; i++ {
 		it := items[i]
 		it.i = i
 		// Calc polygon bounds. Use detail meshes if available.
-		if len(params.detailMeshes) > 0 {
-			vb := params.detailMeshes[i*4+0]
-			ndv := params.detailMeshes[i*4+1]
+		if len(params.DetailMeshes) > 0 {
+			vb := params.DetailMeshes[i*4+0]
+			ndv := params.DetailMeshes[i*4+1]
 			var bmin [3]float64
 			var bmax [3]float64
 
-			dv := params.detailVerts[vb*3 : vb*3+3]
+			dv := params.DetailVerts[vb*3 : vb*3+3]
 			copy(bmin[:], dv[:])
 			copy(bmax[:], dv[:])
 
@@ -312,29 +313,29 @@ func createBVTree(params *DtNavMeshCreateParams, nodes []*dtBVNode) int {
 			}
 
 			// BV-tree uses cs for all dimensions
-			it.bmin[0] = int(dtClamp(((bmin[0] - params.bmin[0]) * quantFactor), float64(0), float64(0xffff)))
-			it.bmin[1] = int(dtClamp(((bmin[1] - params.bmin[1]) * quantFactor), float64(0), float64(0xffff)))
-			it.bmin[2] = int(dtClamp(((bmin[2] - params.bmin[2]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmin[0] = int(common.Clamp(((bmin[0] - params.Bmin[0]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmin[1] = int(common.Clamp(((bmin[1] - params.Bmin[1]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmin[2] = int(common.Clamp(((bmin[2] - params.Bmin[2]) * quantFactor), float64(0), float64(0xffff)))
 
-			it.bmax[0] = int(dtClamp(((bmax[0] - params.bmin[0]) * quantFactor), float64(0), float64(0xffff)))
-			it.bmax[1] = int(dtClamp(((bmax[1] - params.bmin[1]) * quantFactor), float64(0), float64(0xffff)))
-			it.bmax[2] = int(dtClamp(((bmax[2] - params.bmin[2]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmax[0] = int(common.Clamp(((bmax[0] - params.Bmin[0]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmax[1] = int(common.Clamp(((bmax[1] - params.Bmin[1]) * quantFactor), float64(0), float64(0xffff)))
+			it.bmax[2] = int(common.Clamp(((bmax[2] - params.Bmin[2]) * quantFactor), float64(0), float64(0xffff)))
 		} else {
-			p := params.polys[i*params.nvp*2 : i*params.nvp*2+2]
-			it.bmax[0] = params.verts[p[0]*3+0]
+			p := params.Polys[i*params.Nvp*2 : i*params.Nvp*2+2]
+			it.bmax[0] = params.Verts[p[0]*3+0]
 			it.bmin[0] = it.bmax[0]
-			it.bmax[1] = params.verts[p[0]*3+1]
+			it.bmax[1] = params.Verts[p[0]*3+1]
 			it.bmin[1] = it.bmax[1]
-			it.bmax[2] = params.verts[p[0]*3+2]
+			it.bmax[2] = params.Verts[p[0]*3+2]
 			it.bmin[2] = it.bmax[2]
 
-			for j := 1; j < params.nvp; j++ {
+			for j := 1; j < params.Nvp; j++ {
 				if p[j] == MESH_NULL_IDX {
 					break
 				}
-				x := params.verts[p[j]*3+0]
-				y := params.verts[p[j]*3+1]
-				z := params.verts[p[j]*3+2]
+				x := params.Verts[p[j]*3+0]
+				y := params.Verts[p[j]*3+1]
+				z := params.Verts[p[j]*3+2]
 
 				if x < it.bmin[0] {
 					it.bmin[0] = x
@@ -357,13 +358,13 @@ func createBVTree(params *DtNavMeshCreateParams, nodes []*dtBVNode) int {
 				}
 			}
 			// Remap y
-			it.bmin[1] = int(math.Floor(float64(it.bmin[1]) * params.ch / params.cs))
-			it.bmax[1] = int(math.Ceil(float64(it.bmax[1]) * params.ch / params.cs))
+			it.bmin[1] = int(math.Floor(float64(it.bmin[1]) * params.Ch / params.Cs))
+			it.bmax[1] = int(math.Ceil(float64(it.bmax[1]) * params.Ch / params.Cs))
 		}
 	}
 
 	curNode := 0
-	subdivide(items, params.polyCount, 0, params.polyCount, &curNode, nodes)
+	subdivide(items, params.PolyCount, 0, params.PolyCount, &curNode, nodes)
 	return curNode
 }
 
@@ -374,59 +375,59 @@ func createBVTree(params *DtNavMeshCreateParams, nodes []*dtBVNode) int {
 // / mesh.
 // /
 // / @see DtNavMesh, DtNavMesh::addTile()
-func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
-	if params.nvp > DT_VERTS_PER_POLYGON {
+func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
+	if params.Nvp > DT_VERTS_PER_POLYGON {
 		return false
 	}
 
-	if params.vertCount >= 0xffff {
+	if params.VertCount >= 0xffff {
 		return false
 	}
 
-	if params.vertCount == 0 || len(params.verts) == 0 {
+	if params.VertCount == 0 || len(params.Verts) == 0 {
 		return false
 	}
 
-	if params.polyCount == 0 || len(params.polys) == 0 {
+	if params.PolyCount == 0 || len(params.Polys) == 0 {
 		return false
 	}
-	nvp := params.nvp
-	offMeshConClass := make([]int, params.offMeshConCount*2)
+	nvp := params.Nvp
+	offMeshConClass := make([]int, params.OffMeshConCount*2)
 	// Classify off-mesh connection points. We store only the connections
 	// whose start point is inside the tile.
 	storedOffMeshConCount := 0
 	offMeshConLinkCount := 0
 
-	if params.offMeshConCount > 0 {
+	if params.OffMeshConCount > 0 {
 		// Find tight heigh bounds, used for culling out off-mesh start locations.
 		hmin := math.MaxFloat64
 		hmax := math.SmallestNonzeroFloat64
 
-		if len(params.detailVerts) > 0 && params.detailVertsCount > 0 {
-			for i := 0; i < params.detailVertsCount; i++ {
-				h := params.detailVerts[i*3+1]
-				hmin = dtMin(hmin, h)
-				hmax = dtMax(hmax, h)
+		if len(params.DetailVerts) > 0 && params.DetailVertsCount > 0 {
+			for i := 0; i < params.DetailVertsCount; i++ {
+				h := params.DetailVerts[i*3+1]
+				hmin = common.Min(hmin, h)
+				hmax = common.Max(hmax, h)
 			}
 		} else {
-			for i := 0; i < params.vertCount; i++ {
-				iv := params.verts[i*3 : i*3+3]
-				h := params.bmin[1] + float64(iv[1])*params.ch
-				hmin = dtMin(hmin, h)
-				hmax = dtMax(hmax, h)
+			for i := 0; i < params.VertCount; i++ {
+				iv := params.Verts[i*3 : i*3+3]
+				h := params.Bmin[1] + float64(iv[1])*params.Ch
+				hmin = common.Min(hmin, h)
+				hmax = common.Max(hmax, h)
 			}
 		}
-		hmin -= params.walkableClimb
-		hmax += params.walkableClimb
+		hmin -= params.WalkableClimb
+		hmax += params.WalkableClimb
 		var bmin, bmax [3]float64
-		copy(bmin[:], params.bmin[:])
-		copy(bmax[:], params.bmax[:])
+		copy(bmin[:], params.Bmin[:])
+		copy(bmax[:], params.Bmax[:])
 		bmin[1] = hmin
 		bmax[1] = hmax
 
-		for i := 0; i < params.offMeshConCount; i++ {
-			p0 := rcGetVert(params.offMeshConVerts, (i*2 + 0))
-			p1 := rcGetVert(params.offMeshConVerts, (i*2 + 1))
+		for i := 0; i < params.OffMeshConCount; i++ {
+			p0 := rcGetVert(params.OffMeshConVerts, (i*2 + 0))
+			p1 := rcGetVert(params.OffMeshConVerts, (i*2 + 1))
 			offMeshConClass[i*2+0] = classifyOffMeshPoint(p0, bmin[:], bmax[:])
 			offMeshConClass[i*2+1] = classifyOffMeshPoint(p1, bmin[:], bmax[:])
 
@@ -455,14 +456,14 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	}
 
 	// Off-mesh connections are stored as polygons, adjust values.
-	totPolyCount := params.polyCount + storedOffMeshConCount
-	totVertCount := params.vertCount + storedOffMeshConCount*2
+	totPolyCount := params.PolyCount + storedOffMeshConCount
+	totVertCount := params.VertCount + storedOffMeshConCount*2
 
 	// Find portal edges which are at tile borders.
 	edgeCount := 0
 	portalCount := 0
-	for i := 0; i < params.polyCount; i++ {
-		p := params.polys[i*2*nvp:]
+	for i := 0; i < params.PolyCount; i++ {
+		p := params.Polys[i*2*nvp:]
 		for j := 0; j < nvp; j++ {
 			if p[j] == MESH_NULL_IDX {
 				break
@@ -484,12 +485,12 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	// Find unique detail vertices.
 	uniqueDetailVertCount := 0
 	detailTriCount := 0
-	if len(params.detailMeshes) > 0 {
+	if len(params.DetailMeshes) > 0 {
 		// Has detail mesh, count unique detail vertex count and use input detail tri count.
-		detailTriCount = params.detailTriCount
-		for i := 0; i < params.polyCount; i++ {
-			p := params.polys[i*nvp*2:]
-			ndv := params.detailMeshes[i*4+1]
+		detailTriCount = params.DetailTriCount
+		for i := 0; i < params.PolyCount; i++ {
+			p := params.Polys[i*nvp*2:]
+			ndv := params.DetailMeshes[i*4+1]
 			nv := 0
 			for j := 0; j < nvp; j++ {
 				if p[j] == MESH_NULL_IDX {
@@ -504,8 +505,8 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 		// No input detail mesh, build detail mesh from nav polys.
 		uniqueDetailVertCount = 0 // No extra detail verts.
 		detailTriCount = 0
-		for i := 0; i < params.polyCount; i++ {
-			p := params.polys[i*nvp*2:]
+		for i := 0; i < params.PolyCount; i++ {
+			p := params.Polys[i*nvp*2:]
 			nv := 0
 			for j := 0; j < nvp; j++ {
 				if p[j] == MESH_NULL_IDX {
@@ -516,68 +517,68 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 			detailTriCount += nv - 2
 		}
 	}
-	var header dtMeshHeader
+	var header DtMeshHeader
 	navVerts := make([]float64, 3*totVertCount)
-	navPolys := make([]*dtPoly, totPolyCount)
+	navPolys := make([]*DtPoly, totPolyCount)
 	for index := range navPolys {
-		navPolys[index] = &dtPoly{}
+		navPolys[index] = &DtPoly{}
 	}
-	navDMeshes := make([]*dtPolyDetail, params.polyCount)
+	navDMeshes := make([]*DtPolyDetail, params.PolyCount)
 	for index := range navDMeshes {
-		navDMeshes[index] = &dtPolyDetail{}
+		navDMeshes[index] = &DtPolyDetail{}
 	}
 	navDTris := make([]int, 4*detailTriCount)
-	offMeshCons := make([]*dtOffMeshConnection, storedOffMeshConCount)
+	offMeshCons := make([]*DtOffMeshConnection, storedOffMeshConCount)
 	for index := range offMeshCons {
-		offMeshCons[index] = &dtOffMeshConnection{}
+		offMeshCons[index] = &DtOffMeshConnection{}
 	}
 	navDVerts := make([]float64, 3*uniqueDetailVertCount)
 	navBvtreeSize := 0
-	if params.buildBvTree {
-		navBvtreeSize = params.polyCount * 2
+	if params.BuildBvTree {
+		navBvtreeSize = params.PolyCount * 2
 	}
-	navBvtree := make([]*dtBVNode, navBvtreeSize)
+	navBvtree := make([]*DtBVNode, navBvtreeSize)
 	// Store header
-	header.magic = DT_NAVMESH_MAGIC
-	header.version = DT_NAVMESH_VERSION
-	header.x = params.tileX
-	header.y = params.tileY
-	header.layer = params.tileLayer
-	header.userId = params.userId
-	header.polyCount = totPolyCount
-	header.vertCount = totVertCount
-	header.maxLinkCount = maxLinkCount
-	copy(header.bmin[:], params.bmin[:])
-	copy(header.bmax[:], params.bmax[:])
-	header.detailMeshCount = params.polyCount
-	header.detailVertCount = uniqueDetailVertCount
-	header.detailTriCount = detailTriCount
-	header.bvQuantFactor = 1.0 / params.cs
-	header.offMeshBase = params.polyCount
-	header.walkableHeight = params.walkableHeight
-	header.walkableRadius = params.walkableRadius
-	header.walkableClimb = params.walkableClimb
-	header.offMeshConCount = storedOffMeshConCount
-	if params.buildBvTree {
-		header.bvNodeCount = params.polyCount * 2
+	header.Magic = DT_NAVMESH_MAGIC
+	header.Version = DT_NAVMESH_VERSION
+	header.X = params.TileX
+	header.Y = params.TileY
+	header.Layer = params.TileLayer
+	header.UserId = params.UserId
+	header.PolyCount = totPolyCount
+	header.VertCount = totVertCount
+	header.MaxLinkCount = maxLinkCount
+	copy(header.Bmin[:], params.Bmin[:])
+	copy(header.Bmax[:], params.Bmax[:])
+	header.DetailMeshCount = params.PolyCount
+	header.DetailVertCount = uniqueDetailVertCount
+	header.DetailTriCount = detailTriCount
+	header.BvQuantFactor = 1.0 / params.Cs
+	header.OffMeshBase = params.PolyCount
+	header.WalkableHeight = params.WalkableHeight
+	header.WalkableRadius = params.WalkableRadius
+	header.WalkableClimb = params.WalkableClimb
+	header.OffMeshConCount = storedOffMeshConCount
+	if params.BuildBvTree {
+		header.BvNodeCount = params.PolyCount * 2
 	}
 
-	offMeshVertsBase := params.vertCount
-	offMeshPolyBase := params.polyCount
+	offMeshVertsBase := params.VertCount
+	offMeshPolyBase := params.PolyCount
 	// Mesh vertices
-	for i := 0; i < params.vertCount; i++ {
-		iv := params.verts[i*3 : i*3+3]
+	for i := 0; i < params.VertCount; i++ {
+		iv := params.Verts[i*3 : i*3+3]
 		v := rcGetVert(navVerts, i)
-		v[0] = params.bmin[0] + float64(iv[0])*params.cs
-		v[1] = params.bmin[1] + float64(iv[1])*params.ch
-		v[2] = params.bmin[2] + float64(iv[2])*params.cs
+		v[0] = params.Bmin[0] + float64(iv[0])*params.Cs
+		v[1] = params.Bmin[1] + float64(iv[1])*params.Ch
+		v[2] = params.Bmin[2] + float64(iv[2])*params.Cs
 	}
 	// Off-mesh link vertices.
 	n := 0
-	for i := 0; i < params.offMeshConCount; i++ {
+	for i := 0; i < params.OffMeshConCount; i++ {
 		// Only store connections which start from this tile.
 		if offMeshConClass[i*2+0] == 0xff {
-			linkv := params.offMeshConVerts[i*2 : i*2+3]
+			linkv := params.OffMeshConVerts[i*2 : i*2+3]
 			v := rcGetVert(navVerts, (offMeshVertsBase + n*2))
 			copy(v[:3], linkv[:3])
 			copy(v[3:], linkv[3:])
@@ -586,53 +587,53 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	}
 	// Store polygons
 	// Mesh polys
-	src := params.polys
-	for i := 0; i < params.polyCount; i++ {
+	src := params.Polys
+	for i := 0; i < params.PolyCount; i++ {
 		p := navPolys[i]
-		p.vertCount = 0
-		p.flags = params.polyFlags[i]
-		p.setArea(params.polyAreas[i])
-		p.setType(DT_POLYTYPE_GROUND)
+		p.VertCount = 0
+		p.Flags = params.PolyFlags[i]
+		p.SetArea(params.PolyAreas[i])
+		p.SetType(DT_POLYTYPE_GROUND)
 		for j := 0; j < nvp; j++ {
 			if src[j] == MESH_NULL_IDX {
 				break
 			}
-			p.verts[j] = src[j]
+			p.Verts[j] = src[j]
 			if src[nvp+j]&0x8000 > 0 {
 				// Border or portal edge.
 				dir := src[nvp+j] & 0xf
 				if dir == 0xf {
-					p.neis[j] = 0
+					p.Neis[j] = 0
 				} else if dir == 0 { // Border
-					p.neis[j] = DT_EXT_LINK | 4
+					p.Neis[j] = DT_EXT_LINK | 4
 				} else if dir == 1 { // Portal x-
-					p.neis[j] = DT_EXT_LINK | 2
+					p.Neis[j] = DT_EXT_LINK | 2
 				} else if dir == 2 { // Portal z+
-					p.neis[j] = DT_EXT_LINK | 0
+					p.Neis[j] = DT_EXT_LINK | 0
 				} else if dir == 3 { // Portal x+
-					p.neis[j] = DT_EXT_LINK | 6
+					p.Neis[j] = DT_EXT_LINK | 6
 				}
 			} else { // Portal z-
 				// Normal connection
-				p.neis[j] = src[nvp+j] + 1
+				p.Neis[j] = src[nvp+j] + 1
 			}
 
-			p.vertCount++
+			p.VertCount++
 		}
 		src = src[nvp*2:]
 	}
 	// Off-mesh connection vertices.
 	n = 0
-	for i := 0; i < params.offMeshConCount; i++ {
+	for i := 0; i < params.OffMeshConCount; i++ {
 		// Only store connections which start from this tile.
 		if offMeshConClass[i*2+0] == 0xff {
 			p := navPolys[offMeshPolyBase+n]
-			p.vertCount = 2
-			p.verts[0] = (offMeshVertsBase + n*2 + 0)
-			p.verts[1] = (offMeshVertsBase + n*2 + 1)
-			p.flags = params.offMeshConFlags[i]
-			p.setArea(params.offMeshConAreas[i])
-			p.setType(DT_POLYTYPE_OFFMESH_CONNECTION)
+			p.VertCount = 2
+			p.Verts[0] = (offMeshVertsBase + n*2 + 0)
+			p.Verts[1] = (offMeshVertsBase + n*2 + 1)
+			p.Flags = params.OffMeshConFlags[i]
+			p.SetArea(params.OffMeshConAreas[i])
+			p.SetType(DT_POLYTYPE_OFFMESH_CONNECTION)
 			n++
 		}
 	}
@@ -640,36 +641,36 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	// Store detail meshes and vertices.
 	// The nav polygon vertices are stored as the first vertices on each mesh.
 	// We compress the mesh data by skipping them and using the navmesh coordinates.
-	if len(params.detailMeshes) > 0 {
+	if len(params.DetailMeshes) > 0 {
 		vbase := 0
-		for i := 0; i < params.polyCount; i++ {
+		for i := 0; i < params.PolyCount; i++ {
 			dtl := navDMeshes[i]
-			vb := params.detailMeshes[i*4+0]
-			ndv := params.detailMeshes[i*4+1]
-			nv := navPolys[i].vertCount
-			dtl.vertBase = vbase
-			dtl.vertCount = (ndv - nv)
-			dtl.triBase = params.detailMeshes[i*4+2]
-			dtl.triCount = params.detailMeshes[i*4+3]
+			vb := params.DetailMeshes[i*4+0]
+			ndv := params.DetailMeshes[i*4+1]
+			nv := navPolys[i].VertCount
+			dtl.VertBase = vbase
+			dtl.VertCount = (ndv - nv)
+			dtl.TriBase = params.DetailMeshes[i*4+2]
+			dtl.TriCount = params.DetailMeshes[i*4+3]
 			// Copy vertices except the first 'nv' verts which are equal to nav poly verts.
 			if ndv-nv > 0 {
-				copy(navDVerts[vbase*3:], params.detailVerts[(vb+nv)*3:(vb+nv)*3+3*(ndv-nv)])
+				copy(navDVerts[vbase*3:], params.DetailVerts[(vb+nv)*3:(vb+nv)*3+3*(ndv-nv)])
 				vbase += (ndv - nv)
 			}
 		}
 		// Store triangles.
 
-		copy(navDTris, params.detailTris[:4*params.detailTriCount])
+		copy(navDTris, params.DetailTris[:4*params.DetailTriCount])
 	} else {
 		// Create dummy detail mesh by triangulating polys.
 		tbase := 0
-		for i := 0; i < params.polyCount; i++ {
+		for i := 0; i < params.PolyCount; i++ {
 			dtl := navDMeshes[i]
-			nv := navPolys[i].vertCount
-			dtl.vertBase = 0
-			dtl.vertCount = 0
-			dtl.triBase = tbase
-			dtl.triCount = (nv - 2)
+			nv := navPolys[i].VertCount
+			dtl.VertBase = 0
+			dtl.VertCount = 0
+			dtl.TriBase = tbase
+			dtl.TriCount = (nv - 2)
 			// Triangulate polygon (local indices).
 			for j := 2; j < nv; j++ {
 				t := navDTris[tbase*4 : tbase*4+4]
@@ -690,31 +691,31 @@ func dtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	}
 
 	// Store and create BVtree.
-	if params.buildBvTree {
+	if params.BuildBvTree {
 		createBVTree(params, navBvtree)
 	}
 
 	// Store Off-Mesh connections.
 	n = 0
-	for i := 0; i < params.offMeshConCount; i++ {
+	for i := 0; i < params.OffMeshConCount; i++ {
 		// Only store connections which start from this tile.
 		if offMeshConClass[i*2+0] == 0xff {
 			con := offMeshCons[n]
-			con.poly = (offMeshPolyBase + n)
+			con.Poly = (offMeshPolyBase + n)
 			// Copy connection end-points.
-			endPts := params.offMeshConVerts[i*2*3 : i*2*3]
-			copy(con.pos[:3], endPts[:3])
-			copy(con.pos[3:], endPts[3:])
-			con.rad = params.offMeshConRad[i]
-			if params.offMeshConDir[i] > 0 {
-				con.flags = DT_OFFMESH_CON_BIDIR
+			endPts := params.OffMeshConVerts[i*2*3 : i*2*3]
+			copy(con.Pos[:3], endPts[:3])
+			copy(con.Pos[3:], endPts[3:])
+			con.Rad = params.OffMeshConRad[i]
+			if params.OffMeshConDir[i] > 0 {
+				con.Flags = DT_OFFMESH_CON_BIDIR
 			} else {
-				con.flags = 0
+				con.Flags = 0
 			}
 
-			con.side = offMeshConClass[i*2+1]
-			if len(params.offMeshConUserID) > 0 {
-				con.userId = params.offMeshConUserID[i]
+			con.Side = offMeshConClass[i*2+1]
+			if len(params.OffMeshConUserID) > 0 {
+				con.UserId = params.OffMeshConUserID[i]
 			}
 
 			n++

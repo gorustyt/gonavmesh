@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 const (
 	RC_UNSET_HEIGHT = 0xffff
@@ -11,7 +14,7 @@ const (
 // / from polygons of different regions during the polymesh
 // / build step that removes redundant border vertices.
 // / (Used during the polymesh and detail polymesh build processes)
-// / @see rcPolyMesh::regs
+// / @see RcPolyMesh::regs
 const RC_MULTIPLE_REGS = 0
 
 type rcHeightPatch struct {
@@ -37,8 +40,8 @@ func circumCircle(p1, p2, p3, c []float64, r *float64) bool {
 	EPS := 1e-6
 	// Calculate the circle relative to p1, to avoid some precision issues.
 	v1 := []float64{0, 0, 0}
-	v2 := rcVsub(p2, p1)
-	v3 := rcVsub(p3, p1)
+	v2 := common.Vsub(p2, p1)
+	v3 := common.Vsub(p3, p1)
 
 	cp := vcross2(v1, v2, v3)
 	if math.Abs(cp) > EPS {
@@ -49,7 +52,7 @@ func circumCircle(p1, p2, p3, c []float64, r *float64) bool {
 		c[1] = 0
 		c[2] = (v1Sq*(v3[0]-v2[0]) + v2Sq*(v1[0]-v3[0]) + v3Sq*(v2[0]-v1[0])) / (2 * cp)
 		*r = vdist2(c, v1)
-		c = rcVadd(c, p1)
+		c = common.Vadd(c, p1)
 		return true
 	}
 
@@ -68,9 +71,9 @@ func vcross2(p1, p2, p3 []float64) float64 {
 
 func distPtTri(p, a, b, c []float64) float64 {
 
-	v0 := rcVsub(c, a)
-	v1 := rcVsub(b, a)
-	v2 := rcVsub(p, a)
+	v0 := common.Vsub(c, a)
+	v1 := common.Vsub(b, a)
+	v2 := common.Vsub(p, a)
 
 	dot00 := vdot2(v0, v0)
 	dot01 := vdot2(v0, v1)
@@ -173,7 +176,7 @@ func distToPoly(nvert int, verts []float64, p []float64) float64 {
 			c = !c
 		}
 
-		dmin = rcMin(dmin, distancePtSeg2d(p, vj, vi))
+		dmin = common.Min(dmin, distancePtSeg2d(p, vj, vi))
 		j = i
 		i++
 	}
@@ -187,8 +190,8 @@ func getHeight(fx, fy, fz,
 	radius int, hp *rcHeightPatch) int {
 	ix := int(math.Floor(fx*ics + 0.01))
 	iz := int(math.Floor(fz*ics + 0.01))
-	ix = rcClamp(ix-hp.xmin, 0, hp.width-1)
-	iz = rcClamp(iz-hp.ymin, 0, hp.height-1)
+	ix = common.Clamp(ix-hp.xmin, 0, hp.width-1)
+	iz = common.Clamp(iz-hp.ymin, 0, hp.height-1)
 	h := hp.data[ix+iz*hp.width]
 	if h == RC_UNSET_HEIGHT {
 		// Special case when data might be bad.
@@ -512,11 +515,11 @@ func polyMinExtent(verts []float64, nverts int) float64 {
 				continue
 			}
 			d := distancePtSeg2d(rcGetVert(verts, j), p1, p2)
-			maxEdgeDist = rcMax(maxEdgeDist, d)
+			maxEdgeDist = common.Max(maxEdgeDist, d)
 		}
-		minDist = rcMin(minDist, maxEdgeDist)
+		minDist = common.Min(minDist, maxEdgeDist)
 	}
-	return rcSqrt(minDist)
+	return common.Sqrt(minDist)
 }
 func triangulateHull(nverts int, verts []float64, nhull int, hull []int, nin int, tris Stack[int]) {
 	start := 0
@@ -592,7 +595,7 @@ func getJitterY(i int) float64 {
 
 func buildPolyDetail(in []float64, nin int,
 	sampleDist, sampleMaxError float64,
-	heightSearchRadius int, chf *rcCompactHeightfield,
+	heightSearchRadius int, chf *RcCompactHeightfield,
 	hp *rcHeightPatch, verts []float64, nverts *int,
 	tris, edges, samples Stack[int]) bool {
 	MAX_VERTS := 127
@@ -683,7 +686,7 @@ func buildPolyDetail(in []float64, nin int,
 				}
 				// If the max deviation is larger than accepted error,
 				// add new point, else continue to next segment.
-				if maxi != -1 && maxd > rcSqr(sampleMaxError) {
+				if maxi != -1 && maxd > common.Sqr(sampleMaxError) {
 					for m := nidx; m > k; m-- {
 						idx[m] = idx[m-1]
 					}
@@ -742,8 +745,8 @@ func buildPolyDetail(in []float64, nin int,
 		copy(bmin, in)
 		copy(bmax, in)
 		for i := 1; i < nin; i++ {
-			rcVmin(bmin, rcGetVert(in, i))
-			rcVmax(bmax, rcGetVert(in, i))
+			common.Vmin(bmin, rcGetVert(in, i))
+			common.Vmax(bmax, rcGetVert(in, i))
 		}
 		x0 := int(math.Floor(bmin[0] / sampleDist))
 		x1 := int(math.Ceil(bmax[0] / sampleDist))
@@ -828,7 +831,7 @@ func buildPolyDetail(in []float64, nin int,
 	return true
 }
 
-func seedArrayWithPolyCenter(chf *rcCompactHeightfield, poly []int, npoly int, verts []int, bs int, hp *rcHeightPatch, array Stack[int]) {
+func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, verts []int, bs int, hp *rcHeightPatch, array Stack[int]) {
 	// Note: Reads to the compact heightfield are offset by border size (bs)
 	// since border size offset is already removed from the polymesh vertices.
 
@@ -857,7 +860,7 @@ func seedArrayWithPolyCenter(chf *rcCompactHeightfield, poly []int, npoly int, v
 			ni := (c.index + c.count)
 			for ; i < ni && dmin > 0; i++ {
 				s := chf.spans[i]
-				d := rcAbs(ay - s.y)
+				d := common.Abs(ay - s.y)
 				if d < dmin {
 					startCellX = ax
 					startCellY = az
@@ -918,13 +921,13 @@ func seedArrayWithPolyCenter(chf *rcCompactHeightfield, poly []int, npoly int, v
 			if pcy > cy {
 				y = 1
 			}
-			directDir = rcGetDirForOffset(0, y)
+			directDir = common.GetDirForOffset(0, y)
 		} else {
 			x := -1
 			if pcx > cx {
 				x = 1
 			}
-			directDir = rcGetDirForOffset(x, 0)
+			directDir = common.GetDirForOffset(x, 0)
 		}
 
 		// Push the direct dir last so we start with this on next iteration
@@ -937,8 +940,8 @@ func seedArrayWithPolyCenter(chf *rcCompactHeightfield, poly []int, npoly int, v
 				continue
 			}
 
-			newX := cx + rcGetDirOffsetX(dir)
-			newY := cy + rcGetDirOffsetY(dir)
+			newX := cx + common.GetDirOffsetX(dir)
+			newY := cy + common.GetDirOffsetY(dir)
 
 			hpx := newX - hp.xmin
 			hpy := newY - hp.ymin
@@ -979,7 +982,7 @@ func push3(queue Stack[int], v1, v2, v3 int) {
 	queue.SetByIndex(queue.Len()-1, v3)
 }
 
-func etHeightData(chf *rcCompactHeightfield,
+func etHeightData(chf *RcCompactHeightfield,
 	poly []int, npoly int,
 	verts []int, bs int,
 	hp *rcHeightPatch, queue Stack[int],
@@ -1023,8 +1026,8 @@ func etHeightData(chf *rcCompactHeightfield,
 						border := false
 						for dir := 0; dir < 4; dir++ {
 							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-								ax := x + rcGetDirOffsetX(dir)
-								ay := y + rcGetDirOffsetY(dir)
+								ax := x + common.GetDirOffsetX(dir)
+								ay := y + common.GetDirOffsetY(dir)
 								ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
 								as := chf.spans[ai]
 								if as.reg != region {
@@ -1077,8 +1080,8 @@ func etHeightData(chf *rcCompactHeightfield,
 				continue
 			}
 
-			ax := cx + rcGetDirOffsetX(dir)
-			ay := cy + rcGetDirOffsetY(dir)
+			ax := cx + common.GetDirOffsetX(dir)
+			ay := cy + common.GetDirOffsetY(dir)
 			hx := ax - hp.xmin - bs
 			hy := ay - hp.ymin - bs
 
@@ -1099,7 +1102,7 @@ func etHeightData(chf *rcCompactHeightfield,
 		}
 	}
 }
-func getHeightData(chf *rcCompactHeightfield,
+func getHeightData(chf *RcCompactHeightfield,
 	poly []int, npoly int,
 	verts []int, bs int,
 	hp *rcHeightPatch, queue Stack[int],
@@ -1142,8 +1145,8 @@ func getHeightData(chf *rcCompactHeightfield,
 						border := false
 						for dir := 0; dir < 4; dir++ {
 							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-								ax := x + rcGetDirOffsetX(dir)
-								ay := y + rcGetDirOffsetY(dir)
+								ax := x + common.GetDirOffsetX(dir)
+								ay := y + common.GetDirOffsetY(dir)
 								ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
 								as := chf.spans[ai]
 								if as.reg != region {
@@ -1196,8 +1199,8 @@ func getHeightData(chf *rcCompactHeightfield,
 				continue
 			}
 
-			ax := cx + rcGetDirOffsetX(dir)
-			ay := cy + rcGetDirOffsetY(dir)
+			ax := cx + common.GetDirOffsetX(dir)
+			ay := cy + common.GetDirOffsetY(dir)
 			hx := ax - hp.xmin - bs
 			hy := ay - hp.ymin - bs
 
@@ -1223,7 +1226,7 @@ func getEdgeFlags(va, vb []float64,
 	vpoly []float64, npoly int) int {
 	// The flag returned by this function matches dtDetailTriEdgeFlags in Detour.
 	// Figure out if edge (va,vb) is part of the polygon boundary.
-	thrSqr := rcSqr(0.001)
+	thrSqr := common.Sqr(0.001)
 	i := 0
 	j := npoly - 1
 	for i < npoly {
@@ -1250,33 +1253,33 @@ func getTriFlags(va, vb, vc []float64,
 // / Contains triangle meshes that represent detailed height data associated
 // / with the polygons in its associated polygon mesh object.
 // / @ingroup recast
-type rcPolyMeshDetail struct {
-	meshes  []int     ///< The sub-mesh data. [Size: 4*#nmeshes]
-	verts   []float64 ///< The mesh vertices. [Size: 3*#nverts]
-	tris    []int     ///< The mesh triangles. [Size: 4*#ntris]
-	nmeshes int       ///< The number of sub-meshes defined by #meshes.
-	nverts  int       ///< The number of vertices in #verts.
-	ntris   int       ///< The number of triangles in #tris.
+type RcPolyMeshDetail struct {
+	Meshes  []int     ///< The sub-mesh data. [Size: 4*#nmeshes]
+	Verts   []float64 ///< The mesh vertices. [Size: 3*#nverts]
+	Tris    []int     ///< The mesh triangles. [Size: 4*#ntris]
+	Nmeshes int       ///< The number of sub-meshes defined by #meshes.
+	Nverts  int       ///< The number of vertices in #verts.
+	Ntris   int       ///< The number of triangles in #tris.
 	// Explicitly-disabled copy constructor and copy assignment operator.
 }
 
 // / @par
 // /
-// / See the #rcConfig documentation for more information on the configuration parameters.
+// / See the #RcConfig documentation for more information on the configuration parameters.
 // /
-// / @see rcAllocPolyMeshDetail, rcPolyMesh, rcCompactHeightfield, rcPolyMeshDetail, rcConfig
-func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDist float64, sampleMaxError float64,
-	dmesh *rcPolyMeshDetail) bool {
-	if mesh.nverts == 0 || mesh.npolys == 0 {
+// / @see rcAllocPolyMeshDetail, RcPolyMesh, RcCompactHeightfield, RcPolyMeshDetail, RcConfig
+func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDist float64, sampleMaxError float64,
+	dmesh *RcPolyMeshDetail) bool {
+	if mesh.Nverts == 0 || mesh.Npolys == 0 {
 		return true
 	}
 
-	nvp := mesh.nvp
-	cs := mesh.cs
-	ch := mesh.ch
-	orig := mesh.bmin
-	borderSize := mesh.borderSize
-	heightSearchRadius := int(rcMax(1, math.Ceil(mesh.maxEdgeError)))
+	nvp := mesh.Nvp
+	cs := mesh.Cs
+	ch := mesh.Ch
+	orig := mesh.Bmin
+	borderSize := mesh.BorderSize
+	heightSearchRadius := int(common.Max(1, math.Ceil(mesh.MaxEdgeError)))
 	c := func() int { return 0 }
 	edges := NewStackArray(c, 64)
 	tris := NewStackArray(c, 512)
@@ -1287,12 +1290,12 @@ func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDi
 	nPolyVerts := 0
 	maxhw := 0
 	maxhh := 0
-	bounds := make([]int, mesh.npolys*4)
+	bounds := make([]int, mesh.Npolys*4)
 
 	poly := make([]float64, nvp*3)
 	// Find max size for a polygon area.
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*nvp*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*nvp*2:]
 		xmin := &bounds[i*4+0]
 		xmax := &bounds[i*4+1]
 		ymin := &bounds[i*4+2]
@@ -1305,44 +1308,44 @@ func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDi
 			if p[j] == RC_MESH_NULL_IDX {
 				break
 			}
-			v := rcGetVert(mesh.verts, p[j])
-			*xmin = rcMin(*xmin, v[0])
-			*xmax = rcMax(*xmax, v[0])
-			*ymin = rcMin(*ymin, v[2])
-			*ymax = rcMax(*ymax, v[2])
+			v := rcGetVert(mesh.Verts, p[j])
+			*xmin = common.Min(*xmin, v[0])
+			*xmax = common.Max(*xmax, v[0])
+			*ymin = common.Min(*ymin, v[2])
+			*ymax = common.Max(*ymax, v[2])
 			nPolyVerts++
 		}
-		*xmin = rcMax(0, *xmin-1)
-		*xmax = rcMin(chf.width, *xmax+1)
-		*ymin = rcMax(0, *ymin-1)
-		*ymax = rcMin(chf.height, *ymax+1)
+		*xmin = common.Max(0, *xmin-1)
+		*xmax = common.Min(chf.width, *xmax+1)
+		*ymin = common.Max(0, *ymin-1)
+		*ymax = common.Min(chf.height, *ymax+1)
 		if *xmin >= *xmax || *ymin >= *ymax {
 			continue
 		}
-		maxhw = rcMax(maxhw, *xmax-*xmin)
-		maxhh = rcMax(maxhh, *ymax-*ymin)
+		maxhw = common.Max(maxhw, *xmax-*xmin)
+		maxhh = common.Max(maxhh, *ymax-*ymin)
 	}
 
 	hp.data = make([]int, maxhw*maxhh)
 
-	dmesh.nmeshes = mesh.npolys
-	dmesh.nverts = 0
-	dmesh.ntris = 0
+	dmesh.Nmeshes = mesh.Npolys
+	dmesh.Nverts = 0
+	dmesh.Ntris = 0
 
-	dmesh.meshes = make([]int, dmesh.nmeshes*4)
+	dmesh.Meshes = make([]int, dmesh.Nmeshes*4)
 
 	vcap := nPolyVerts + nPolyVerts/2
 	tcap := vcap * 2
 
-	dmesh.nverts = 0
+	dmesh.Nverts = 0
 
-	dmesh.verts = make([]float64, vcap*3)
-	dmesh.ntris = 0
+	dmesh.Verts = make([]float64, vcap*3)
+	dmesh.Ntris = 0
 
-	dmesh.tris = make([]int, tcap*4)
+	dmesh.Tris = make([]int, tcap*4)
 
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*nvp*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*nvp*2:]
 
 		// Store polygon vertices for processing.
 		npoly := 0
@@ -1350,7 +1353,7 @@ func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDi
 			if p[j] == RC_MESH_NULL_IDX {
 				break
 			}
-			v := rcGetVert(mesh.verts, p[j])
+			v := rcGetVert(mesh.Verts, p[j])
 			poly[j*3+0] = float64(v[0]) * cs
 			poly[j*3+1] = float64(v[1]) * ch
 			poly[j*3+2] = float64(v[2]) * cs
@@ -1362,7 +1365,7 @@ func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDi
 		hp.ymin = bounds[i*4+2]
 		hp.width = bounds[i*4+1] - bounds[i*4+0]
 		hp.height = bounds[i*4+3] - bounds[i*4+2]
-		getHeightData(chf, p, npoly, mesh.verts, borderSize, &hp, arr, mesh.regs[i])
+		getHeightData(chf, p, npoly, mesh.Verts, borderSize, &hp, arr, mesh.Regs[i])
 
 		// Build detail mesh.
 		nverts := 0
@@ -1390,58 +1393,58 @@ func rcBuildPolyMeshDetail(mesh *rcPolyMesh, chf *rcCompactHeightfield, sampleDi
 		// Store detail submesh.
 		ntris := tris.Len() / 4
 
-		dmesh.meshes[i*4+0] = dmesh.nverts
-		dmesh.meshes[i*4+1] = nverts
-		dmesh.meshes[i*4+2] = dmesh.ntris
-		dmesh.meshes[i*4+3] = ntris
+		dmesh.Meshes[i*4+0] = dmesh.Nverts
+		dmesh.Meshes[i*4+1] = nverts
+		dmesh.Meshes[i*4+2] = dmesh.Ntris
+		dmesh.Meshes[i*4+3] = ntris
 
 		// Store vertices, allocate more memory if necessary.
-		if dmesh.nverts+nverts > vcap {
-			for dmesh.nverts+nverts > vcap {
+		if dmesh.Nverts+nverts > vcap {
+			for dmesh.Nverts+nverts > vcap {
 				vcap += 256
 			}
 
 			newv := make([]float64, vcap*3)
-			if dmesh.nverts != 0 {
-				copy(newv, dmesh.verts[:3*dmesh.nverts])
+			if dmesh.Nverts != 0 {
+				copy(newv, dmesh.Verts[:3*dmesh.Nverts])
 			}
-			dmesh.verts = newv
+			dmesh.Verts = newv
 		}
 		for j := 0; j < nverts; j++ {
-			dmesh.verts[dmesh.nverts*3+0] = verts[j*3+0]
-			dmesh.verts[dmesh.nverts*3+1] = verts[j*3+1]
-			dmesh.verts[dmesh.nverts*3+2] = verts[j*3+2]
-			dmesh.nverts++
+			dmesh.Verts[dmesh.Nverts*3+0] = verts[j*3+0]
+			dmesh.Verts[dmesh.Nverts*3+1] = verts[j*3+1]
+			dmesh.Verts[dmesh.Nverts*3+2] = verts[j*3+2]
+			dmesh.Nverts++
 		}
 
 		// Store triangles, allocate more memory if necessary.
-		if dmesh.ntris+ntris > tcap {
-			for dmesh.ntris+ntris > tcap {
+		if dmesh.Ntris+ntris > tcap {
+			for dmesh.Ntris+ntris > tcap {
 				tcap += 256
 			}
 
 			newt := make([]int, tcap*4)
 
-			if dmesh.ntris != 0 {
-				copy(newt, dmesh.tris[:4*dmesh.ntris])
+			if dmesh.Ntris != 0 {
+				copy(newt, dmesh.Tris[:4*dmesh.Ntris])
 			}
-			dmesh.tris = newt
+			dmesh.Tris = newt
 		}
 		for j := 0; j < ntris; j++ {
 			t := tris.Slice(j*4, tris.Len())
-			dmesh.tris[dmesh.ntris*4+0] = t[0]
-			dmesh.tris[dmesh.ntris*4+1] = t[1]
-			dmesh.tris[dmesh.ntris*4+2] = t[2]
-			dmesh.tris[dmesh.ntris*4+3] = getTriFlags(rcGetVert(verts, t[0]), rcGetVert(verts, t[1]), rcGetVert(verts, t[2]), poly, npoly)
-			dmesh.ntris++
+			dmesh.Tris[dmesh.Ntris*4+0] = t[0]
+			dmesh.Tris[dmesh.Ntris*4+1] = t[1]
+			dmesh.Tris[dmesh.Ntris*4+2] = t[2]
+			dmesh.Tris[dmesh.Ntris*4+3] = getTriFlags(rcGetVert(verts, t[0]), rcGetVert(verts, t[1]), rcGetVert(verts, t[2]), poly, npoly)
+			dmesh.Ntris++
 		}
 	}
 
 	return true
 }
 
-// / @see rcAllocPolyMeshDetail, rcPolyMeshDetail
-func rcMergePolyMeshDetails(meshes []*rcPolyMeshDetail, nmeshes int, mesh *rcPolyMeshDetail) bool {
+// / @see rcAllocPolyMeshDetail, RcPolyMeshDetail
+func rcMergePolyMeshDetails(meshes []*RcPolyMeshDetail, nmeshes int, mesh *RcPolyMeshDetail) bool {
 
 	maxVerts := 0
 	maxTris := 0
@@ -1451,44 +1454,44 @@ func rcMergePolyMeshDetails(meshes []*rcPolyMeshDetail, nmeshes int, mesh *rcPol
 		if meshes[i] == nil {
 			continue
 		}
-		maxVerts += meshes[i].nverts
-		maxTris += meshes[i].ntris
-		maxMeshes += meshes[i].nmeshes
+		maxVerts += meshes[i].Nverts
+		maxTris += meshes[i].Ntris
+		maxMeshes += meshes[i].Nmeshes
 	}
 
-	mesh.nmeshes = 0
-	mesh.meshes = make([]int, maxMeshes*4)
-	mesh.ntris = 0
-	mesh.tris = make([]int, maxTris*4)
-	mesh.nverts = 0
+	mesh.Nmeshes = 0
+	mesh.Meshes = make([]int, maxMeshes*4)
+	mesh.Ntris = 0
+	mesh.Tris = make([]int, maxTris*4)
+	mesh.Nverts = 0
 
-	mesh.verts = make([]float64, maxVerts*3)
+	mesh.Verts = make([]float64, maxVerts*3)
 	// Merge datas.
 	for i := 0; i < nmeshes; i++ {
 		dm := meshes[i]
 		if dm == nil {
 			continue
 		}
-		for j := 0; j < dm.nmeshes; j++ {
-			dst := rcGetVert4(mesh.meshes, mesh.nmeshes)
-			src := rcGetVert4(dm.meshes, j)
-			dst[0] = mesh.nverts + src[0]
+		for j := 0; j < dm.Nmeshes; j++ {
+			dst := rcGetVert4(mesh.Meshes, mesh.Nmeshes)
+			src := rcGetVert4(dm.Meshes, j)
+			dst[0] = mesh.Nverts + src[0]
 			dst[1] = src[1]
-			dst[2] = mesh.ntris + src[2]
+			dst[2] = mesh.Ntris + src[2]
 			dst[3] = src[3]
-			mesh.nmeshes++
+			mesh.Nmeshes++
 		}
 
-		for k := 0; k < dm.nverts; k++ {
-			copy(rcGetVert(mesh.verts, mesh.nverts), rcGetVert(dm.verts, k))
-			mesh.nverts++
+		for k := 0; k < dm.Nverts; k++ {
+			copy(rcGetVert(mesh.Verts, mesh.Nverts), rcGetVert(dm.Verts, k))
+			mesh.Nverts++
 		}
-		for k := 0; k < dm.ntris; k++ {
-			mesh.tris[mesh.ntris*4+0] = dm.tris[k*4+0]
-			mesh.tris[mesh.ntris*4+1] = dm.tris[k*4+1]
-			mesh.tris[mesh.ntris*4+2] = dm.tris[k*4+2]
-			mesh.tris[mesh.ntris*4+3] = dm.tris[k*4+3]
-			mesh.ntris++
+		for k := 0; k < dm.Ntris; k++ {
+			mesh.Tris[mesh.Ntris*4+0] = dm.Tris[k*4+0]
+			mesh.Tris[mesh.Ntris*4+1] = dm.Tris[k*4+1]
+			mesh.Tris[mesh.Ntris*4+2] = dm.Tris[k*4+2]
+			mesh.Tris[mesh.Ntris*4+3] = dm.Tris[k*4+3]
+			mesh.Ntris++
 		}
 	}
 

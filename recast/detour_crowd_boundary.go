@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 type Segment struct {
 	s [6]float64 ///< Segment start/end
@@ -19,9 +22,9 @@ type dtLocalBoundary struct {
 	m_npolys int
 }
 
-func (d *dtLocalBoundary) getCenter() [3]float64       { return d.m_center }
-func (d *dtLocalBoundary) getSegmentCount() int        { return d.m_nsegs }
-func (d *dtLocalBoundary) getSegment(i int) [6]float64 { return d.m_segs[i].s }
+func (d *dtLocalBoundary) GetCenter() [3]float64       { return d.m_center }
+func (d *dtLocalBoundary) GetSegmentCount() int        { return d.m_nsegs }
+func (d *dtLocalBoundary) GetSegment(i int) [6]float64 { return d.m_segs[i].s }
 func newDtLocalBoundary() *dtLocalBoundary {
 	d := &dtLocalBoundary{
 		MAX_LOCAL_SEGS:  8,
@@ -33,7 +36,7 @@ func newDtLocalBoundary() *dtLocalBoundary {
 }
 
 func (d *dtLocalBoundary) reset() {
-	dtVset(d.m_center[:], math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
+	common.Vset(d.m_center[:], math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
 	d.m_npolys = 0
 	d.m_nsegs = 0
 }
@@ -61,8 +64,8 @@ func (d *dtLocalBoundary) addSegment(dist float64, s []float64) {
 		}
 
 		tgt := i + 1
-		n := dtMin(d.m_nsegs-i, d.MAX_LOCAL_SEGS-tgt)
-		dtAssert(tgt+n <= d.MAX_LOCAL_SEGS)
+		n := common.Min(d.m_nsegs-i, d.MAX_LOCAL_SEGS-tgt)
+		common.AssertTrue(tgt+n <= d.MAX_LOCAL_SEGS)
 		if n > 0 {
 			copy(d.m_segs[tgt:], d.m_segs[i:i+n])
 		}
@@ -82,7 +85,7 @@ func (d *dtLocalBoundary) update(ref DtPolyRef, pos []float64, collisionQueryRan
 	MAX_SEGS_PER_POLY := DT_VERTS_PER_POLYGON * 3
 
 	if ref == 0 {
-		dtVset(d.m_center[:], math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
+		common.Vset(d.m_center[:], math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
 		d.m_nsegs = 0
 		d.m_npolys = 0
 		return
@@ -103,7 +106,7 @@ func (d *dtLocalBoundary) update(ref DtPolyRef, pos []float64, collisionQueryRan
 			// Skip too distant segments.
 
 			_, distSqr := dtDistancePtSegSqr2D(pos, s, s[3:])
-			if distSqr > dtSqr(collisionQueryRange) {
+			if distSqr > common.Sqr(collisionQueryRange) {
 				continue
 			}
 

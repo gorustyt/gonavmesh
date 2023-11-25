@@ -9,6 +9,17 @@ import (
 	"math"
 )
 
+const (
+	IMGUI_MBUT_LEFT  = 0x01
+	IMGUI_MBUT_RIGHT = 0x02
+)
+
+const (
+	IMGUI_ALIGN_LEFT = iota
+	IMGUI_ALIGN_CENTER
+	IMGUI_ALIGN_RIGHT
+)
+
 // Pull render interface.
 type imguiGfxCmdType int
 
@@ -392,7 +403,11 @@ func (gs *guiState) imguiValue(text string) {
 	gs.widgetY -= BUTTON_HEIGHT
 	gs.addGfxCmdText(x+w-BUTTON_HEIGHT/2, y+BUTTON_HEIGHT/2-TEXT_HEIGHT/2, giu.AlignRight, text, imguiRGBA(255, 255, 255, 200))
 }
-func (gs *guiState) imguiSlider(text string, val *float64, vmin, vmax, vinc float64, enabled bool) bool {
+func (gs *guiState) imguiSlider(text string, val *float64, vmin, vmax, vinc float64, enableds ...bool) bool {
+	enabled := true
+	if len(enableds) > 0 {
+		enabled = enableds[0]
+	}
 	gs.widgetId++
 	id := (gs.areaId << 16) | gs.widgetId
 

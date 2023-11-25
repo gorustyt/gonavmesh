@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 type Item struct {
 	id   int
@@ -8,7 +11,7 @@ type Item struct {
 	next int
 }
 
-type dtProximityGrid struct {
+type DtProximityGrid struct {
 	m_cellSize    float64
 	m_invCellSize float64
 	m_pool        []*Item
@@ -18,15 +21,17 @@ type dtProximityGrid struct {
 	m_buckets     []int
 	m_bucketsSize int
 
-	m_bounds [4]int
+	m_bounds []int
 }
 
+func (d *DtProximityGrid) GetBounds() []int     { return d.m_bounds }
+func (d *DtProximityGrid) GetCellSize() float64 { return d.m_cellSize }
 func hashPos2(x, y, n int) int {
 	return ((x * 73856093) ^ (y * 19349663)) & (n - 1)
 }
 
-func newDtProximityGrid(poolSize int, cellSize float64) (d *dtProximityGrid) {
-	d = &dtProximityGrid{}
+func newDtProximityGrid(poolSize int, cellSize float64) (d *DtProximityGrid) {
+	d = &DtProximityGrid{m_bounds: make([]int, 4)}
 	if poolSize <= 0 {
 		panic("")
 	}
@@ -37,7 +42,7 @@ func newDtProximityGrid(poolSize int, cellSize float64) (d *dtProximityGrid) {
 	d.m_invCellSize = 1.0 / d.m_cellSize
 
 	// Allocate hashs buckets
-	d.m_bucketsSize = dtNextPow2(poolSize)
+	d.m_bucketsSize = common.NextPow2(poolSize)
 	d.m_buckets = make([]int, d.m_bucketsSize)
 	// Allocate pool of items.
 	d.m_poolSize = poolSize
@@ -49,7 +54,7 @@ func newDtProximityGrid(poolSize int, cellSize float64) (d *dtProximityGrid) {
 	return d
 }
 
-func (d *dtProximityGrid) Clear() {
+func (d *DtProximityGrid) Clear() {
 	if d.m_buckets == nil {
 		d.m_buckets = make([]int, d.m_bucketsSize)
 	}
@@ -63,7 +68,7 @@ func (d *dtProximityGrid) Clear() {
 	d.m_bounds[3] = -0xffff
 }
 
-func (d *dtProximityGrid) addItem(id int,
+func (d *DtProximityGrid) addItem(id int,
 	minx, miny,
 	maxx, maxy float64) {
 	iminx := int(math.Floor(minx * d.m_invCellSize))
@@ -71,10 +76,10 @@ func (d *dtProximityGrid) addItem(id int,
 	imaxx := int(math.Floor(maxx * d.m_invCellSize))
 	imaxy := int(math.Floor(maxy * d.m_invCellSize))
 
-	d.m_bounds[0] = dtMin(d.m_bounds[0], iminx)
-	d.m_bounds[1] = dtMin(d.m_bounds[1], iminy)
-	d.m_bounds[2] = dtMax(d.m_bounds[2], imaxx)
-	d.m_bounds[3] = dtMax(d.m_bounds[3], imaxy)
+	d.m_bounds[0] = common.Min(d.m_bounds[0], iminx)
+	d.m_bounds[1] = common.Min(d.m_bounds[1], iminy)
+	d.m_bounds[2] = common.Max(d.m_bounds[2], imaxx)
+	d.m_bounds[3] = common.Max(d.m_bounds[3], imaxy)
 
 	for y := iminy; y <= imaxy; y++ {
 		for x := iminx; x <= imaxx; x++ {
@@ -93,7 +98,7 @@ func (d *dtProximityGrid) addItem(id int,
 	}
 }
 
-func (d *dtProximityGrid) queryItems(minx, miny,
+func (d *DtProximityGrid) queryItems(minx, miny,
 	maxx, maxy float64, ids []int, maxIds int) int {
 	iminx := int(math.Floor(minx * d.m_invCellSize))
 	iminy := int(math.Floor(miny * d.m_invCellSize))
@@ -134,7 +139,7 @@ func (d *dtProximityGrid) queryItems(minx, miny,
 	return n
 }
 
-func (d *dtProximityGrid) getItemCountAt(x, y int) int {
+func (d *DtProximityGrid) GetItemCountAt(x, y int) int {
 	n := 0
 
 	h := hashPos2(x, y, d.m_bucketsSize)

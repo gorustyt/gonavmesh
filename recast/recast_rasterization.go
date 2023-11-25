@@ -1,6 +1,7 @@
 package recast
 
 import (
+	"gonavamesh/common"
 	"log"
 	"math"
 )
@@ -35,20 +36,20 @@ func overlapBounds(aMin, aMax, bMin, bMax []float64) bool {
 // / @param[in] 	flagMergeThreshold	The threshold in which area flags will be merged
 // / @returns true if the operation completes successfully.  false if there was an error adding spans to the heightfield.
 func rasterizeTri(v0, v1, v2 []float64,
-	areaID int, heightfield *rcHeightfield,
+	areaID int, heightfield *RcHeightfield,
 	heightfieldBBMin, heightfieldBBMax []float64,
 	cellSize, inverseCellSize, inverseCellHeight float64,
 	flagMergeThreshold int) bool {
 	// Calculate the bounding box of the triangle.
 	triBBMin := make([]float64, 3)
 	copy(triBBMin, v0)
-	rcVmin(triBBMin, v1)
-	rcVmin(triBBMin, v2)
+	common.Vmin(triBBMin, v1)
+	common.Vmin(triBBMin, v2)
 
 	triBBMax := make([]float64, 3)
 	copy(triBBMax, v0)
-	rcVmax(triBBMax, v1)
-	rcVmax(triBBMax, v2)
+	common.Vmax(triBBMax, v1)
+	common.Vmax(triBBMax, v2)
 
 	// If the triangle does not touch the bounding box of the heightfield, skip the triangle.
 	if !overlapBounds(triBBMin, triBBMax, heightfieldBBMin, heightfieldBBMax) {
@@ -64,8 +65,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 	z1 := int((triBBMax[2] - heightfieldBBMin[2]) * inverseCellSize)
 
 	// use -1 rather than 0 to cut the polygon properly at the start of the tile
-	z0 = rcClamp(z0, -1, h-1)
-	z1 = rcClamp(z1, 0, h-1)
+	z0 = common.Clamp(z0, -1, h-1)
+	z1 = common.Clamp(z1, 0, h-1)
 
 	// Clip the triangle into all grid cells it touches.
 	buf := make([]float64, 7*3*4)
@@ -109,8 +110,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 		if x1 < 0 || x0 >= w {
 			continue
 		}
-		x0 = rcClamp(x0, -1, w-1)
-		x1 = rcClamp(x1, 0, w-1)
+		x0 = common.Clamp(x0, -1, w-1)
+		x1 = common.Clamp(x1, 0, w-1)
 
 		var nv int
 		nv2 := nvRow
@@ -132,8 +133,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 			spanMin := p1[1]
 			spanMax := p1[1]
 			for vert := 1; vert < nv; vert++ {
-				spanMin = rcMin(spanMin, p1[vert*3+1])
-				spanMax = rcMax(spanMax, p1[vert*3+1])
+				spanMin = common.Min(spanMin, p1[vert*3+1])
+				spanMax = common.Max(spanMax, p1[vert*3+1])
 			}
 			spanMin -= heightfieldBBMin[1]
 			spanMax -= heightfieldBBMin[1]
@@ -155,8 +156,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 			}
 
 			// Snap the span to the heightfield height grid.
-			spanMinCellIndex := rcClamp(int(math.Floor(spanMin*inverseCellHeight)), 0, RC_SPAN_MAX_HEIGHT)
-			spanMaxCellIndex := rcClamp(int(math.Ceil(spanMax*inverseCellHeight)), spanMinCellIndex+1, RC_SPAN_MAX_HEIGHT)
+			spanMinCellIndex := common.Clamp(int(math.Floor(spanMin*inverseCellHeight)), 0, RC_SPAN_MAX_HEIGHT)
+			spanMaxCellIndex := common.Clamp(int(math.Ceil(spanMax*inverseCellHeight)), spanMinCellIndex+1, RC_SPAN_MAX_HEIGHT)
 
 			if !addSpan(heightfield, x, z, spanMinCellIndex, spanMaxCellIndex, areaID, flagMergeThreshold) {
 				return false
@@ -166,8 +167,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 
 	return true
 }
-func rcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int, numTris int,
-	heightfield *rcHeightfield, flagMergeThreshold int) bool {
+func RcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int, numTris int,
+	heightfield *RcHeightfield, flagMergeThreshold int) bool {
 
 	// Rasterize the triangles.
 	inverseCellSize := 1.0 / heightfield.cs
@@ -184,8 +185,8 @@ func rcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int,
 	return true
 }
 
-func rcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
-	heightfield *rcHeightfield, flagMergeThreshold int) bool {
+func RcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
+	heightfield *RcHeightfield, flagMergeThreshold int) bool {
 	// Rasterize the triangles.
 	inverseCellSize := 1.0 / heightfield.cs
 	inverseCellHeight := 1.0 / heightfield.ch
@@ -294,7 +295,7 @@ func dividePoly(inVerts []float64, inVertsCount int,
 // / @param[in]	max					The new span's maximum cell index
 // / @param[in]	areaID				The new span's area type ID
 // / @param[in]	flagMergeThreshold	How close two spans maximum extents need to be to merge area type IDs
-func addSpan(heightfield *rcHeightfield,
+func addSpan(heightfield *RcHeightfield,
 	x, z int,
 	min, max, areaID int, flagMergeThreshold int) bool {
 	// Create the new span.
@@ -332,9 +333,9 @@ func addSpan(heightfield *rcHeightfield,
 			}
 
 			// Merge flags.
-			if rcAbs(newSpan.smax-currentSpan.smax) <= flagMergeThreshold {
+			if common.Abs(newSpan.smax-currentSpan.smax) <= flagMergeThreshold {
 				// Higher area ID numbers indicate higher resolution priority.
-				newSpan.area = rcMax(newSpan.area, currentSpan.area)
+				newSpan.area = common.Max(newSpan.area, currentSpan.area)
 			}
 
 			// Remove the current span since it's now merged with newSpan.
@@ -366,7 +367,7 @@ func addSpan(heightfield *rcHeightfield,
 // / Releases the memory used by the span back to the heightfield, so it can be re-used for new spans.
 // / @param[in]	heightfield		The heightfield.
 // / @param[in]	span	A pointer to the span to free
-func freeSpan(heightfield *rcHeightfield, span *rcSpan) {
+func freeSpan(heightfield *RcHeightfield, span *rcSpan) {
 	if span == nil {
 		return
 	}
@@ -380,7 +381,7 @@ func freeSpan(heightfield *rcHeightfield, span *rcSpan) {
 // /
 // / @param[in]	heightfield		The heightfield
 // / @returns A pointer to the allocated or re-used span memory.
-func allocSpan(heightfield *rcHeightfield) *rcSpan {
+func allocSpan(heightfield *RcHeightfield) *rcSpan {
 	// If necessary, allocate new page and update the freelist.
 	if heightfield.freelist == nil || heightfield.freelist.next == nil {
 		// Create new page.
@@ -413,7 +414,7 @@ func allocSpan(heightfield *rcHeightfield) *rcSpan {
 	return newSpan
 }
 
-func rcAddSpan(heightfield *rcHeightfield,
+func rcAddSpan(heightfield *RcHeightfield,
 	x, z int, spanMin int, spanMax, areaID, flagMergeThreshold int) bool {
 
 	if !addSpan(heightfield, x, z, spanMin, spanMax, areaID, flagMergeThreshold) {
@@ -425,7 +426,7 @@ func rcAddSpan(heightfield *rcHeightfield,
 
 func rcRasterizeTriangle(
 	v0, v1, v2 []float64,
-	areaID int, heightfield *rcHeightfield, flagMergeThreshold int) bool {
+	areaID int, heightfield *RcHeightfield, flagMergeThreshold int) bool {
 
 	// Rasterize the single triangle.
 	inverseCellSize := 1.0 / heightfield.cs

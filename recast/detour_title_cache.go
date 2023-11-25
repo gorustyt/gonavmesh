@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 type dtObstacleRef int
 
@@ -12,7 +15,7 @@ const DT_COMPRESSEDTILE_FREE_DATA = 0x01 ///< Navmesh owns the tile memory and s
 
 type dtCompressedTile struct {
 	salt           int ///< Counter describing modifications to the tile.
-	header         *dtTileCacheLayerHeader
+	header         *DtTileCacheLayerHeader
 	compressed     []int
 	compressedSize int
 	data           []byte
@@ -211,9 +214,9 @@ func titleCacheComputeTileHash(x int, y int, mask int) int {
 }
 
 type NavMeshTileBuildContext struct {
-	layer *dtTileCacheLayer
-	lcset *dtTileCacheContourSet
-	lmesh *dtTileCachePolyMesh
+	layer *DtTileCacheLayer
+	lcset *DtTileCacheContourSet
+	lmesh *DtTileCachePolyMesh
 }
 
 func (d *NavMeshTileBuildContext) purge() {
@@ -261,7 +264,7 @@ func (d *dtTileCache) init(params *dtTileCacheParams,
 	}
 
 	// Init tiles
-	d.m_tileLutSize = dtNextPow2(d.m_params.maxTiles / 4)
+	d.m_tileLutSize = common.NextPow2(d.m_params.maxTiles / 4)
 	if d.m_tileLutSize == 0 {
 		d.m_tileLutSize = 1
 	}
@@ -284,9 +287,9 @@ func (d *dtTileCache) init(params *dtTileCacheParams,
 	}
 
 	// Init ID generator values.
-	d.m_tileBits = dtIlog2(dtNextPow2(d.m_params.maxTiles))
+	d.m_tileBits = common.Ilog2(common.NextPow2(d.m_params.maxTiles))
 	// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
-	d.m_saltBits = dtMin(31, 32-d.m_tileBits)
+	d.m_saltBits = common.Min(31, 32-d.m_tileBits)
 	if d.m_saltBits < 10 {
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
@@ -294,7 +297,7 @@ func (d *dtTileCache) init(params *dtTileCacheParams,
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) getTilesAt(tx, ty int, tiles []dtCompressedTileRef, maxTiles int) int {
+func (d *dtTileCache) GetTilesAt(tx, ty int, tiles []dtCompressedTileRef, maxTiles int) int {
 	n := 0
 
 	// Find tile based on hash.
@@ -302,8 +305,8 @@ func (d *dtTileCache) getTilesAt(tx, ty int, tiles []dtCompressedTileRef, maxTil
 	tile := d.m_posLookup[h]
 	for tile != nil {
 		if tile.header != nil &&
-			tile.header.tx == tx &&
-			tile.header.ty == ty {
+			tile.header.Tx == tx &&
+			tile.header.Ty == ty {
 			if n < maxTiles {
 				tiles[n] = d.getTileRef(tile)
 				n++
@@ -322,9 +325,9 @@ func (d *dtTileCache) getTileAt(tx, ty, tlayer int) *dtCompressedTile {
 	tile := d.m_posLookup[h]
 	for tile != nil {
 		if tile.header != nil &&
-			tile.header.tx == tx &&
-			tile.header.ty == ty &&
-			tile.header.tlayer == tlayer {
+			tile.header.Tx == tx &&
+			tile.header.Ty == ty &&
+			tile.header.Tlayer == tlayer {
 			return tile
 		}
 		tile = tile.next
@@ -367,18 +370,18 @@ func (d *dtTileCache) getObstacleByRef(ref dtObstacleRef) *dtTileCacheObstacle {
 	return ob
 }
 
-func (d *dtTileCache) addTile(header *dtTileCacheLayerHeader, tile *dtCompressedTile, flags int, result *dtCompressedTileRef) DtStatus {
+func (d *dtTileCache) addTile(header *DtTileCacheLayerHeader, tile *dtCompressedTile, flags int, result *dtCompressedTileRef) DtStatus {
 	// Make sure the data is in right format.
-	if header.magic != DT_TILECACHE_MAGIC {
+	if header.Magic != DT_TILECACHE_MAGIC {
 		return DT_FAILURE | DT_WRONG_MAGIC
 	}
 
-	if header.version != DT_TILECACHE_VERSION {
+	if header.Version != DT_TILECACHE_VERSION {
 		return DT_FAILURE | DT_WRONG_VERSION
 	}
 
 	// Make sure the location is free.
-	if d.getTileAt(header.tx, header.ty, header.tlayer) != nil {
+	if d.getTileAt(header.Tx, header.Ty, header.Tlayer) != nil {
 		return DT_FAILURE
 	}
 
@@ -395,7 +398,7 @@ func (d *dtTileCache) addTile(header *dtTileCacheLayerHeader, tile *dtCompressed
 	}
 
 	// Insert tile into the position lut.
-	h := computeTileHash(header.tx, header.ty, d.m_tileLutMask)
+	h := computeTileHash(header.Tx, header.Ty, d.m_tileLutMask)
 	tile.next = d.m_posLookup[h]
 	d.m_posLookup[h] = tile
 
@@ -426,7 +429,7 @@ func (d *dtTileCache) removeTile(ref dtCompressedTileRef, data *[]byte, dataSize
 	}
 
 	// Remove tile from hash lookup.
-	h := computeTileHash(tile.header.tx, tile.header.ty, d.m_tileLutMask)
+	h := computeTileHash(tile.header.Tx, tile.header.Ty, d.m_tileLutMask)
 	var prev *dtCompressedTile
 	cur := d.m_posLookup[h]
 	for cur != nil {
@@ -630,7 +633,7 @@ func (d *dtTileCache) queryTiles(bmin, bmax []float64,
 
 	for ty := ty0; ty <= ty1; ty++ {
 		for tx := tx0; tx <= tx1; tx++ {
-			ntiles := d.getTilesAt(tx, ty, tiles, MAX_TILES)
+			ntiles := d.GetTilesAt(tx, ty, tiles, MAX_TILES)
 
 			for i := 0; i < ntiles; i++ {
 				tile := d.m_tiles[d.decodeTileIdTile(tiles[i])]
@@ -772,7 +775,7 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 func (d *dtTileCache) buildNavMeshTilesAt(tx, ty int, navmesh *DtNavMesh) DtStatus {
 	MAX_TILES := 32
 	tiles := make([]dtCompressedTileRef, MAX_TILES)
-	ntiles := d.getTilesAt(tx, ty, tiles, MAX_TILES)
+	ntiles := d.GetTilesAt(tx, ty, tiles, MAX_TILES)
 
 	for i := 0; i < ntiles; i++ {
 		status := d.buildNavMeshTile(tiles[i], navmesh)
@@ -815,13 +818,13 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 
 		if titleCacheContains(ob.touched[:], ob.ntouched, ref) {
 			if ob.Type == DT_OBSTACLE_CYLINDER {
-				dtMarkCylinderArea(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
+				dtMarkCylinderArea(bc.layer, tile.header.Bmin[:], d.m_params.cs, d.m_params.ch,
 					ob.cylinder.pos[:], ob.cylinder.radius, ob.cylinder.height, 0)
 			} else if ob.Type == DT_OBSTACLE_BOX {
-				dtMarkBoxArea(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
+				dtMarkBoxArea(bc.layer, tile.header.Bmin[:], d.m_params.cs, d.m_params.ch,
 					ob.box.bmin[:], ob.box.bmax[:], 0)
 			} else if ob.Type == DT_OBSTACLE_ORIENTED_BOX {
-				dtMarkBoxArea1(bc.layer, tile.header.bmin[:], d.m_params.cs, d.m_params.ch,
+				dtMarkBoxArea1(bc.layer, tile.header.Bmin[:], d.m_params.cs, d.m_params.ch,
 					ob.orientedBox.center[:], ob.orientedBox.halfExtents[:], ob.orientedBox.rotAux[:], 0)
 			}
 		}
@@ -833,7 +836,7 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 		return status
 	}
 
-	bc.lcset = &dtTileCacheContourSet{}
+	bc.lcset = &DtTileCacheContourSet{}
 	if bc.lcset == nil {
 		return DT_FAILURE | DT_OUT_OF_MEMORY
 	}
@@ -844,7 +847,7 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 		return status
 	}
 
-	bc.lmesh = &dtTileCachePolyMesh{}
+	bc.lmesh = &DtTileCachePolyMesh{}
 	if bc.lmesh == nil {
 		return DT_FAILURE | DT_OUT_OF_MEMORY
 	}
@@ -855,43 +858,43 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 	}
 
 	// Early out if the mesh tile is empty.
-	if bc.lmesh.npolys == 0 {
+	if bc.lmesh.Npolys == 0 {
 		// Remove existing tile.
-		navmesh.removeTile(navmesh.getTileRefAt(tile.header.tx, tile.header.ty, tile.header.tlayer))
+		navmesh.RemoveTile(navmesh.GetTileRefAt(tile.header.Tx, tile.header.Ty, tile.header.Tlayer))
 		return DT_SUCCESS
 	}
 
 	var params DtNavMeshCreateParams
-	params.verts = bc.lmesh.verts
-	params.vertCount = bc.lmesh.nverts
-	params.polys = bc.lmesh.polys
-	params.polyAreas = bc.lmesh.areas
-	params.polyFlags = bc.lmesh.flags
-	params.polyCount = bc.lmesh.npolys
-	params.nvp = DT_VERTS_PER_POLYGON
-	params.walkableHeight = d.m_params.walkableHeight
-	params.walkableRadius = d.m_params.walkableRadius
-	params.walkableClimb = d.m_params.walkableClimb
-	params.tileX = tile.header.tx
-	params.tileY = tile.header.ty
-	params.tileLayer = tile.header.tlayer
-	params.cs = d.m_params.cs
-	params.ch = d.m_params.ch
-	params.buildBvTree = false
-	copy(params.bmin[:], tile.header.bmin[:])
-	copy(params.bmax[:], tile.header.bmax[:])
+	params.Verts = bc.lmesh.Verts
+	params.VertCount = bc.lmesh.Nverts
+	params.Polys = bc.lmesh.Polys
+	params.PolyAreas = bc.lmesh.Areas
+	params.PolyFlags = bc.lmesh.Flags
+	params.PolyCount = bc.lmesh.Npolys
+	params.Nvp = DT_VERTS_PER_POLYGON
+	params.WalkableHeight = d.m_params.walkableHeight
+	params.WalkableRadius = d.m_params.walkableRadius
+	params.WalkableClimb = d.m_params.walkableClimb
+	params.TileX = tile.header.Tx
+	params.TileY = tile.header.Ty
+	params.TileLayer = tile.header.Tlayer
+	params.Cs = d.m_params.cs
+	params.Ch = d.m_params.ch
+	params.BuildBvTree = false
+	copy(params.Bmin[:], tile.header.Bmin[:])
+	copy(params.Bmax[:], tile.header.Bmax[:])
 
 	if d.m_tmproc != nil {
-		d.m_tmproc.process(&params, bc.lmesh.areas, bc.lmesh.flags)
+		d.m_tmproc.process(&params, bc.lmesh.Areas, bc.lmesh.Flags)
 	}
 
 	//var navDataSize int
-	if !dtCreateNavMeshData(&params) {
+	if !DtCreateNavMeshData(&params) {
 		return DT_FAILURE
 	}
 
 	// Remove existing tile.
-	navmesh.removeTile(navmesh.getTileRefAt(tile.header.tx, tile.header.ty, tile.header.tlayer))
+	navmesh.RemoveTile(navmesh.GetTileRefAt(tile.header.Tx, tile.header.Ty, tile.header.Tlayer))
 
 	// Add new tile, or leave the location empty.
 	//if navData {
@@ -905,14 +908,14 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) calcTightTileBounds(header *dtTileCacheLayerHeader, bmin, bmax []float64) {
+func (d *dtTileCache) calcTightTileBounds(header *DtTileCacheLayerHeader, bmin, bmax []float64) {
 	cs := d.m_params.cs
-	bmin[0] = header.bmin[0] + float64(header.minx)*cs
-	bmin[1] = header.bmin[1]
-	bmin[2] = header.bmin[2] + float64(header.miny)*cs
-	bmax[0] = header.bmin[0] + float64(header.maxx+1)*cs
-	bmax[1] = header.bmax[1]
-	bmax[2] = header.bmin[2] + float64(header.maxy+1)*cs
+	bmin[0] = header.Bmin[0] + float64(header.Minx)*cs
+	bmin[1] = header.Bmin[1]
+	bmin[2] = header.Bmin[2] + float64(header.Miny)*cs
+	bmax[0] = header.Bmin[0] + float64(header.Maxx+1)*cs
+	bmax[1] = header.Bmax[1]
+	bmax[2] = header.Bmin[2] + float64(header.Maxy+1)*cs
 }
 
 func (d *dtTileCache) getObstacleBounds(ob *dtTileCacheObstacle, bmin, bmax []float64) {
@@ -931,7 +934,7 @@ func (d *dtTileCache) getObstacleBounds(ob *dtTileCacheObstacle, bmin, bmax []fl
 	} else if ob.Type == DT_OBSTACLE_ORIENTED_BOX {
 		orientedBox := ob.orientedBox
 
-		maxr := 1.41 * dtMax(orientedBox.halfExtents[0], orientedBox.halfExtents[2])
+		maxr := 1.41 * common.Max(orientedBox.halfExtents[0], orientedBox.halfExtents[2])
 		bmin[0] = orientedBox.center[0] - maxr
 		bmax[0] = orientedBox.center[0] + maxr
 		bmin[1] = orientedBox.center[1] - orientedBox.halfExtents[1]

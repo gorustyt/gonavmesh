@@ -1,6 +1,8 @@
 package gui
 
-import "gonavamesh/recast"
+import (
+	"gonavamesh/recast"
+)
 
 type ToolMode int
 
@@ -26,7 +28,7 @@ var (
 	menus = map[int]func(){}
 )
 
-type MeshTool struct {
+type NavMeshTesterTool struct {
 	m_sample         *Sample
 	m_navMesh        recast.IDtNavMesh
 	m_navQuery       recast.NavMeshQuery
@@ -77,8 +79,27 @@ type MeshTool struct {
 	gs *guiState
 }
 
-func newMeshTool(gs *guiState) *MeshTool {
-	m := &MeshTool{
+func (m *NavMeshTesterTool) handleRender() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *NavMeshTesterTool) handleRenderOverlay(proj, model *float64, view []int) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *NavMeshTesterTool) handleToggle() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *NavMeshTesterTool) handleStep() {
+
+}
+
+func newNavMeshTesterTool(gs *guiState) *NavMeshTesterTool {
+	m := &NavMeshTesterTool{
 		m_straightPath:      make([]float64, MAX_POLYS*3),
 		m_straightPathFlags: make([]int, MAX_POLYS),
 		m_straightPathPolys: make([]recast.DtPolyRef, MAX_POLYS),
@@ -113,7 +134,8 @@ func newMeshTool(gs *guiState) *MeshTool {
 	m.m_randomRadius = 5.0
 	return m
 }
-func (m *MeshTool) init(sample *Sample) {
+
+func (m *NavMeshTesterTool) init(sample *Sample) {
 	m.m_sample = sample
 	m.m_navMesh = sample.getNavMesh()
 	m.m_navQuery = sample.getNavMeshQuery()
@@ -131,7 +153,7 @@ func (m *MeshTool) init(sample *Sample) {
 	m.m_randomRadius = sample.getAgentRadius() * 30.0
 }
 
-func (m *MeshTool) handleMenu() {
+func (m *NavMeshTesterTool) handleMenu() {
 	if m.gs.imguiCheck("Pathfind Follow", m.m_toolMode == TOOLMODE_PATHFIND_FOLLOW) {
 		m.m_toolMode = TOOLMODE_PATHFIND_FOLLOW
 		m.recalc()
@@ -290,7 +312,7 @@ func (m *MeshTool) handleMenu() {
 	m.gs.imguiSeparator()
 
 }
-func (m *MeshTool) handleClick(s, p []float64, shift bool) {
+func (m *NavMeshTesterTool) handleClick(s, p []float64, shift bool) {
 	if shift {
 		m.m_sposSet = true
 		copy(m.m_spos, p)
@@ -301,36 +323,38 @@ func (m *MeshTool) handleClick(s, p []float64, shift bool) {
 	m.recalc()
 }
 
-func (m *MeshTool) handleUpdate(dt float64) {
-	if (m.m_toolMode == TOOLMODE_PATHFIND_SLICED) {
-		if (m.m_pathFindStatus.DtStatusInProgress()) {
-			_, m.m_pathFindStatus = m.m_navQuery.UpdateSlicedFindPath(1);
+func (m *NavMeshTesterTool) handleUpdate(dt float64) {
+	if m.m_toolMode == TOOLMODE_PATHFIND_SLICED {
+		if m.m_pathFindStatus.DtStatusInProgress() {
+			_, m.m_pathFindStatus = m.m_navQuery.UpdateSlicedFindPath(1)
 		}
-		if (m.m_pathFindStatus.DtStatusSucceed()) {
-			m.m_npolys, _ = m.m_navQuery.FinalizeSlicedFindPath(m.m_polys, MAX_POLYS);
-			m.m_nstraightPath = 0;
-			if (m.m_npolys != 0) {
+		if m.m_pathFindStatus.DtStatusSucceed() {
+			m.m_npolys, _ = m.m_navQuery.FinalizeSlicedFindPath(m.m_polys, MAX_POLYS)
+			m.m_nstraightPath = 0
+			if m.m_npolys != 0 {
 				// In case of partial path, make sure the end point is clamped to the last polygon.
 				epos := make([]float64, 3)
-				copy(epos, m.m_epos);
-				if (m.m_polys[m.m_npolys-1] != m.m_endRef) {
-					epos, _, _ = m.m_navQuery.ClosestPointOnPoly(m.m_polys[m.m_npolys-1], m.m_epos) //TODO
+				copy(epos, m.m_epos)
+				if m.m_polys[m.m_npolys-1] != m.m_endRef {
+					var tmp bool
+					m.m_navQuery.ClosestPointOnPoly(m.m_polys[m.m_npolys-1], m.m_epos, epos, &tmp)
 				}
 
 				m.m_nstraightPath, _ = m.m_navQuery.FindStraightPath(m.m_spos, epos, m.m_polys, m.m_npolys,
 					m.m_straightPath, m.m_straightPathFlags,
-					m.m_straightPathPolys, MAX_POLYS, recast.DT_STRAIGHTPATH_ALL_CROSSINGS);
+					m.m_straightPathPolys, MAX_POLYS, recast.DT_STRAIGHTPATH_ALL_CROSSINGS)
 			}
 
-			m.m_pathFindStatus = recast.DT_FAILURE;
+			m.m_pathFindStatus = recast.DT_FAILURE
 		}
 	}
 }
 
-func (m *MeshTool) recalc() {
+func (m *NavMeshTesterTool) recalc() {
 
 }
-func (m *MeshTool) reset() {
+func (m *NavMeshTesterTool) Type() int { return TOOL_NAVMESH_TESTER }
+func (m *NavMeshTesterTool) reset() {
 	m.m_startRef = 0
 	m.m_endRef = 0
 	m.m_npolys = 0

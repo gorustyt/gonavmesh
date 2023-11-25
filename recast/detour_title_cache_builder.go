@@ -1,6 +1,9 @@
 package recast
 
-import "math"
+import (
+	"gonavamesh/common"
+	"math"
+)
 
 const DT_TILECACHE_MAGIC = 'D'<<24 | 'T'<<16 | 'L'<<8 | 'R' ///< 'DTLR';
 const DT_TILECACHE_VERSION = 1
@@ -24,45 +27,45 @@ func getDirOffsetY(dir int) int {
 	return offset[dir&0x03]
 }
 
-type dtTileCacheLayerHeader struct {
-	magic                  int ///< Data magic
-	version                int ///< Data version
-	tx, ty, tlayer         int
-	bmin, bmax             [3]float64
-	hmin, hmax             int ///< Height min/max range
-	width, height          int ///< Dimension of the layer.
-	minx, maxx, miny, maxy int ///< Usable sub-region.
+type DtTileCacheLayerHeader struct {
+	Magic                  int ///< Data magic
+	Version                int ///< Data version
+	Tx, Ty, Tlayer         int
+	Bmin, Bmax             [3]float64
+	Hmin, Hmax             int ///< Height min/max range
+	Width, Height          int ///< Dimension of the layer.
+	Minx, Maxx, Miny, Maxy int ///< Usable sub-region.
 }
 
-type dtTileCacheLayer struct {
-	header   *dtTileCacheLayerHeader
-	regCount int ///< Region count.
-	heights  []int
-	areas    []int
-	cons     []int
-	regs     []int
+type DtTileCacheLayer struct {
+	Header   *DtTileCacheLayerHeader
+	RegCount int ///< Region count.
+	Heights  []int
+	Areas    []int
+	Cons     []int
+	Regs     []int
 }
 
-type dtTileCacheContour struct {
-	nverts int
-	verts  []int
-	reg    int
-	area   int
+type DtTileCacheContour struct {
+	Nverts int
+	Verts  []int
+	Reg    int
+	Area   int
 }
 
-type dtTileCacheContourSet struct {
-	nconts int
-	conts  []*dtTileCacheContour
+type DtTileCacheContourSet struct {
+	Nconts int
+	Conts  []*DtTileCacheContour
 }
 
-type dtTileCachePolyMesh struct {
-	nvp    int
-	nverts int   ///< Number of vertices.
-	npolys int   ///< Number of polygons.
-	verts  []int ///< Vertices of the mesh, 3 elements per vertex.
-	polys  []int ///< Polygons of the mesh, nvp*2 elements per polygon.
-	flags  []int ///< Per polygon flags.
-	areas  []int ///< Area ID of polygons.
+type DtTileCachePolyMesh struct {
+	Nvp    int
+	Nverts int   ///< Number of vertices.
+	Npolys int   ///< Number of polygons.
+	Verts  []int ///< Vertices of the mesh, 3 elements per vertex.
+	Polys  []int ///< Polygons of the mesh, nvp*2 elements per polygon.
+	Flags  []int ///< Per polygon flags.
+	Areas  []int ///< Area ID of polygons.
 }
 
 type dtLayerSweepSpan struct {
@@ -127,12 +130,12 @@ func addUniqueLast(a []int, an *int, v int) {
 	*an++
 }
 
-func isConnected(layer *dtTileCacheLayer,
+func isConnected(layer *DtTileCacheLayer,
 	ia, ib int, walkableClimb int) bool {
-	if layer.areas[ia] != layer.areas[ib] {
+	if layer.Areas[ia] != layer.Areas[ib] {
 		return false
 	}
-	if dtAbs(layer.heights[ia]-layer.heights[ib]) > walkableClimb {
+	if common.Abs(layer.Heights[ia]-layer.Heights[ib]) > walkableClimb {
 		return false
 	}
 	return true
@@ -156,14 +159,14 @@ func canMerge(oldRegId, newRegId int, regs []*dtLayerMonotoneRegion, nregs int) 
 	return count == 1
 }
 func dtBuildTileCacheRegions(
-	layer *dtTileCacheLayer,
+	layer *DtTileCacheLayer,
 	walkableClimb int) DtStatus {
 
-	w := layer.header.width
-	h := layer.header.height
-	layer.regs = make([]int, w*h)
-	for i := range layer.regs {
-		layer.regs[i] = 0xff
+	w := layer.Header.Width
+	h := layer.Header.Height
+	layer.Regs = make([]int, w*h)
+	for i := range layer.Regs {
+		layer.Regs[i] = 0xff
 	}
 
 	nsweeps := w
@@ -186,7 +189,7 @@ func dtBuildTileCacheRegions(
 
 		for x := 0; x < w; x++ {
 			idx := x + y*w
-			if layer.areas[idx] == DT_TILECACHE_NULL_AREA {
+			if layer.Areas[idx] == DT_TILECACHE_NULL_AREA {
 				continue
 			}
 
@@ -195,8 +198,8 @@ func dtBuildTileCacheRegions(
 			// -x
 			xidx := (x - 1) + y*w
 			if x > 0 && isConnected(layer, idx, xidx, walkableClimb) {
-				if layer.regs[xidx] != 0xff {
-					sid = layer.regs[xidx]
+				if layer.Regs[xidx] != 0xff {
+					sid = layer.Regs[xidx]
 				}
 
 			}
@@ -211,7 +214,7 @@ func dtBuildTileCacheRegions(
 			// -y
 			yidx := x + (y-1)*w
 			if y > 0 && isConnected(layer, idx, yidx, walkableClimb) {
-				nr := layer.regs[yidx]
+				nr := layer.Regs[yidx]
 				if nr != 0xff {
 					// Set neighbour when first valid neighbour is encoutered.
 					if sweeps[sid].ns == 0 {
@@ -230,7 +233,7 @@ func dtBuildTileCacheRegions(
 				}
 			}
 
-			layer.regs[idx] = sid
+			layer.Regs[idx] = sid
 		}
 
 		// Create unique ID.
@@ -252,8 +255,8 @@ func dtBuildTileCacheRegions(
 		// Remap local sweep ids to region ids.
 		for x := 0; x < w; x++ {
 			idx := x + y*w
-			if layer.regs[idx] != 0xff {
-				layer.regs[idx] = sweeps[layer.regs[idx]].id
+			if layer.Regs[idx] != 0xff {
+				layer.Regs[idx] = sweeps[layer.Regs[idx]].id
 			}
 
 		}
@@ -273,19 +276,19 @@ func dtBuildTileCacheRegions(
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			idx := x + y*w
-			ri := layer.regs[idx]
+			ri := layer.Regs[idx]
 			if ri == 0xff {
 				continue
 			}
 
 			// Update area.
 			regs[ri].area++
-			regs[ri].areaId = layer.areas[idx]
+			regs[ri].areaId = layer.Areas[idx]
 
 			// Update neighbours
 			ymi := x + (y-1)*w
 			if y > 0 && isConnected(layer, idx, ymi, walkableClimb) {
-				rai := layer.regs[ymi]
+				rai := layer.Regs[ymi]
 				if rai != 0xff && rai != ri {
 					addUniqueLast(regs[ri].neis[:], &regs[ri].nneis, rai)
 					addUniqueLast(regs[rai].neis[:], &regs[rai].nneis, ri)
@@ -354,11 +357,11 @@ func dtBuildTileCacheRegions(
 		regs[i].regId = remap[regs[i].regId]
 	}
 
-	layer.regCount = regId
+	layer.RegCount = regId
 
 	for i := 0; i < w*h; i++ {
-		if layer.regs[i] != 0xff {
-			layer.regs[i] = regs[layer.regs[i]].regId
+		if layer.Regs[i] != 0xff {
+			layer.Regs[i] = regs[layer.Regs[i]].regId
 		}
 
 	}
@@ -400,13 +403,13 @@ func appendVertex(cont *dtTempContour, x, y, z, r int) bool {
 
 	return true
 }
-func getNeighbourReg(layer *dtTileCacheLayer,
+func getNeighbourReg(layer *DtTileCacheLayer,
 	ax, ay, dir int) int {
-	w := layer.header.width
+	w := layer.Header.Width
 	ia := ax + ay*w
 
-	con := layer.cons[ia] & 0xf
-	portal := layer.cons[ia] >> 4
+	con := layer.Cons[ia] & 0xf
+	portal := layer.Cons[ia] >> 4
 	mask := (1 << dir)
 
 	if (con & mask) == 0 {
@@ -422,12 +425,12 @@ func getNeighbourReg(layer *dtTileCacheLayer,
 	by := ay + getDirOffsetY(dir)
 	ib := bx + by*w
 
-	return layer.regs[ib]
+	return layer.Regs[ib]
 }
 
-func titleCacheWalkContour(layer *dtTileCacheLayer, x, y int, cont *dtTempContour) bool {
-	w := layer.header.width
-	h := layer.header.height
+func titleCacheWalkContour(layer *DtTileCacheLayer, x, y int, cont *dtTempContour) bool {
+	w := layer.Header.Width
+	h := layer.Header.Height
 
 	cont.nverts = 0
 
@@ -438,7 +441,7 @@ func titleCacheWalkContour(layer *dtTileCacheLayer, x, y int, cont *dtTempContou
 	for i := 0; i < 4; i++ {
 		dir := (i + 3) & 3
 		rn := getNeighbourReg(layer, x, y, dir)
-		if rn != layer.regs[x+y*w] {
+		if rn != layer.Regs[x+y*w] {
 			startDir = dir
 			break
 		}
@@ -458,7 +461,7 @@ func titleCacheWalkContour(layer *dtTileCacheLayer, x, y int, cont *dtTempContou
 		ny := y
 		ndir := dir
 
-		if rn != layer.regs[x+y*w] {
+		if rn != layer.Regs[x+y*w] {
 			// Solid edge.
 			px := x
 			pz := y
@@ -476,7 +479,7 @@ func titleCacheWalkContour(layer *dtTileCacheLayer, x, y int, cont *dtTempContou
 			}
 
 			// Try to merge with previous vertex.
-			if !appendVertex(cont, px, layer.heights[x+y*w], pz, rn) {
+			if !appendVertex(cont, px, layer.Heights[x+y*w], pz, rn) {
 				return false
 			}
 
@@ -653,12 +656,12 @@ func titleCacheSimplifyContour(cont *dtTempContour, maxError float64) {
 	}
 }
 
-func titleCacheGetCornerHeight(layer *dtTileCacheLayer,
+func titleCacheGetCornerHeight(layer *DtTileCacheLayer,
 	x, y, z,
 	walkableClimb int,
 	shouldRemove *bool) int {
-	w := layer.header.width
-	h := layer.header.height
+	w := layer.Header.Width
+	h := layer.Header.Height
 
 	n := 0
 
@@ -673,15 +676,15 @@ func titleCacheGetCornerHeight(layer *dtTileCacheLayer,
 			pz := z + dz
 			if px >= 0 && pz >= 0 && px < w && pz < h {
 				idx := px + pz*w
-				lh := layer.heights[idx]
-				if dtAbs(lh-y) <= walkableClimb && layer.areas[idx] != DT_TILECACHE_NULL_AREA {
-					height = dtMax(height, lh)
-					portal &= (layer.cons[idx] >> 4)
-					if preg != 0xff && preg != layer.regs[idx] {
+				lh := layer.Heights[idx]
+				if common.Abs(lh-y) <= walkableClimb && layer.Areas[idx] != DT_TILECACHE_NULL_AREA {
+					height = common.Max(height, lh)
+					portal &= (layer.Cons[idx] >> 4)
+					if preg != 0xff && preg != layer.Regs[idx] {
 						allSameReg = false
 					}
 
-					preg = layer.regs[idx]
+					preg = layer.Regs[idx]
 					n++
 				}
 			}
@@ -705,7 +708,7 @@ func titleCacheGetCornerHeight(layer *dtTileCacheLayer,
 func titleCacheBuildMeshAdjacency(
 	polys []int, npolys int,
 	verts []int, nverts int,
-	lcset *dtTileCacheContourSet) bool {
+	lcset *DtTileCacheContourSet) bool {
 	// Based on code by Eric Lengyel from:
 	// https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
 
@@ -788,17 +791,17 @@ func titleCacheBuildMeshAdjacency(
 	}
 
 	// Mark portal edges.
-	for i := 0; i < lcset.nconts; i++ {
-		cont := lcset.conts[i]
-		if cont.nverts < 3 {
+	for i := 0; i < lcset.Nconts; i++ {
+		cont := lcset.Conts[i]
+		if cont.Nverts < 3 {
 			continue
 		}
 
 		j := 0
-		k := cont.nverts - 1
-		for j < cont.nverts {
-			va := rcGetVert4(cont.verts, k)
-			vb := rcGetVert4(cont.verts, j)
+		k := cont.Nverts - 1
+		for j < cont.Nverts {
+			va := rcGetVert4(cont.Verts, k)
+			vb := rcGetVert4(cont.Verts, j)
 			dir := va[3] & 0xf
 			if dir == 0xf {
 				k = j
@@ -897,17 +900,17 @@ func titleCacheBuildMeshAdjacency(
 
 // TODO: move this somewhere else, once the layer meshing is done.
 func dtBuildTileCacheContours(
-	layer *dtTileCacheLayer,
+	layer *DtTileCacheLayer,
 	walkableClimb int, maxError float64,
-	lcset *dtTileCacheContourSet) DtStatus {
+	lcset *DtTileCacheContourSet) DtStatus {
 
-	w := layer.header.width
-	h := layer.header.height
+	w := layer.Header.Width
+	h := layer.Header.Height
 
-	lcset.nconts = layer.regCount
-	lcset.conts = make([]*dtTileCacheContour, lcset.nconts)
-	for i := range lcset.conts {
-		lcset.conts[i] = &dtTileCacheContour{}
+	lcset.Nconts = layer.RegCount
+	lcset.Conts = make([]*DtTileCacheContour, lcset.Nconts)
+	for i := range lcset.Conts {
+		lcset.Conts[i] = &DtTileCacheContour{}
 	}
 
 	// Allocate temp buffer for contour tracing.
@@ -920,19 +923,19 @@ func dtBuildTileCacheContours(
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			idx := x + y*w
-			ri := layer.regs[idx]
+			ri := layer.Regs[idx]
 			if ri == 0xff {
 				continue
 			}
 
-			cont := lcset.conts[ri]
+			cont := lcset.Conts[ri]
 
-			if cont.nverts > 0 {
+			if cont.Nverts > 0 {
 				continue
 			}
 
-			cont.reg = ri
-			cont.area = layer.areas[idx]
+			cont.Reg = ri
+			cont.Area = layer.Areas[idx]
 
 			if !titleCacheWalkContour(layer, x, y, temp) {
 				// Too complex contour.
@@ -943,13 +946,13 @@ func dtBuildTileCacheContours(
 			titleCacheSimplifyContour(temp, maxError)
 
 			// Store contour.
-			cont.nverts = temp.nverts
-			if cont.nverts > 0 {
-				cont.verts = make([]int, 4*temp.nverts)
+			cont.Nverts = temp.nverts
+			if cont.Nverts > 0 {
+				cont.Verts = make([]int, 4*temp.nverts)
 				i := 0
 				j := temp.nverts - 1
 				for i < temp.nverts {
-					dst := rcGetVert4(cont.verts, j)
+					dst := rcGetVert4(cont.Verts, j)
 					v := rcGetVert4(temp.verts, j)
 					vn := rcGetVert4(temp.verts, i)
 					nei := vn[3] // The neighbour reg is stored at segment vertex of a segment.
@@ -999,7 +1002,7 @@ func titleCacheAddVertex(x, y, z int,
 
 	for i != DT_TILECACHE_NULL_IDX {
 		v := rcGetVert(verts, i)
-		if v[0] == x && v[2] == z && (dtAbs(v[1]-y) <= 2) {
+		if v[0] == x && v[2] == z && (common.Abs(v[1]-y) <= 2) {
 			return i
 		}
 
@@ -1027,7 +1030,7 @@ type titleCacheRcEdge struct {
 
 func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 	data []byte, compressedSize int,
-) (layerOut *dtTileCacheLayer, status DtStatus) {
+) (layerOut *DtTileCacheLayer, status DtStatus) {
 	//if compressedHeader.magic != DT_TILECACHE_MAGIC {
 	//	return nil, DT_FAILURE | DT_WRONG_MAGIC
 	//}
@@ -1036,15 +1039,15 @@ func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 	//	return nil, DT_FAILURE | DT_WRONG_VERSION
 	//}
 
-	//const int layerSize = dtAlign4(sizeof(dtTileCacheLayer));
-	//const int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
+	//const int layerSize = dtAlign4(sizeof(DtTileCacheLayer));
+	//const int headerSize = dtAlign4(sizeof(DtTileCacheLayerHeader));
 	//gridSize := compressedHeader.width * compressedHeader.height;
 	//const int bufferSize = layerSize + headerSize + gridSize*4;
 	//
 	//buffer = (unsigned char*)alloc->alloc(bufferSize);
 	//
-	//layer := &dtTileCacheLayer{}
-	//header = &dtTileCacheLayerHeader{}
+	//layer := &DtTileCacheLayer{}
+	//header = &DtTileCacheLayerHeader{}
 	//unsigned char* grids = buffer + layerSize + headerSize;
 	//const int gridsSize = bufferSize - (layerSize + headerSize);
 	//
@@ -1068,7 +1071,7 @@ func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
 
 }
 
-func dtMarkCylinderArea(layer *dtTileCacheLayer, orig []float64, cs float64, ch float64,
+func dtMarkCylinderArea(layer *DtTileCacheLayer, orig []float64, cs float64, ch float64,
 	pos []float64, radius float64, height float64, areaId int) DtStatus {
 	bmin := make([]float64, 3)
 	bmax := make([]float64, 3)
@@ -1078,10 +1081,10 @@ func dtMarkCylinderArea(layer *dtTileCacheLayer, orig []float64, cs float64, ch 
 	bmax[0] = pos[0] + radius
 	bmax[1] = pos[1] + height
 	bmax[2] = pos[2] + radius
-	r2 := dtSqr(radius/cs + 0.5)
+	r2 := common.Sqr(radius/cs + 0.5)
 
-	w := layer.header.width
-	h := layer.header.height
+	w := layer.Header.Width
+	h := layer.Header.Height
 	ics := 1.0 / cs
 	ich := 1.0 / ch
 
@@ -1129,22 +1132,22 @@ func dtMarkCylinderArea(layer *dtTileCacheLayer, orig []float64, cs float64, ch 
 				continue
 			}
 
-			y := layer.heights[x+z*w]
+			y := layer.Heights[x+z*w]
 			if y < miny || y > maxy {
 				continue
 			}
 
-			layer.areas[x+z*w] = areaId
+			layer.Areas[x+z*w] = areaId
 		}
 	}
 
 	return DT_SUCCESS
 }
 
-func dtMarkBoxArea(layer *dtTileCacheLayer, orig []float64, cs, ch float64,
+func dtMarkBoxArea(layer *DtTileCacheLayer, orig []float64, cs, ch float64,
 	bmin, bmax []float64, areaId int) DtStatus {
-	w := layer.header.width
-	h := layer.header.height
+	w := layer.Header.Width
+	h := layer.Header.Height
 	ics := 1.0 / cs
 	ich := 1.0 / ch
 
@@ -1183,29 +1186,29 @@ func dtMarkBoxArea(layer *dtTileCacheLayer, orig []float64, cs, ch float64,
 
 	for z := minz; z <= maxz; z++ {
 		for x := minx; x <= maxx; x++ {
-			y := layer.heights[x+z*w]
+			y := layer.Heights[x+z*w]
 			if y < miny || y > maxy {
 				continue
 			}
 
-			layer.areas[x+z*w] = areaId
+			layer.Areas[x+z*w] = areaId
 		}
 	}
 
 	return DT_SUCCESS
 }
 
-func dtMarkBoxArea1(layer *dtTileCacheLayer, orig []float64, cs float64, ch float64,
+func dtMarkBoxArea1(layer *DtTileCacheLayer, orig []float64, cs float64, ch float64,
 	center []float64, halfExtents []float64, rotAux []float64, areaId int) DtStatus {
-	w := layer.header.width
-	h := layer.header.height
+	w := layer.Header.Width
+	h := layer.Header.Height
 	ics := 1.0 / cs
 	ich := 1.0 / ch
 
 	cx := (center[0] - orig[0]) * ics
 	cz := (center[2] - orig[2]) * ics
 
-	maxr := 1.41 * dtMax(halfExtents[0], halfExtents[2])
+	maxr := 1.41 * common.Max(halfExtents[0], halfExtents[2])
 	minx := int(math.Floor(cx - maxr*ics))
 	maxx := int(math.Floor(cx + maxr*ics))
 	minz := int(math.Floor(cz - maxr*ics))
@@ -1256,12 +1259,12 @@ func dtMarkBoxArea1(layer *dtTileCacheLayer, orig []float64, cs float64, ch floa
 				continue
 			}
 
-			y := layer.heights[x+z*w]
+			y := layer.Heights[x+z*w]
 			if y < miny || y > maxy {
 				continue
 			}
 
-			layer.areas[x+z*w] = areaId
+			layer.Areas[x+z*w] = areaId
 		}
 	}
 
@@ -1269,37 +1272,37 @@ func dtMarkBoxArea1(layer *dtTileCacheLayer, orig []float64, cs float64, ch floa
 }
 
 func dtBuildTileCachePolyMesh(
-	lcset *dtTileCacheContourSet,
-	mesh *dtTileCachePolyMesh) DtStatus {
+	lcset *DtTileCacheContourSet,
+	mesh *DtTileCachePolyMesh) DtStatus {
 	maxVertices := 0
 	maxTris := 0
 	maxVertsPerCont := 0
-	for i := 0; i < lcset.nconts; i++ {
+	for i := 0; i < lcset.Nconts; i++ {
 		// Skip null contours.
-		if lcset.conts[i].nverts < 3 {
+		if lcset.Conts[i].Nverts < 3 {
 			continue
 		}
-		maxVertices += lcset.conts[i].nverts
-		maxTris += lcset.conts[i].nverts - 2
-		maxVertsPerCont = dtMax(maxVertsPerCont, lcset.conts[i].nverts)
+		maxVertices += lcset.Conts[i].Nverts
+		maxTris += lcset.Conts[i].Nverts - 2
+		maxVertsPerCont = common.Max(maxVertsPerCont, lcset.Conts[i].Nverts)
 	}
 
 	// TODO: warn about too many vertices?
 
-	mesh.nvp = MAX_VERTS_PER_POLY
+	mesh.Nvp = MAX_VERTS_PER_POLY
 
 	vflags := make([]int, maxVertices)
-	mesh.verts = make([]int, maxVertices*3)
+	mesh.Verts = make([]int, maxVertices*3)
 
-	mesh.polys = make([]int, maxTris*MAX_VERTS_PER_POLY*2)
-	mesh.areas = make([]int, maxTris)
-	mesh.flags = make([]int, maxTris)
+	mesh.Polys = make([]int, maxTris*MAX_VERTS_PER_POLY*2)
+	mesh.Areas = make([]int, maxTris)
+	mesh.Flags = make([]int, maxTris)
 	// Just allocate and clean the mesh flags array. The user is resposible for filling it.
 
-	mesh.nverts = 0
-	mesh.npolys = 0
-	for i := range mesh.polys {
-		mesh.polys[i] = 0xff
+	mesh.Nverts = 0
+	mesh.Npolys = 0
+	for i := range mesh.Polys {
+		mesh.Polys[i] = 0xff
 	}
 	firstVert := make([]int, VERTEX_BUCKET_COUNT2)
 	for i := 0; i < VERTEX_BUCKET_COUNT2; i++ {
@@ -1313,30 +1316,30 @@ func dtBuildTileCachePolyMesh(
 
 	polys := make([]int, maxVertsPerCont*MAX_VERTS_PER_POLY)
 
-	for i := 0; i < lcset.nconts; i++ {
-		cont := lcset.conts[i]
+	for i := 0; i < lcset.Nconts; i++ {
+		cont := lcset.Conts[i]
 
 		// Skip null contours.
-		if cont.nverts < 3 {
+		if cont.Nverts < 3 {
 			continue
 		}
 
 		// Triangulate contour
-		for j := 0; j < cont.nverts; j++ {
+		for j := 0; j < cont.Nverts; j++ {
 			indices[j] = j
 		}
 
-		ntris := titleCacheTriangulate(cont.nverts, cont.verts, indices, tris)
+		ntris := titleCacheTriangulate(cont.Nverts, cont.Verts, indices, tris)
 		if ntris <= 0 {
 			// TODO: issue warning!
 			ntris = -ntris
 		}
 
 		// Add and merge vertices.
-		for j := 0; j < cont.nverts; j++ {
-			v := rcGetVert4(cont.verts, j)
+		for j := 0; j < cont.Nverts; j++ {
+			v := rcGetVert4(cont.Verts, j)
 			indices[j] = titleCacheAddVertex(v[0], v[1], v[2],
-				mesh.verts, firstVert, nextVert, &mesh.nverts)
+				mesh.Verts, firstVert, nextVert, &mesh.Nverts)
 			if v[3]&0x80 > 0 {
 				// This vertex should be removed.
 				vflags[indices[j]] = 1
@@ -1377,7 +1380,7 @@ func dtBuildTileCachePolyMesh(
 					for k := j + 1; k < npolys; k++ {
 						pk := polys[k*MAX_VERTS_PER_POLY:]
 						var ea, eb int
-						v := titleCacheGetPolyMergeValue(pj, pk, mesh.verts, &ea, &eb)
+						v := titleCacheGetPolyMergeValue(pj, pk, mesh.Verts, &ea, &eb)
 						if v > bestMergeVal {
 							bestMergeVal = v
 							bestPa = j
@@ -1404,15 +1407,15 @@ func dtBuildTileCachePolyMesh(
 
 		// Store polygons.
 		for j := 0; j < npolys; j++ {
-			p := mesh.polys[mesh.npolys*MAX_VERTS_PER_POLY*2:]
+			p := mesh.Polys[mesh.Npolys*MAX_VERTS_PER_POLY*2:]
 			q := polys[j*MAX_VERTS_PER_POLY:]
 			for k := 0; k < MAX_VERTS_PER_POLY; k++ {
 				p[k] = q[k]
 			}
 
-			mesh.areas[mesh.npolys] = cont.area
-			mesh.npolys++
-			if mesh.npolys > maxTris {
+			mesh.Areas[mesh.Npolys] = cont.Area
+			mesh.Npolys++
+			if mesh.Npolys > maxTris {
 				return DT_FAILURE | DT_BUFFER_TOO_SMALL
 			}
 
@@ -1420,7 +1423,7 @@ func dtBuildTileCachePolyMesh(
 	}
 
 	// Remove edge vertices.
-	for i := 0; i < mesh.nverts; i++ {
+	for i := 0; i < mesh.Nverts; i++ {
 		if vflags[i] != 0 {
 			if !titleCacheCanRemoveVertex(mesh, i) {
 				continue
@@ -1433,7 +1436,7 @@ func dtBuildTileCachePolyMesh(
 
 			// Remove vertex
 			// Note: mesh.nverts is already decremented inside removeVertex()!
-			for j := i; j < mesh.nverts; j++ {
+			for j := i; j < mesh.Nverts; j++ {
 				vflags[j] = vflags[j+1]
 			}
 
@@ -1442,7 +1445,7 @@ func dtBuildTileCachePolyMesh(
 	}
 
 	// Calculate adjacency.
-	if !titleCacheBuildMeshAdjacency(mesh.polys, mesh.npolys, mesh.verts, mesh.nverts, lcset) {
+	if !titleCacheBuildMeshAdjacency(mesh.Polys, mesh.Npolys, mesh.Verts, mesh.Nverts, lcset) {
 		return DT_FAILURE | DT_OUT_OF_MEMORY
 	}
 
@@ -1644,12 +1647,12 @@ func titleCacheGetPolyMergeValue(pa, pb []int,
 	return dx*dx + dy*dy
 }
 
-func titleCacheCanRemoveVertex(mesh *dtTileCachePolyMesh, rem int) bool {
+func titleCacheCanRemoveVertex(mesh *DtTileCachePolyMesh, rem int) bool {
 	// Count number of polygons to remove.
 	numTouchedVerts := 0
 	numRemainingEdges := 0
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*MAX_VERTS_PER_POLY*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*MAX_VERTS_PER_POLY*2:]
 		nv := titleCacheCountPolyVerts(p)
 		numRemoved := 0
 		numVerts := 0
@@ -1683,8 +1686,8 @@ func titleCacheCanRemoveVertex(mesh *dtTileCachePolyMesh, rem int) bool {
 	edges := make([]int, MAX_REM_EDGES)
 	nedges := 0
 
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*MAX_VERTS_PER_POLY*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*MAX_VERTS_PER_POLY*2:]
 		nv := titleCacheCountPolyVerts(p)
 		j := 0
 		k := nv - 1
@@ -1739,11 +1742,11 @@ func titleCacheCanRemoveVertex(mesh *dtTileCachePolyMesh, rem int) bool {
 	return true
 }
 
-func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtStatus {
+func titleCacheRemoveVertex(mesh *DtTileCachePolyMesh, rem int, maxTris int) DtStatus {
 	// Count number of polygons to remove.
 	numRemovedVerts := 0
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*MAX_VERTS_PER_POLY*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*MAX_VERTS_PER_POLY*2:]
 		nv := titleCacheCountPolyVerts(p)
 		for j := 0; j < nv; j++ {
 			if p[j] == rem {
@@ -1760,8 +1763,8 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 	nharea := 0
 	harea := make([]int, MAX_REM_EDGES)
 
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*MAX_VERTS_PER_POLY*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*MAX_VERTS_PER_POLY*2:]
 		nv := titleCacheCountPolyVerts(p)
 		hasRem := false
 		for j := 0; j < nv; j++ {
@@ -1783,35 +1786,35 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 					e := edges[nedges*3:]
 					e[0] = p[k]
 					e[1] = p[j]
-					e[2] = mesh.areas[i]
+					e[2] = mesh.Areas[i]
 					nedges++
 				}
 				k = j
 				j++
 			}
 			// Remove the polygon.
-			p2 := mesh.polys[(mesh.npolys-1)*MAX_VERTS_PER_POLY*2:]
+			p2 := mesh.Polys[(mesh.Npolys-1)*MAX_VERTS_PER_POLY*2:]
 			copy(p, p2[:MAX_VERTS_PER_POLY])
 			for i := MAX_VERTS_PER_POLY; i < MAX_VERTS_PER_POLY+MAX_VERTS_PER_POLY; i++ {
 				p[i] = 0xff
 			}
-			mesh.areas[i] = mesh.areas[mesh.npolys-1]
-			mesh.npolys--
+			mesh.Areas[i] = mesh.Areas[mesh.Npolys-1]
+			mesh.Npolys--
 			i--
 		}
 	}
 
 	// Remove vertex.
-	for i := rem; i < mesh.nverts-1; i++ {
-		mesh.verts[i*3+0] = mesh.verts[(i+1)*3+0]
-		mesh.verts[i*3+1] = mesh.verts[(i+1)*3+1]
-		mesh.verts[i*3+2] = mesh.verts[(i+1)*3+2]
+	for i := rem; i < mesh.Nverts-1; i++ {
+		mesh.Verts[i*3+0] = mesh.Verts[(i+1)*3+0]
+		mesh.Verts[i*3+1] = mesh.Verts[(i+1)*3+1]
+		mesh.Verts[i*3+2] = mesh.Verts[(i+1)*3+2]
 	}
-	mesh.nverts--
+	mesh.Nverts--
 
 	// Adjust indices to match the removed vertex layout.
-	for i := 0; i < mesh.npolys; i++ {
-		p := mesh.polys[i*MAX_VERTS_PER_POLY*2:]
+	for i := 0; i < mesh.Npolys; i++ {
+		p := mesh.Polys[i*MAX_VERTS_PER_POLY*2:]
 		nv := titleCacheCountPolyVerts(p)
 		for j := 0; j < nv; j++ {
 			if p[j] > rem {
@@ -1888,9 +1891,9 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 	// Generate temp vertex array for triangulation.
 	for i := 0; i < nhole; i++ {
 		pi := hole[i]
-		tverts[i*4+0] = mesh.verts[pi*3+0]
-		tverts[i*4+1] = mesh.verts[pi*3+1]
-		tverts[i*4+2] = mesh.verts[pi*3+2]
+		tverts[i*4+0] = mesh.Verts[pi*3+0]
+		tverts[i*4+1] = mesh.Verts[pi*3+1]
+		tverts[i*4+2] = mesh.Verts[pi*3+2]
 		tverts[i*4+3] = 0
 		tpoly[i] = i
 	}
@@ -1944,7 +1947,7 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 				for k := j + 1; k < npolys; k++ {
 					pk := polys[k*MAX_VERTS_PER_POLY:]
 					var ea, eb int
-					v := titleCacheGetPolyMergeValue(pj, pk, mesh.verts, &ea, &eb)
+					v := titleCacheGetPolyMergeValue(pj, pk, mesh.Verts, &ea, &eb)
 					if v > bestMergeVal {
 						bestMergeVal = v
 						bestPa = j
@@ -1972,10 +1975,10 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 
 	// Store polygons.
 	for i := 0; i < npolys; i++ {
-		if mesh.npolys >= maxTris {
+		if mesh.Npolys >= maxTris {
 			break
 		}
-		p := mesh.polys[mesh.npolys*MAX_VERTS_PER_POLY*2:]
+		p := mesh.Polys[mesh.Npolys*MAX_VERTS_PER_POLY*2:]
 		for i := 0; i < MAX_VERTS_PER_POLY*2; i++ {
 			p[i] = 0xff
 		}
@@ -1983,9 +1986,9 @@ func titleCacheRemoveVertex(mesh *dtTileCachePolyMesh, rem int, maxTris int) DtS
 			p[j] = polys[i*MAX_VERTS_PER_POLY+j]
 		}
 
-		mesh.areas[mesh.npolys] = pareas[i]
-		mesh.npolys++
-		if mesh.npolys > maxTris {
+		mesh.Areas[mesh.Npolys] = pareas[i]
+		mesh.Npolys++
+		if mesh.Npolys > maxTris {
 			return DT_FAILURE | DT_BUFFER_TOO_SMALL
 		}
 
