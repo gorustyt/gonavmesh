@@ -71,7 +71,7 @@ type NavMeshQuery interface {
 	FindStraightPath(startPos, endPos []float64,
 		path []DtPolyRef, pathSize int,
 		straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef,
-		maxStraightPath int, options int) (straightPathCount int, status DtStatus)
+		maxStraightPath int, optionss ...int) (straightPathCount int, status DtStatus)
 	/// Initializes a sliced path query.
 	///  @param[in]		startRef	The reference id of the start polygon.
 	///  @param[in]		endRef		The reference id of the end polygon.
@@ -197,7 +197,7 @@ type NavMeshQuery interface {
 	///  @param[in]		maxVisitedSize	The maximum number of polygons the @p visited array can hold.
 	/// @returns The status flags for the query.
 	MoveAlongSurface(startRef DtPolyRef, startPos, endPos []float64,
-		filter *DtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []DtPolyRef, visitedCount int, status DtStatus)
+		filter *DtQueryFilter, resultPos []float64, visited []DtPolyRef, visitedCount *int, maxVisitedSize int) (status DtStatus)
 
 	/// Finds the polygon nearest to the specified center point.
 	/// [opt] means the specified parameter can be a null pointer, in that case the output parameter will not be set.
@@ -680,7 +680,7 @@ func (query *DtNavMeshQuery) FindRandomPointAroundCircle(startRef DtPolyRef, cen
 
 			// If the circle is not touching the next polygon, skip it.
 
-			_, distSqr := dtDistancePtSegSqr2D(centerPos, va, vb)
+			_, distSqr := DtDistancePtSegSqr2D(centerPos, va, vb)
 			if distSqr > radiusSqr {
 				continue
 			}
@@ -1153,7 +1153,7 @@ func (q *DtNavMeshQuery) FindDistanceToWall(startRef DtPolyRef, centerPos []floa
 			vj := rcGetVert(bestTile.Verts, bestPoly.Verts[j])
 			vi := rcGetVert(bestTile.Verts, bestPoly.Verts[j])
 
-			tseg, distSqr := dtDistancePtSegSqr2D(centerPos, vj, vi)
+			tseg, distSqr := DtDistancePtSegSqr2D(centerPos, vj, vi)
 
 			// Edge is too far, skip.
 			if distSqr > radiusSqr {
@@ -1193,7 +1193,7 @@ func (q *DtNavMeshQuery) FindDistanceToWall(startRef DtPolyRef, centerPos []floa
 			va := rcGetVert(bestTile.Verts, bestPoly.Verts[link.Edge])
 			vb := rcGetVert(bestTile.Verts, (link.Edge+1)%bestPoly.VertCount)
 
-			_, distSqr := dtDistancePtSegSqr2D(centerPos, va, vb)
+			_, distSqr := DtDistancePtSegSqr2D(centerPos, va, vb)
 
 			// If the circle is not touching the next polygon, skip it.
 			if distSqr > radiusSqr {
@@ -1360,17 +1360,20 @@ func (q *DtNavMeshQuery) appendVertex(pos []float64, flags int, ref DtPolyRef,
 func (q *DtNavMeshQuery) FindStraightPath(startPos, endPos []float64,
 	path []DtPolyRef, pathSize int,
 	straightPath []float64, straightPathFlags []int, straightPathRefs []DtPolyRef,
-	maxStraightPath int, options int) (straightPathCount int, status DtStatus) {
+	maxStraightPath int, optionss ...int) (straightPathCount int, status DtStatus) {
 	if q.m_nav == nil {
 		panic("")
 	}
-	//if (!startPos || !dtVisfinite(startPos) ||//TODO
-	//!endPos || !dtVisfinite(endPos) ||
-	//!path || pathSize <= 0 || !path[0] ||
-	//maxStraightPath <= 0)
-	//{
-	//return DT_FAILURE | DT_INVALID_PARAM;
-	//}
+	options := 0
+	if len(optionss) > 0 {
+		options = optionss[0]
+	}
+	if len(startPos) == 0 || !common.Visfinite(startPos) || //TODO
+		len(endPos) == 0 || !common.Visfinite(endPos) ||
+		len(path) == 0 || pathSize <= 0 || path[0] == 0 ||
+		maxStraightPath <= 0 {
+		return straightPathCount, DT_FAILURE | DT_INVALID_PARAM
+	}
 
 	// TODO: Should this be callers responsibility?
 
@@ -1445,7 +1448,7 @@ func (q *DtNavMeshQuery) FindStraightPath(startPos, endPos []float64,
 
 				// If starting really close the portal, advance.
 				if i == 0 {
-					t, _ := dtDistancePtSegSqr2D(portalApex[:], left, right)
+					t, _ := DtDistancePtSegSqr2D(portalApex[:], left, right)
 					if t < common.Sqr(0.001) {
 						continue
 					}
@@ -1665,13 +1668,13 @@ func (q *DtNavMeshQuery) appendPortals(startIdx int, endIdx int, endPos []float6
 // / position.
 // /
 func (q *DtNavMeshQuery) MoveAlongSurface(startRef DtPolyRef, startPos, endPos []float64,
-	filter *DtQueryFilter, maxVisitedSize int) (resultPos []float64, visited []DtPolyRef, visitedCount int, status DtStatus) {
+	filter *DtQueryFilter, resultPos []float64, visited []DtPolyRef, visitedCount *int, maxVisitedSize int) (status DtStatus) {
 	if !q.m_nav.IsValidPolyRef(startRef) ||
 		len(startPos) == 0 || !common.Visfinite(startPos) ||
 		len(endPos) == 0 || !common.Visfinite(endPos) ||
 		filter == nil ||
 		maxVisitedSize <= 0 {
-		return resultPos, visited, visitedCount, DT_FAILURE | DT_INVALID_PARAM
+		return DT_FAILURE | DT_INVALID_PARAM
 	}
 	visited = make([]DtPolyRef, maxVisitedSize)
 	resultPos = make([]float64, 3)
@@ -1768,7 +1771,7 @@ func (q *DtNavMeshQuery) MoveAlongSurface(startRef DtPolyRef, startPos, endPos [
 				// Wall edge, calc distance.
 				vj := rcGetVert(verts[:], j)
 				vi := rcGetVert(verts[:], i)
-				tseg, distSqr := dtDistancePtSegSqr2D(endPos, vj, vi)
+				tseg, distSqr := DtDistancePtSegSqr2D(endPos, vj, vi)
 				if distSqr < bestDist {
 					// Update nearest distance.
 					common.Vlerp(bestPos, vj, vi, tseg)
@@ -1796,7 +1799,7 @@ func (q *DtNavMeshQuery) MoveAlongSurface(startRef DtPolyRef, startPos, endPos [
 					// TODO: Maybe should use getPortalPoints(), but this one is way faster.
 					vj := rcGetVert(verts[:], j)
 					vi := rcGetVert(verts[:], i)
-					_, distSqr := dtDistancePtSegSqr2D(searchPos, vj, vi)
+					_, distSqr := DtDistancePtSegSqr2D(searchPos, vj, vi)
 					if distSqr > searchRadSqr {
 						j = i
 						i++
@@ -1852,9 +1855,9 @@ func (q *DtNavMeshQuery) MoveAlongSurface(startRef DtPolyRef, startPos, endPos [
 
 	copy(resultPos, bestPos)
 
-	visitedCount = n
+	*visitedCount = n
 
-	return resultPos, visited, visitedCount, status
+	return status
 }
 
 /// @par
@@ -1979,7 +1982,7 @@ func (q *DtNavMeshQuery) FindPolysAroundCircle(startRef DtPolyRef, centerPos []f
 
 			// If the circle is not touching the next polygon, skip it.
 
-			_, distSqr := dtDistancePtSegSqr2D(centerPos, va, vb)
+			_, distSqr := DtDistancePtSegSqr2D(centerPos, va, vb)
 			if distSqr > radiusSqr {
 				continue
 			}
@@ -2071,7 +2074,7 @@ func (q *DtNavMeshQuery) FindPolysAroundShape(startRef DtPolyRef, verts []float6
 
 	}
 
-	centerPos = common.Vscale(centerPos, 1.0/float64(nverts))
+	common.Vscale(centerPos, centerPos, 1.0/float64(nverts))
 
 	startNode := q.m_nodePool.GetNode(startRef)
 	copy(startNode.Pos[:], centerPos)
@@ -2473,13 +2476,12 @@ func (q *DtNavMeshQuery) Raycast1(startRef DtPolyRef, startPos, endPos []float64
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
 
-	var dir []float64
 	var curPos, lastPos [3]float64
 	var verts [DT_VERTS_PER_POLYGON*3 + 3]float64
 	n := 0
-
+	dir := make([]float64, 3)
 	copy(curPos[:], startPos)
-	dir = common.Vsub(endPos[:], startPos)
+	common.Vsub(dir, endPos[:], startPos)
 	common.Vset(hit.hitNormal[:], 0, 0, 0)
 
 	status = DT_SUCCESS
@@ -3379,7 +3381,7 @@ func (q *DtNavMeshQuery) FindLocalNeighbourhood(startRef DtPolyRef, centerPos []
 			}
 
 			// If the circle is not touching the next polygon, skip it.
-			_, distSqr := dtDistancePtSegSqr2D(centerPos, va, vb)
+			_, distSqr := DtDistancePtSegSqr2D(centerPos, va, vb)
 			if distSqr > radiusSqr {
 				continue
 			}
@@ -3688,7 +3690,7 @@ func (q *DtNavMeshQuery) GetPolyHeight(ref DtPolyRef, pos []float64) (height flo
 	if poly.GetType() == DT_POLYTYPE_OFFMESH_CONNECTION {
 		v0 := rcGetVert(tile.Verts, poly.Verts[0])
 		v1 := rcGetVert(tile.Verts, poly.Verts[1])
-		t, _ := dtDistancePtSegSqr2D(pos, v0, v1)
+		t, _ := DtDistancePtSegSqr2D(pos, v0, v1)
 		height = v0[1] + (v1[1]-v0[1])*t
 		return height, DT_SUCCESS
 	}

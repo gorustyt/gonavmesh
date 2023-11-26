@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-func dtDistancePtSegSqr2D(pt, p, q []float64) (t float64, res float64) {
+func DtDistancePtSegSqr2D(pt, p, q []float64) (t float64, res float64) {
 	pqx := q[0] - p[0]
 	pqz := q[2] - p[2]
 	dx := pt[0] - p[0]
@@ -44,10 +44,12 @@ func dtCalcPolyCenter(idx []int, nidx int, verts []float64) (tc []float64) {
 
 func dtClosestHeightPointTriangle(p, a, b, c []float64) (h float64, ok bool) {
 	EPS := 1e-6
-
-	v0 := common.Vsub(c, a)
-	v1 := common.Vsub(b, a)
-	v2 := common.Vsub(p, a)
+	v0 := make([]float64, 3)
+	v1 := make([]float64, 3)
+	v2 := make([]float64, 3)
+	common.Vsub(v0, c, a)
+	common.Vsub(v1, b, a)
+	common.Vsub(v2, p, a)
 
 	// Compute scaled barycentric coordinates
 	denom := v0[0]*v1[2] - v0[2]*v1[0]
@@ -167,7 +169,7 @@ func dtDistancePtPolyEdgesSqr(pt, verts []float64, nverts int, ed, et []float64)
 		if ((vi[2] > pt[2]) != (vj[2] > pt[2])) && (pt[0] < (vj[0]-vi[0])*(pt[2]-vi[2])/(vj[2]-vi[2])+vi[0]) {
 			c = !c
 		}
-		_, ed[j] = dtDistancePtSegSqr2D(pt, vj, vi)
+		_, ed[j] = DtDistancePtSegSqr2D(pt, vj, vi)
 		j = i
 		i++
 	}
@@ -175,9 +177,12 @@ func dtDistancePtPolyEdgesSqr(pt, verts []float64, nverts int, ed, et []float64)
 }
 func vperpXZ(a, b []float64) float64 { return a[0]*b[2] - a[2]*b[0] }
 func dtIntersectSegSeg2D(ap, aq, bp, bq []float64) (s, t float64, ok bool) {
-	u := common.Vsub(aq, ap)
-	v := common.Vsub(bq, bp)
-	w := common.Vsub(ap, bp)
+	u := make([]float64, 3)
+	v := make([]float64, 3)
+	w := make([]float64, 3)
+	common.Vsub(u, aq, ap)
+	common.Vsub(v, bq, bp)
+	common.Vsub(w, ap, bp)
 	d := vperpXZ(u, v)
 	if math.Abs(d) < 1e-6 {
 		return s, t, false
@@ -199,15 +204,16 @@ func dtIntersectSegmentPoly2D(p0, p1, verts []float64, nverts int) (tmin, tmax f
 	tmax = 1
 	segMin = -1
 	segMax = -1
-
-	dir := common.Vsub(p1, p0)
+	dir := make([]float64, 3)
+	common.Vsub(dir, p1, p0)
 
 	i := 0
 	j := nverts - 1
 	for i < nverts {
-
-		edge := common.Vsub(rcGetVert(verts, i), rcGetVert(verts, j))
-		diff := common.Vsub(p0, rcGetVert(verts, j))
+		edge := make([]float64, 3)
+		diff := make([]float64, 3)
+		common.Vsub(edge, rcGetVert(verts, i), rcGetVert(verts, j))
+		common.Vsub(diff, p0, rcGetVert(verts, j))
 		n := common.Vperp2D(edge, diff)
 		d := common.Vperp2D(dir, edge)
 		if math.Abs(d) < EPS {

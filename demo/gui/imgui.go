@@ -718,7 +718,11 @@ func (gs *guiState) imguiCheck(text string, checked bool, enableds ...bool) bool
 	return res
 }
 
-func (gs *guiState) imguiCollapse(text string, subtext string, checked, enabled bool) bool {
+func (gs *guiState) imguiCollapse(text string, subtext string, checked bool, enableds ...bool) bool {
+	enabled := true
+	if len(enableds) > 0 {
+		enabled = enableds[0]
+	}
 	gs.widgetId++
 	id := (gs.areaId << 16) | gs.widgetId
 

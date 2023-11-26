@@ -451,8 +451,10 @@ func (mesh *DtNavMesh) ConnectExtOffMeshLinks(tile *DtMeshTile, target *DtMeshTi
 
 func (mesh *DtNavMesh) FindNearestPolyInTile(tile *DtMeshTile, center []float64, halfExtents []float64) (nearestPt []float64, nearest DtPolyRef) {
 	nearestPt = make([]float64, 3)
-	bmin := common.Vsub(center, halfExtents)
-	bmax := common.Vadd(center, halfExtents)
+	bmin := make([]float64, 3)
+	bmax := make([]float64, 3)
+	common.Vsub(bmin, center, halfExtents)
+	common.Vadd(bmax, center, halfExtents)
 
 	// Get nearby polygons from proximity grid.
 	polys, polyCount := mesh.QueryPolygonsInTile(tile, bmin, bmax, 128)
@@ -466,10 +468,10 @@ func (mesh *DtNavMesh) FindNearestPolyInTile(tile *DtMeshTile, center []float64,
 		closestPtPoly := make([]float64, 3)
 		posOverPoly := false
 		mesh.ClosestPointOnPoly(ref, center, closestPtPoly, &posOverPoly)
-
+		diff := make([]float64, 3)
 		// If a point is directly over a polygon and closer than
 		// climb height, favor that instead of straight line nearest point.
-		diff := common.Vsub(center, closestPtPoly)
+		common.Vsub(diff, center, closestPtPoly)
 		if posOverPoly {
 			d = common.Abs(diff[1]) - tile.Header.WalkableClimb
 			d = 0
@@ -587,7 +589,7 @@ func (mesh *DtNavMesh) ClosestPointOnPoly(ref DtPolyRef, pos []float64, closest 
 	if poly.GetType() == DT_POLYTYPE_OFFMESH_CONNECTION {
 		v0 := rcGetVert(tile.Verts, poly.Verts[0])
 		v1 := rcGetVert(tile.Verts, poly.Verts[1])
-		t, _ := dtDistancePtSegSqr2D(pos, v0, v1)
+		t, _ := DtDistancePtSegSqr2D(pos, v0, v1)
 		common.Vlerp(closest, v0, v1, t)
 		return
 	}
@@ -712,7 +714,7 @@ func closestPointOnDetailEdges(onlyBoundary bool, tile *DtMeshTile, poly *DtPoly
 				continue
 			}
 
-			t, d := dtDistancePtSegSqr2D(pos, v[j], v[k])
+			t, d := DtDistancePtSegSqr2D(pos, v[j], v[k])
 			if d < dmin {
 				dmin = d
 				tmin = t

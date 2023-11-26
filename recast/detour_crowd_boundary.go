@@ -105,7 +105,7 @@ func (d *dtLocalBoundary) update(ref DtPolyRef, pos []float64, collisionQueryRan
 			s := segs[k*6:]
 			// Skip too distant segments.
 
-			_, distSqr := dtDistancePtSegSqr2D(pos, s, s[3:])
+			_, distSqr := DtDistancePtSegSqr2D(pos, s, s[3:])
 			if distSqr > common.Sqr(collisionQueryRange) {
 				continue
 			}

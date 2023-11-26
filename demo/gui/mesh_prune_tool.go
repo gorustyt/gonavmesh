@@ -239,7 +239,7 @@ func (n *NavMeshPruneTool) handleRender() {
 
 }
 
-func (n *NavMeshPruneTool) handleRenderOverlay(proj, model *float64, view []int) {
+func (n *NavMeshPruneTool) handleRenderOverlay(proj, model []float64, view []int) {
 	// Tool help
 	h := view[3]
 	n.gs.imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB: Click fill area.", imguiRGBA(255, 255, 255, 192))

@@ -142,7 +142,7 @@ type DtCrowdAgent struct {
 	TargetState      int            ///< State of the movement request.
 	TargetRef        DtPolyRef      ///< Target polyref of the movement request.
 	TargetPos        [3]float64     ///< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
-	TargetPathqRef   dtPathQueueRef ///< Path finder ref.
+	TargetPathqRef   DtPathQueueRef ///< Path finder ref.
 	TargetReplan     bool           ///< Flag indicating that the current path is being replanned.
 	TargetReplanTime float64        /// <Time since the agent's target was replanned.
 }
@@ -176,7 +176,7 @@ type DtCrowd struct {
 	m_activeAgents []*DtCrowdAgent
 	m_agentAnims   []*DtCrowdAgentAnimation
 
-	m_pathq *dtPathQueue
+	m_pathq *DtPathQueue
 
 	m_obstacleQueryParams []*DtObstacleAvoidanceParams
 	m_obstacleQuery       *dtObstacleAvoidanceQuery
@@ -301,7 +301,7 @@ func (d *DtCrowd) GetGrid() *DtProximityGrid { return d.m_grid }
 
 // / Gets the crowd's path request queue.
 // / @return The crowd's path request queue.
-func (d *DtCrowd) GetPathQueue() *dtPathQueue { return d.m_pathq }
+func (d *DtCrowd) GetPathQueue() *DtPathQueue { return d.m_pathq }
 
 // / Gets the query object used by the crowd.
 func (d *DtCrowd) GetNavMeshQuery() NavMeshQuery { return d.m_navquery }
@@ -824,8 +824,8 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 		}
 
 		if ag.TargetState == DT_CROWDAGENT_TARGET_REQUESTING {
-			path := ag.Corridor.getPath()
-			npath := ag.Corridor.getPathCount()
+			path := ag.Corridor.GetPath()
+			npath := ag.Corridor.GetPathCount()
 
 			MAX_RES := 32
 			reqPos := make([]float64, 3)
@@ -929,8 +929,8 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 
 				ag.TargetReplanTime = 0.0
 			} else if status.DtStatusSucceed() {
-				path := ag.Corridor.getPath()
-				npath := ag.Corridor.getPathCount()
+				path := ag.Corridor.GetPath()
+				npath := ag.Corridor.GetPathCount()
 				// Apply results.
 				targetPos := make([]float64, 3)
 				copy(targetPos, ag.TargetPos[:])
@@ -1142,7 +1142,7 @@ func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt floa
 
 		// If the end of the path is near and it is not the requested location, replan.
 		if ag.TargetState == DT_CROWDAGENT_TARGET_VALID {
-			if ag.TargetReplanTime > TARGET_REPLAN_DELAY && ag.Corridor.getPathCount() < CHECK_LOOKAHEAD && ag.Corridor.getLastPoly() != ag.TargetRef {
+			if ag.TargetReplanTime > TARGET_REPLAN_DELAY && ag.Corridor.GetPathCount() < CHECK_LOOKAHEAD && ag.Corridor.getLastPoly() != ag.TargetRef {
 				replan = true
 			}
 
@@ -1196,7 +1196,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 		// Update the collision boundary after certain distance has been passed or
 		// if it has become invalid.
 		updateThr := ag.Params.CollisionQueryRange * 0.25
-		tmp := ag.Boundary.getCenter()
+		tmp := ag.Boundary.GetCenter()
 		if common.Vdist2DSqr(ag.Npos[:], tmp[:]) > common.Sqr(updateThr) ||
 			!ag.Boundary.isValid(d.m_navquery, d.m_filters[ag.Params.QueryFilterType]) {
 			ag.Boundary.update(ag.Corridor.getFirstPoly(), ag.Npos[:], ag.Params.CollisionQueryRange,
@@ -1236,7 +1236,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 
 			// Copy data for debug purposes.
 			if debugIdx == i {
-				tmp := ag.Corridor.getPos()
+				tmp := ag.Corridor.GetPos()
 				copy(debug.OptStart[:], tmp[:])
 				copy(debug.OptEnd[:], target)
 			}
@@ -1388,8 +1388,8 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			}
 
 			// Append neighbour segments as obstacles.
-			for j := 0; j < ag.Boundary.getSegmentCount(); j++ {
-				s := ag.Boundary.getSegment(j)
+			for j := 0; j < ag.Boundary.GetSegmentCount(); j++ {
+				s := ag.Boundary.GetSegment(j)
 				if common.TriArea2D(ag.Npos[:], s[:], s[3:]) < 0.0 {
 					continue
 				}
@@ -1506,7 +1506,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 		// Move along navmesh.
 		ag.Corridor.movePosition(ag.Npos[:], d.m_navquery, d.m_filters[ag.Params.QueryFilterType])
 		// Get valid constrained position back.
-		tmp := ag.Corridor.getPos()
+		tmp := ag.Corridor.GetPos()
 		copy(ag.Npos[:], tmp[:])
 
 		// If not using path, truncate the corridor to just one poly.

@@ -111,7 +111,7 @@ func (s *SampleSoloMesh) handleTools() {
 		s.setTool(newConvexVolumeTool(s.gs))
 	}
 	if s.gs.imguiCheck("Create Crowds", tType == TOOL_CROWD) {
-		s.setTool(newCrowdTool())
+		s.setTool(newCrowdTool(s.gs))
 	}
 
 	s.gs.imguiSeparatorLine()

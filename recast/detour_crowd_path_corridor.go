@@ -2,7 +2,7 @@ package recast
 
 import "gonavamesh/common"
 
-func dtMergeCorridorStartMoved(path []DtPolyRef, npath, maxPath int,
+func DtMergeCorridorStartMoved(path []DtPolyRef, npath, maxPath int,
 	visited []DtPolyRef, nvisited int) int {
 	furthestPath := -1
 	furthestVisited := -1
@@ -219,11 +219,11 @@ func (d *dtPathCorridor) getLastPoly() DtPolyRef {
 
 // / The corridor's path.
 // / @return The corridor's path. [(polyRef) * #getPathCount()]
-func (d *dtPathCorridor) getPath() []DtPolyRef { return d.m_path }
+func (d *dtPathCorridor) GetPath() []DtPolyRef { return d.m_path }
 
 // / The number of polygons in the current corridor path.
 // / @return The number of polygons in the current corridor path.
-func (d *dtPathCorridor) getPathCount() int { return d.m_npath }
+func (d *dtPathCorridor) GetPathCount() int { return d.m_npath }
 
 // / @par
 // /
@@ -333,8 +333,8 @@ func (d *dtPathCorridor) optimizePathVisibility(next []float64, pathOptimization
 	dist = common.Min(dist+0.01, pathOptimizationRange)
 
 	// Adjust ray length.
-
-	delta := common.Vsub(goal, d.m_pos[:])
+	delta := make([]float64, 3)
+	common.Vsub(delta, goal, d.m_pos[:])
 	common.Vmad(goal, d.m_pos[:], delta, pathOptimizationRange/dist)
 
 	MAX_RES := 32
@@ -441,9 +441,9 @@ func (d *dtPathCorridor) movePosition(npos []float64, navquery NavMeshQuery, fil
 	MAX_VISITED := 16
 	visited := make([]DtPolyRef, MAX_VISITED)
 	nvisited := 0
-	result, visited, nvisited, status := navquery.MoveAlongSurface(d.m_path[0], d.m_pos[:], npos, filter, MAX_VISITED)
+	status := navquery.MoveAlongSurface(d.m_path[0], d.m_pos[:], npos, filter, result, visited, &nvisited, MAX_VISITED)
 	if status.DtStatusSucceed() {
-		d.m_npath = dtMergeCorridorStartMoved(d.m_path, d.m_npath, d.m_maxPath, visited, nvisited)
+		d.m_npath = DtMergeCorridorStartMoved(d.m_path, d.m_npath, d.m_maxPath, visited, nvisited)
 
 		// Adjust the position to stay on top of the navmesh.
 		h := d.m_pos[1]
@@ -476,7 +476,7 @@ func (d *dtPathCorridor) moveTargetPosition(npos []float64, navquery *DtNavMeshQ
 	visited := make([]DtPolyRef, MAX_VISITED)
 	nvisited := 0
 	var status DtStatus
-	result, visited, nvisited, status = navquery.MoveAlongSurface(d.m_path[d.m_npath-1], d.m_target[:], npos, filter,
+	status = navquery.MoveAlongSurface(d.m_path[d.m_npath-1], d.m_target[:], npos, filter, result, visited, &nvisited,
 		MAX_VISITED)
 	if status.DtStatusSucceed() {
 		d.m_npath = dtMergeCorridorEndMoved(d.m_path, d.m_npath, d.m_maxPath, visited, nvisited)

@@ -2,6 +2,7 @@ package common
 
 import (
 	"cmp"
+	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
 
@@ -36,24 +37,20 @@ func Abs[T IT](a T) T {
 // / @param[out]		dest	The result vector. [(x, y, z)]
 // / @param[in]		v1		The base vector. [(x, y, z)]
 // / @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
-func Vadd(v1, v2 []float64) []float64 {
-	res := make([]float64, 3)
+func Vadd(res []float64, v1, v2 []float64) {
 	res[0] = v1[0] + v2[0]
 	res[1] = v1[1] + v2[1]
 	res[2] = v1[2] + v2[2]
-	return res
 }
 
 // / Performs a vector subtraction. (@p v1 - @p v2)
 // / @param[out]		dest	The result vector. [(x, y, z)]
 // / @param[in]		v1		The base vector. [(x, y, z)]
 // / @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
-func Vsub(v1, v2 []float64) []float64 {
-	res := make([]float64, 3)
+func Vsub(res, v1, v2 []float64) {
 	res[0] = v1[0] - v2[0]
 	res[1] = v1[1] - v2[1]
 	res[2] = v1[2] - v2[2]
-	return res
 }
 
 // / Selects the minimum value of each element from the specified vectors.
@@ -144,12 +141,10 @@ func Vequal(p0 []float64, p1 []float64) bool {
 // /  @param[out]	dest	The result vector. [(x, y, z)]
 // /  @param[in]		v		The vector to scale. [(x, y, z)]
 // /  @param[in]		t		The scaling factor.
-func Vscale(v []float64, t float64) []float64 {
-	res := make([]float64, 3)
+func Vscale(res []float64, v []float64, t float64) {
 	res[0] = v[0] * t
 	res[1] = v[1] * t
 	res[2] = v[2] * t
-	return res
 }
 
 /// @}
@@ -376,4 +371,21 @@ func Ilog2(v int) int {
 
 func GetVs3[T IT](verts []T, index int) []T {
 	return verts[index*3 : index*3+3]
+}
+
+func GluProject(obj []float64, projection, modelview []float64, view []int) []float64 {
+	o := mgl32.Vec3{}
+	for i := range obj {
+		o[i] = float32(obj[i])
+	}
+	p := mgl32.Mat4{}
+	for i := range projection {
+		p[i] = float32(projection[i])
+	}
+	v := mgl32.Mat4{}
+	for i := range modelview {
+		v[i] = float32(modelview[i])
+	}
+	res := mgl32.Project(o, v, p, view[0], view[1], view[2], view[3])
+	return []float64{float64(res[0]), float64(res[1]), float64(res[2])} //TODO
 }

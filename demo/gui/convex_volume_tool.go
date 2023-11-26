@@ -273,7 +273,7 @@ func (c *ConvexVolumeTool) handleRender() {
 	}
 	dd.End()
 }
-func (c *ConvexVolumeTool) handleRenderOverlay(proj, model *float64, view []int) {
+func (c *ConvexVolumeTool) handleRenderOverlay(proj, model []float64, view []int) {
 	// Tool help
 	h := view[3]
 	if (c.m_npts) != 0 {

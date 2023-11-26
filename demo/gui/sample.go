@@ -272,7 +272,7 @@ func (s *Sample) renderToolStates() {
 
 	}
 }
-func (s *Sample) renderOverlayToolStates(proj, model *float64, view *int) {
+func (s *Sample) renderOverlayToolStates(proj, model []float64, view []int) {
 	for i := 0; i < MAX_TOOLS; i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleRenderOverlay(proj, model, view)

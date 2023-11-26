@@ -30,10 +30,10 @@ type DtObstacleAvoidanceDebugData struct {
 	m_tpen       []float64
 }
 
-func (d *DtObstacleAvoidanceDebugData) GetSampleCount() int             { return d.m_nsamples }
-func (d *DtObstacleAvoidanceDebugData) GetSampleVelocity(i int) float64 { return d.m_vel[i*3] }
-func (d *DtObstacleAvoidanceDebugData) GetSampleSize(i int) float64     { return d.m_ssize[i] }
-func (d *DtObstacleAvoidanceDebugData) GetSamplePenalty(i int) float64  { return d.m_pen[i] }
+func (d *DtObstacleAvoidanceDebugData) GetSampleCount() int               { return d.m_nsamples }
+func (d *DtObstacleAvoidanceDebugData) GetSampleVelocity(i int) []float64 { return d.m_vel[i*3:] }
+func (d *DtObstacleAvoidanceDebugData) GetSampleSize(i int) float64       { return d.m_ssize[i] }
+func (d *DtObstacleAvoidanceDebugData) GetSamplePenalty(i int) float64    { return d.m_pen[i] }
 func (d *DtObstacleAvoidanceDebugData) GetSampleDesiredVelocityPenalty(i int) float64 {
 	return d.m_vpen[i]
 }
@@ -82,7 +82,8 @@ const DT_PI = 3.14159265
 
 func sweepCircleCircle(c0 []float64, r0 float64, v, c1 []float64, r1 float64, tmin, tmax *float64) int {
 	EPS := 0.0001
-	s := common.Vsub(c1, c0)
+	s := make([]float64, 3)
+	common.Vsub(s, c1, c0)
 	r := r0 + r1
 	c := common.Vdot2D(s, s) - r*r
 	a := common.Vdot2D(v, v)
@@ -104,8 +105,10 @@ func sweepCircleCircle(c0 []float64, r0 float64, v, c1 []float64, r1 float64, tm
 }
 
 func isectRaySeg(ap, u []float64, bp, bq []float64, t *float64) int {
-	v := common.Vsub(bq, bp)
-	w := common.Vsub(ap, bp)
+	v := make([]float64, 3)
+	w := make([]float64, 3)
+	common.Vsub(v, bq, bp)
+	common.Vsub(w, ap, bp)
 	d := common.Vperp2D(u, v)
 	if math.Abs(d) < 1e-6 {
 		return 0
@@ -227,11 +230,11 @@ func (d *dtObstacleAvoidanceQuery) prepare(pos, dvel []float64) {
 		// Side
 		pa := pos
 		pb := cir.p
-
+		dv := make([]float64, 3)
 		orig := []float64{0, 0, 0}
-		copy(cir.dp[:], common.Vsub(pb[:], pa))
+		common.Vsub(cir.dp[:], pb[:], pa)
 		common.Vnormalize(cir.dp[:])
-		dv := common.Vsub(cir.dvel[:], dvel)
+		common.Vsub(dv, cir.dvel[:], dvel)
 
 		a := common.TriArea2D(orig, cir.dp[:], dv)
 		if a < 0.01 {
@@ -248,7 +251,7 @@ func (d *dtObstacleAvoidanceQuery) prepare(pos, dvel []float64) {
 
 		// Precalc if the agent is really close to the segment.
 		r := 0.01
-		_, res := dtDistancePtSegSqr2D(pos, seg.p[:], seg.q[:])
+		_, res := DtDistancePtSegSqr2D(pos, seg.p[:], seg.q[:])
 		seg.touch = res < common.Sqr(r)
 	}
 }
@@ -285,9 +288,9 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 
 		// RVO
 		vab := make([]float64, 3)
-		vab = common.Vscale(vcand, 2)
-		vab = common.Vsub(vab, vel)
-		vab = common.Vsub(vab, cir.vel[:])
+		common.Vscale(vab, vcand, 2)
+		common.Vsub(vab, vab, vel)
+		common.Vsub(vab, vab, cir.vel[:])
 
 		// Side
 		side += common.Clamp(common.Min(common.Vdot2D(cir.dp[:], vab)*0.5+0.5, common.Vdot2D(cir.np[:], vab)*2), 0.0, 1.0)
@@ -325,7 +328,7 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float64, cs float64,
 			// Special case when the agent is very close to the segment.
 			sdir := make([]float64, 3)
 			snorm := make([]float64, 3)
-			sdir = common.Vsub(seg.q[:], seg.p[:])
+			common.Vsub(sdir, seg.q[:], seg.p[:])
 			snorm[0] = -sdir[2]
 			snorm[2] = sdir[0]
 			// If the velocity is pointing towards the segment, no collision.

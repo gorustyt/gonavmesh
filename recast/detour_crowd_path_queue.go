@@ -2,12 +2,12 @@ package recast
 
 import "gonavamesh/common"
 
-type dtPathQueueRef int
+type DtPathQueueRef int
 
 const DT_PATHQ_INVALID = 0
 
 type PathQuery struct {
-	ref dtPathQueueRef
+	ref DtPathQueueRef
 	/// Path find start and end location.
 	startPos, endPos [3]float64
 	startRef, endRef DtPolyRef
@@ -20,31 +20,32 @@ type PathQuery struct {
 	filter    *DtQueryFilter ///< TODO: This is potentially dangerous!
 }
 
-type dtPathQueue struct {
+type DtPathQueue struct {
 	MAX_QUEUE     int
 	m_queue       []*PathQuery
-	m_nextHandle  dtPathQueueRef
+	m_nextHandle  DtPathQueueRef
 	m_maxPathSize int
 	m_queueHead   int
 	m_navquery    NavMeshQuery
 }
 
-func newDtPathQueue() *dtPathQueue {
-	d := &dtPathQueue{
+func (d *DtPathQueue) GetNavQuery() NavMeshQuery { return d.m_navquery }
+func newDtPathQueue() *DtPathQueue {
+	d := &DtPathQueue{
 		MAX_QUEUE: 8,
 	}
 	d.m_queue = make([]*PathQuery, d.MAX_QUEUE)
 	return d
 }
 
-func (d *dtPathQueue) purge() {
+func (d *DtPathQueue) purge() {
 	d.m_navquery = nil
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		d.m_queue[i].path = nil
 	}
 }
 
-func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMesh) bool {
+func (d *DtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMesh) bool {
 	d.purge()
 	d.m_navquery = NewDtNavMeshQuery(nav, maxSearchNodeCount)
 	d.m_maxPathSize = maxPathSize
@@ -58,7 +59,7 @@ func (d *dtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMe
 	return true
 }
 
-func (d *dtPathQueue) update(maxIters int) {
+func (d *DtPathQueue) update(maxIters int) {
 	MAX_KEEP_ALIVE := 2 // in update ticks.
 
 	// Update path request until there is nothing to update
@@ -109,9 +110,9 @@ func (d *dtPathQueue) update(maxIters int) {
 	}
 }
 
-func (d *dtPathQueue) request(startRef, endRef DtPolyRef,
+func (d *DtPathQueue) request(startRef, endRef DtPolyRef,
 	startPos, endPos []float64,
-	filter *DtQueryFilter) dtPathQueueRef {
+	filter *DtQueryFilter) DtPathQueueRef {
 	// Find empty slot
 	slot := -1
 	for i := 0; i < d.MAX_QUEUE; i++ {
@@ -146,7 +147,7 @@ func (d *dtPathQueue) request(startRef, endRef DtPolyRef,
 	return ref
 }
 
-func (d *dtPathQueue) getRequestStatus(ref dtPathQueueRef) DtStatus {
+func (d *DtPathQueue) getRequestStatus(ref DtPathQueueRef) DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			return d.m_queue[i].status
@@ -156,7 +157,7 @@ func (d *dtPathQueue) getRequestStatus(ref dtPathQueueRef) DtStatus {
 	return DT_FAILURE
 }
 
-func (d *dtPathQueue) getPathResult(ref dtPathQueueRef, path []DtPolyRef, pathSize *int, maxPath int) DtStatus {
+func (d *DtPathQueue) getPathResult(ref DtPathQueueRef, path []DtPolyRef, pathSize *int, maxPath int) DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			q := d.m_queue[i]

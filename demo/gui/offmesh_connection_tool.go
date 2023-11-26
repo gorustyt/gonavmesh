@@ -99,13 +99,13 @@ func (t *OffMeshConnectionTool) handleRender() {
 	}
 
 }
-func (t *OffMeshConnectionTool) handleRenderOverlay(proj, model *float64, view []int) {
-	//var x, y, z float64
-
-	// Draw start and end point labels
-	//if t.m_hitPosSet && mgl32.Project(t.m_hitPos[0], t.m_hitPos[1], t.m_hitPos[2], model, proj, view, &x, &y, &z) {
-	//	t.gs.imguiDrawText(int(x), (int)(y-25), IMGUI_ALIGN_CENTER, "Start", imguiRGBA(0, 0, 0, 220))
-	//}//TODO
+func (t *OffMeshConnectionTool) handleRenderOverlay(proj, model []float64, view []int) {
+	res := common.GluProject([]float64{t.m_hitPos[0], t.m_hitPos[1], t.m_hitPos[2]}, model, proj, view)
+	x, y := res[0], res[1]
+	//Draw start and end point labels
+	if t.m_hitPosSet && len(res) > 0 {
+		t.gs.imguiDrawText(int(x), (int)(y-25), IMGUI_ALIGN_CENTER, "Start", imguiRGBA(0, 0, 0, 220))
+	}
 	// Tool help
 	h := view[3]
 	if !t.m_hitPosSet {
