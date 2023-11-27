@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"gonavamesh/common"
 	"gonavamesh/debug_utils"
 	"gonavamesh/recast"
@@ -73,14 +74,177 @@ func newSampleTileMesh(s *Sample, gs *guiState, logger *logger) *Sample_TileMesh
 	return t
 }
 
-func (s *Sample_TileMesh) handleSettings()                                    {}
-func (s *Sample_TileMesh) handleTools()                                       {}
-func (s *Sample_TileMesh) handleDebugMode()                                   {}
-func (s *Sample_TileMesh) handleRender()                                      {}
-func (s *Sample_TileMesh) handleRenderOverlay(proj, model float64, view *int) {}
-func (s *Sample_TileMesh) handleMeshChanged(geom *InputGeom)                  {}
+func (s *Sample_TileMesh) handleSettings() {
+	s.Sample.handleCommonSettings()
+
+	if s.gs.imguiCheck("Keep Itermediate Results", s.m_keepInterResults) {
+		s.m_keepInterResults = !s.m_keepInterResults
+	}
+
+	if s.gs.imguiCheck("Build All Tiles", s.m_buildAll) {
+		s.m_buildAll = !s.m_buildAll
+	}
+
+	s.gs.imguiLabel("Tiling")
+	s.gs.imguiSlider("TileSize", &s.m_tileSize, 16.0, 1024.0, 16.0)
+
+	if s.m_geom != nil {
+		gw := 0
+		gh := 0
+		bmin := s.m_geom.getNavMeshBoundsMin()
+		bmax := s.m_geom.getNavMeshBoundsMax()
+		recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
+		ts := int(s.m_tileSize)
+		tw := (gw + ts - 1) / ts
+		th := (gh + ts - 1) / ts
+		text := fmt.Sprintf("Tiles  %d x %d", tw, th)
+		s.gs.imguiValue(text)
+
+		// Max tiles and max polys affect how the tile IDs are caculated.
+		// There are 22 bits available for identifying a tile and a polygon.
+		tileBits := common.Min(common.Ilog2(common.NextPow2(tw*th)), 14)
+		if tileBits > 14 {
+			tileBits = 14
+		}
+		polyBits := 22 - tileBits
+		m_maxTiles := 1 << tileBits
+		m_maxPolysPerTile := 1 << polyBits
+		text = fmt.Sprintf("Max Tiles  %d", m_maxTiles)
+		s.gs.imguiValue(text)
+		text = fmt.Sprintf("Max Polys  %d", m_maxPolysPerTile)
+		s.gs.imguiValue(text)
+	} else {
+		s.m_maxTiles = 0
+		s.m_maxPolysPerTile = 0
+	}
+
+	s.gs.imguiSeparator()
+
+	s.gs.imguiIndent()
+	s.gs.imguiIndent()
+
+	if s.gs.imguiButton("Save") {
+		s.Sample.SaveAll("all_tiles_navmesh.bin", s.m_navMesh)
+	}
+
+	if s.gs.imguiButton("Load") {
+		s.m_navMesh = s.Sample.LoadAll("all_tiles_navmesh.bin")
+		s.m_navQuery = recast.NewDtNavMeshQuery(s.m_navMesh, 2048)
+	}
+
+	s.gs.imguiUnindent()
+	s.gs.imguiUnindent()
+
+	msg := fmt.Sprintf("Build Time: %.1fms", s.m_totalBuildTimeMs)
+	s.gs.imguiLabel(msg)
+
+	s.gs.imguiSeparator()
+
+	s.gs.imguiSeparator()
+}
+func (s *Sample_TileMesh) handleTools() {
+	tType := s.m_tool.Type()
+	if s.m_tool != nil {
+		tType = TOOL_NONE
+	}
+	if s.gs.imguiCheck("Test Navmesh", tType == TOOL_NAVMESH_TESTER) {
+		s.setTool(newNavMeshTesterTool(s.gs))
+	}
+	if s.gs.imguiCheck("Prune Navmesh", tType == TOOL_NAVMESH_PRUNE) {
+		s.setTool(newNavMeshPruneTool(s.gs))
+	}
+	if s.gs.imguiCheck("Create Tiles", tType == TOOL_TILE_EDIT) {
+		s.setTool(newMeshTitleTool(s.gs))
+	}
+	if s.gs.imguiCheck("Create Off-Mesh Links", tType == TOOL_OFFMESH_CONNECTION) {
+		s.setTool(newOffMeshConnectionTool(s.gs))
+	}
+	if s.gs.imguiCheck("Create Convex Volumes", tType == TOOL_CONVEX_VOLUME) {
+		s.setTool(newConvexVolumeTool(s.gs))
+	}
+	if s.gs.imguiCheck("Create Crowds", tType == TOOL_CROWD) {
+		s.setTool(newCrowdTool(s.gs))
+	}
+
+	s.gs.imguiSeparatorLine()
+
+	s.gs.imguiIndent()
+
+	if s.m_tool != nil {
+		s.m_tool.handleMenu()
+	}
+
+	s.gs.imguiUnindent()
+}
+func (s *Sample_TileMesh) handleRender() {}
+func (s *Sample_TileMesh) handleRenderOverlay(proj, model []float64, view []int) {
+	// Draw start and end point labels
+	res := common.GluProject([]float64{s.m_lastBuiltTileBmin[0] + s.m_lastBuiltTileBmax[0]/2, (s.m_lastBuiltTileBmin[1] + s.m_lastBuiltTileBmax[1]) / 2, (s.m_lastBuiltTileBmin[2] + s.m_lastBuiltTileBmax[2]) / 2}, model, proj, view)
+	if s.m_tileBuildTime > 0.0 && len(res) > 0 {
+		x, y := int(res[0]), int(res[1])
+		text := fmt.Sprintf("%.3fms / %dTris / %.1fkB", s.m_tileBuildTime, s.m_tileTriCount, s.m_tileMemUsage)
+		s.gs.imguiDrawText(x, y-25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220))
+	}
+
+	if s.m_tool != nil {
+		s.m_tool.handleRenderOverlay(proj, model, view)
+	}
+
+	s.renderOverlayToolStates(proj, model, view)
+}
+func (s *Sample_TileMesh) handleMeshChanged(geom *InputGeom) {
+	s.Sample.handleMeshChanged(geom)
+
+	buildSettings := geom.getBuildSettings()
+	if buildSettings != nil && buildSettings.tileSize > 0 {
+		s.m_tileSize = buildSettings.tileSize
+	}
+
+	s.cleanup()
+	s.m_navMesh = nil
+
+	if s.m_tool != nil {
+		s.m_tool.reset()
+		s.m_tool.init(s.Sample)
+	}
+	s.resetToolStates()
+	s.initToolStates(s.Sample)
+}
 func (s *Sample_TileMesh) handleBuild() bool {
-	panic("impl")
+	if s.m_geom == nil || s.m_geom.getMesh() == nil {
+		log.Printf("buildTiledNavigation: No vertices and triangles.")
+		return false
+	}
+
+	if s.m_navMesh == nil {
+		log.Printf("buildTiledNavigation: Could not allocate navmesh.")
+		return false
+	}
+
+	var params recast.NavMeshParams
+	copy(params.Orig[:], s.m_geom.getNavMeshBoundsMin())
+	params.TileWidth = s.m_tileSize * s.m_cellSize
+	params.TileHeight = s.m_tileSize * s.m_cellSize
+	params.MaxTiles = s.m_maxTiles
+	params.MaxPolys = s.m_maxPolysPerTile
+
+	var status recast.DtStatus
+	s.m_navMesh, status = recast.NewDtNavMeshWithParams(&params)
+	if status.DtStatusFailed() {
+		log.Printf("buildTiledNavigation: Could not init navmesh.")
+		return false
+	}
+
+	s.m_navQuery = recast.NewDtNavMeshQuery(s.m_navMesh, 2048)
+	if s.m_buildAll {
+		s.buildAllTiles()
+	}
+	if s.m_tool != nil {
+		s.m_tool.init(s.Sample)
+	}
+	s.initToolStates(s.Sample)
+
+	return true
 }
 func (s *Sample_TileMesh) resetCommonSettings() {
 
@@ -102,7 +266,47 @@ func (s *Sample_TileMesh) getTilePos(pos []float64, tx, ty *int) {
 	*ty = int((pos[2] - bmin[2]) / ts)
 }
 
-func (s *Sample_TileMesh) buildTile(pos []float64) {}
+func (s *Sample_TileMesh) buildTile(pos []float64) {
+	if s.m_geom == nil {
+		return
+	}
+	if s.m_navMesh == nil {
+		return
+	}
+
+	bmin := s.m_geom.getNavMeshBoundsMin()
+	bmax := s.m_geom.getNavMeshBoundsMax()
+
+	ts := s.m_tileSize * s.m_cellSize
+	tx := (int)((pos[0] - bmin[0]) / ts)
+	ty := (int)((pos[2] - bmin[2]) / ts)
+
+	s.m_lastBuiltTileBmin[0] = bmin[0] + float64(tx)*ts
+	s.m_lastBuiltTileBmin[1] = bmin[1]
+	s.m_lastBuiltTileBmin[2] = bmin[2] + float64(ty)*ts
+
+	s.m_lastBuiltTileBmax[0] = bmin[0] + float64(tx+1)*ts
+	s.m_lastBuiltTileBmax[1] = bmax[1]
+	s.m_lastBuiltTileBmax[2] = bmin[2] + float64(ty+1)*ts
+
+	s.m_tileCol = debug_utils.DuRGBA(255, 255, 255, 64)
+
+	s.l.reset()
+
+	var dataSize int
+	data := s.buildTileMesh(tx, ty, s.m_lastBuiltTileBmin, s.m_lastBuiltTileBmax, dataSize)
+
+	// Remove any previous data (navmesh owns and deletes the data).
+	s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(tx, ty, 0), 0, 0)
+
+	// Add tile, or leave the location empty.
+	if data {
+		// Let the navmesh own the data.
+		s.m_navMesh.AddTile(data, dataSize, recast.DT_TILE_FREE_DATA, 0)
+	}
+
+	s.l.dumpLog("Build Tile (%d,%d):", tx, ty)
+}
 func (s *Sample_TileMesh) removeTile(pos []float64) {
 	if s.m_geom == nil || s.m_navMesh == nil {
 		return
@@ -133,7 +337,124 @@ func (s *Sample_TileMesh) cleanup() {
 	s.m_pmesh = nil
 	s.m_dmesh = nil
 }
+func (s *Sample_TileMesh) handleDebugMode() {
+	// Check which modes are valid.
+	valid := make([]bool, MAX_DRAWMODE)
+	for i := 0; i < MAX_DRAWMODE; i++ {
+		valid[i] = false
+	}
 
+	if s.m_geom != nil {
+		valid[DRAWMODE_NAVMESH] = s.m_navMesh != nil
+		valid[DRAWMODE_NAVMESH_TRANS] = s.m_navMesh != nil
+		valid[DRAWMODE_NAVMESH_BVTREE] = s.m_navMesh != nil
+		valid[DRAWMODE_NAVMESH_NODES] = s.m_navQuery != nil
+		valid[DRAWMODE_NAVMESH_PORTALS] = s.m_navMesh != nil
+		valid[DRAWMODE_NAVMESH_INVIS] = s.m_navMesh != nil
+		valid[DRAWMODE_MESH] = true
+		valid[DRAWMODE_VOXELS] = s.m_solid != nil
+		valid[DRAWMODE_VOXELS_WALKABLE] = s.m_solid != nil
+		valid[DRAWMODE_COMPACT] = s.m_chf != nil
+		valid[DRAWMODE_COMPACT_DISTANCE] = s.m_chf != nil
+		valid[DRAWMODE_COMPACT_REGIONS] = s.m_chf != nil
+		valid[DRAWMODE_REGION_CONNECTIONS] = s.m_cset != nil
+		valid[DRAWMODE_RAW_CONTOURS] = s.m_cset != nil
+		valid[DRAWMODE_BOTH_CONTOURS] = s.m_cset != nil
+		valid[DRAWMODE_CONTOURS] = s.m_cset != nil
+		valid[DRAWMODE_POLYMESH] = s.m_pmesh != nil
+		valid[DRAWMODE_POLYMESH_DETAIL] = s.m_dmesh != nil
+	}
+
+	unavail := 0
+	for i := 0; i < MAX_DRAWMODE; i++ {
+		if !valid[i] {
+			unavail++
+		}
+	}
+
+	if unavail == MAX_DRAWMODE {
+		return
+	}
+
+	s.gs.imguiLabel("Draw")
+	if s.gs.imguiCheck("Input Mesh", s.m_drawMode == DRAWMODE_MESH, valid[DRAWMODE_MESH]) {
+		s.m_drawMode = DRAWMODE_MESH
+	}
+
+	if s.gs.imguiCheck("Navmesh", s.m_drawMode == DRAWMODE_NAVMESH, valid[DRAWMODE_NAVMESH]) {
+		s.m_drawMode = DRAWMODE_NAVMESH
+	}
+
+	if s.gs.imguiCheck("Navmesh Invis", s.m_drawMode == DRAWMODE_NAVMESH_INVIS, valid[DRAWMODE_NAVMESH_INVIS]) {
+		s.m_drawMode = DRAWMODE_NAVMESH_INVIS
+	}
+
+	if s.gs.imguiCheck("Navmesh Trans", s.m_drawMode == DRAWMODE_NAVMESH_TRANS, valid[DRAWMODE_NAVMESH_TRANS]) {
+		s.m_drawMode = DRAWMODE_NAVMESH_TRANS
+	}
+
+	if s.gs.imguiCheck("Navmesh BVTree", s.m_drawMode == DRAWMODE_NAVMESH_BVTREE, valid[DRAWMODE_NAVMESH_BVTREE]) {
+		s.m_drawMode = DRAWMODE_NAVMESH_BVTREE
+	}
+
+	if s.gs.imguiCheck("Navmesh Nodes", s.m_drawMode == DRAWMODE_NAVMESH_NODES, valid[DRAWMODE_NAVMESH_NODES]) {
+		s.m_drawMode = DRAWMODE_NAVMESH_NODES
+	}
+
+	if s.gs.imguiCheck("Navmesh Portals", s.m_drawMode == DRAWMODE_NAVMESH_PORTALS, valid[DRAWMODE_NAVMESH_PORTALS]) {
+		s.m_drawMode = DRAWMODE_NAVMESH_PORTALS
+	}
+
+	if s.gs.imguiCheck("Voxels", s.m_drawMode == DRAWMODE_VOXELS, valid[DRAWMODE_VOXELS]) {
+		s.m_drawMode = DRAWMODE_VOXELS
+	}
+
+	if s.gs.imguiCheck("Walkable Voxels", s.m_drawMode == DRAWMODE_VOXELS_WALKABLE, valid[DRAWMODE_VOXELS_WALKABLE]) {
+		s.m_drawMode = DRAWMODE_VOXELS_WALKABLE
+	}
+
+	if s.gs.imguiCheck("Compact", s.m_drawMode == DRAWMODE_COMPACT, valid[DRAWMODE_COMPACT]) {
+		s.m_drawMode = DRAWMODE_COMPACT
+	}
+
+	if s.gs.imguiCheck("Compact Distance", s.m_drawMode == DRAWMODE_COMPACT_DISTANCE, valid[DRAWMODE_COMPACT_DISTANCE]) {
+		s.m_drawMode = DRAWMODE_COMPACT_DISTANCE
+	}
+
+	if s.gs.imguiCheck("Compact Regions", s.m_drawMode == DRAWMODE_COMPACT_REGIONS, valid[DRAWMODE_COMPACT_REGIONS]) {
+		s.m_drawMode = DRAWMODE_COMPACT_REGIONS
+	}
+
+	if s.gs.imguiCheck("Region Connections", s.m_drawMode == DRAWMODE_REGION_CONNECTIONS, valid[DRAWMODE_REGION_CONNECTIONS]) {
+		s.m_drawMode = DRAWMODE_REGION_CONNECTIONS
+	}
+
+	if s.gs.imguiCheck("Raw Contours", s.m_drawMode == DRAWMODE_RAW_CONTOURS, valid[DRAWMODE_RAW_CONTOURS]) {
+		s.m_drawMode = DRAWMODE_RAW_CONTOURS
+	}
+
+	if s.gs.imguiCheck("Both Contours", s.m_drawMode == DRAWMODE_BOTH_CONTOURS, valid[DRAWMODE_BOTH_CONTOURS]) {
+		s.m_drawMode = DRAWMODE_BOTH_CONTOURS
+	}
+
+	if s.gs.imguiCheck("Contours", s.m_drawMode == DRAWMODE_CONTOURS, valid[DRAWMODE_CONTOURS]) {
+		s.m_drawMode = DRAWMODE_CONTOURS
+	}
+
+	if s.gs.imguiCheck("Poly Mesh", s.m_drawMode == DRAWMODE_POLYMESH, valid[DRAWMODE_POLYMESH]) {
+		s.m_drawMode = DRAWMODE_POLYMESH
+	}
+
+	if s.gs.imguiCheck("Poly Mesh Detail", s.m_drawMode == DRAWMODE_POLYMESH_DETAIL, valid[DRAWMODE_POLYMESH_DETAIL]) {
+		s.m_drawMode = DRAWMODE_POLYMESH_DETAIL
+	}
+
+	if unavail > 0 {
+		s.gs.imguiValue("Tick 'Keep Itermediate Results'")
+		s.gs.imguiValue("rebuild some tiles to see")
+		s.gs.imguiValue("more debug mode options.")
+	}
+}
 func (s *Sample_TileMesh) buildAllTiles() {
 	if s.m_geom == nil {
 		return
@@ -177,7 +498,27 @@ func (s *Sample_TileMesh) buildAllTiles() {
 
 	s.m_totalBuildTimeMs = time.Since(now)
 }
-func (s *Sample_TileMesh) removeAllTiles() {}
+func (s *Sample_TileMesh) removeAllTiles() {
+	if s.m_geom == nil || s.m_navMesh == nil {
+		return
+	}
+
+	bmin := s.m_geom.getNavMeshBoundsMin()
+	bmax := s.m_geom.getNavMeshBoundsMax()
+	gw := 0
+	gh := 0
+	recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
+	ts := int(s.m_tileSize)
+	tw := (gw + ts - 1) / ts
+	th := (gh + ts - 1) / ts
+
+	for y := 0; y < th; y++ {
+		for x := 0; x < tw; x++ {
+			s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(x, y, 0))
+		}
+	}
+
+}
 func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64, dataSize *int) (data []byte) {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil || s.m_geom.getChunkyMesh() == nil {
 		log.Printf("buildNavigation: Input mesh is not specified.")

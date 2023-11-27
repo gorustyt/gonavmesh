@@ -49,7 +49,7 @@ func DuIntToCol1(i int, col []float64) {
 	col[2] = 1 - float64(b)*63.0/255.0
 }
 
-func duCalcBoxColors(colors []int, colTop int, colSide int) {
+func DuCalcBoxColors(colors []int, colTop int, colSide int) {
 	if len(colors) == 0 {
 		return
 	}
@@ -383,7 +383,7 @@ func AppendArrowHead(dd DuDebugDraw, p, q []float64,
 	ax := []float64{0, 1, 0}
 	ay := []float64{0, 1, 0}
 	az := make([]float64, 3)
-	az = common.Vsub(q, p)
+	common.Vsub(az, q, p)
 	common.Vnormalize(az)
 	common.Vcross(ax, ay, az)
 	common.Vcross(ay, az, ax)

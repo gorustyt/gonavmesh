@@ -925,24 +925,24 @@ func removeVertex(mesh *RcPolyMesh, rem int, maxTris int) bool {
 // /
 // / @see rcAllocPolyMesh, RcContourSet, RcPolyMesh, RcConfig
 func RcBuildPolyMesh(cset *RcContourSet, nvp int, mesh *RcPolyMesh) bool {
-	copy(mesh.Bmin, cset.bmin)
-	copy(mesh.Bmax, cset.bmax)
-	mesh.Cs = cset.cs
-	mesh.Ch = cset.ch
-	mesh.BorderSize = cset.borderSize
-	mesh.MaxEdgeError = cset.maxError
+	copy(mesh.Bmin, cset.Bmin)
+	copy(mesh.Bmax, cset.Bmax)
+	mesh.Cs = cset.Cs
+	mesh.Ch = cset.Ch
+	mesh.BorderSize = cset.BorderSize
+	mesh.MaxEdgeError = cset.MaxError
 
 	maxVertices := 0
 	maxTris := 0
 	maxVertsPerCont := 0
 	for i := 0; i < cset.Nconts; i++ {
 		// Skip null contours.
-		if cset.conts[i].nverts < 3 {
+		if cset.Conts[i].Nverts < 3 {
 			continue
 		}
-		maxVertices += cset.conts[i].nverts
-		maxTris += cset.conts[i].nverts - 2
-		maxVertsPerCont = common.Max(maxVertsPerCont, cset.conts[i].nverts)
+		maxVertices += cset.Conts[i].Nverts
+		maxTris += cset.Conts[i].Nverts - 2
+		maxVertsPerCont = common.Max(maxVertsPerCont, cset.Conts[i].Nverts)
 	}
 
 	if maxVertices >= 0xfffe {
@@ -976,19 +976,19 @@ func RcBuildPolyMesh(cset *RcContourSet, nvp int, mesh *RcPolyMesh) bool {
 	tmpPoly := polys[maxVertsPerCont*nvp:]
 
 	for i := 0; i < cset.Nconts; i++ {
-		cont := cset.conts[i]
+		cont := cset.Conts[i]
 
 		// Skip null contours.
-		if cont.nverts < 3 {
+		if cont.Nverts < 3 {
 			continue
 		}
 
 		// Triangulate contour
-		for j := 0; j < cont.nverts; j++ {
+		for j := 0; j < cont.Nverts; j++ {
 			indices[j] = j
 		}
 
-		ntris := triangulate(cont.nverts, cont.verts, indices, tris)
+		ntris := triangulate(cont.Nverts, cont.Verts, indices, tris)
 		if ntris <= 0 {
 			// Bad triangulation, should not happen.
 			/*			printf("\tconst float bmin[3] = {%ff,%ff,%ff};\n", cset.bmin[0], cset.bmin[1], cset.bmin[2]);
@@ -1006,8 +1006,8 @@ func RcBuildPolyMesh(cset *RcContourSet, nvp int, mesh *RcPolyMesh) bool {
 		}
 
 		// Add and merge vertices.
-		for j := 0; j < cont.nverts; j++ {
-			v := rcGetVert4(cont.verts, j)
+		for j := 0; j < cont.Nverts; j++ {
+			v := rcGetVert4(cont.Verts, j)
 			mesh.Nverts, indices[j] = addVertex(v[0], v[1], v[2], mesh.Verts, firstVert, nextVert)
 			if v[3]&RC_BORDER_VERTEX > 0 {
 				// This vertex should be removed.
@@ -1085,8 +1085,8 @@ func RcBuildPolyMesh(cset *RcContourSet, nvp int, mesh *RcPolyMesh) bool {
 				p[k] = q[k]
 			}
 
-			mesh.Regs[mesh.Npolys] = cont.reg
-			mesh.Areas[mesh.Npolys] = cont.area
+			mesh.Regs[mesh.Npolys] = cont.Reg
+			mesh.Areas[mesh.Npolys] = cont.Area
 			mesh.Npolys++
 			if mesh.Npolys > maxTris {
 				log.Printf("rcBuildPolyMesh: Too many polygons %d (max:%d).", mesh.Npolys, maxTris)
@@ -1126,8 +1126,8 @@ func RcBuildPolyMesh(cset *RcContourSet, nvp int, mesh *RcPolyMesh) bool {
 
 	// Find portal edges
 	if mesh.BorderSize > 0 {
-		w := cset.width
-		h := cset.height
+		w := cset.Width
+		h := cset.Height
 		for i := 0; i < mesh.Npolys; i++ {
 			p := mesh.Polys[i*2*nvp:]
 			for j := 0; j < nvp; j++ {

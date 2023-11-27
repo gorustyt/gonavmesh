@@ -101,7 +101,7 @@ func newDtTempContour(vbuf []int, nvbuf int, pbuf []int, npbuf int) *dtTempConto
 	return d
 }
 
-type dtTileCacheCompressor interface {
+type DtTileCacheCompressor interface {
 	maxCompressedSize(bufferSize int) int
 	compress(buffer []byte, bufferSize int,
 		compressed, maxCompressedSize int, compressedSize *int) DtStatus
@@ -109,7 +109,7 @@ type dtTileCacheCompressor interface {
 		buffer []byte, maxBufferSizeint, bufferSize *int) DtStatus
 }
 
-type dtTileCacheMeshProcess interface {
+type DtTileCacheMeshProcess interface {
 	process(params *DtNavMeshCreateParams, polyAreas []int, polyFlags []int)
 }
 
@@ -158,7 +158,7 @@ func canMerge(oldRegId, newRegId int, regs []*dtLayerMonotoneRegion, nregs int) 
 	}
 	return count == 1
 }
-func dtBuildTileCacheRegions(
+func DtBuildTileCacheRegions(
 	layer *DtTileCacheLayer,
 	walkableClimb int) DtStatus {
 
@@ -899,7 +899,7 @@ func titleCacheBuildMeshAdjacency(
 }
 
 // TODO: move this somewhere else, once the layer meshing is done.
-func dtBuildTileCacheContours(
+func DtBuildTileCacheContours(
 	layer *DtTileCacheLayer,
 	walkableClimb int, maxError float64,
 	lcset *DtTileCacheContourSet) DtStatus {
@@ -1028,7 +1028,7 @@ type titleCacheRcEdge struct {
 	poly     [2]int
 }
 
-func dtDecompressTileCacheLayer(comp *dtTileCacheCompressor,
+func DtDecompressTileCacheLayer(comp *DtTileCacheCompressor,
 	data []byte, compressedSize int,
 ) (layerOut *DtTileCacheLayer, status DtStatus) {
 	//if compressedHeader.magic != DT_TILECACHE_MAGIC {
@@ -1271,7 +1271,7 @@ func dtMarkBoxArea1(layer *DtTileCacheLayer, orig []float64, cs float64, ch floa
 	return DT_SUCCESS
 }
 
-func dtBuildTileCachePolyMesh(
+func DtBuildTileCachePolyMesh(
 	lcset *DtTileCacheContourSet,
 	mesh *DtTileCachePolyMesh) DtStatus {
 	maxVertices := 0

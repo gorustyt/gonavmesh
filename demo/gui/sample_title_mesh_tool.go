@@ -69,7 +69,7 @@ func (m *meshTitleTool) handleRender() {
 	}
 }
 
-func (m *meshTitleTool) handleRenderOverlay(proj, model *float64, view []int) {
+func (m *meshTitleTool) handleRenderOverlay(proj, model []float64, view []int) {
 	//var  x, y, z float64
 	//if (m_hitPosSet && gluProject((GLdouble)m_hitPos[0], (GLdouble)m_hitPos[1], (GLdouble)m_hitPos[2],
 	//model, proj, view, &x, &y, &z)){

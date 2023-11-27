@@ -170,10 +170,10 @@ type DtMeshTile struct {
 
 	OffMeshCons []*DtOffMeshConnection ///< The tile off-mesh connections. [Size: DtMeshHeader::offMeshConCount]
 
-	data     []int       ///< The tile data. (Not directly accessed under normal situations.)
-	dataSize int         ///< Size of the tile data.
-	flags    int         ///< Tile flags. (See: #dtTileFlags)
-	next     *DtMeshTile ///< The next free tile, or the next tile in the spatial grid.
+	Data     []int       ///< The tile data. (Not directly accessed under normal situations.)
+	DataSize int         ///< Size of the tile data.
+	Flags    int         ///< Tile flags. (See: #dtTileFlags)
+	Next     *DtMeshTile ///< The next free tile, or the next tile in the spatial grid.
 }
 
 func (d *DtMeshTile) GetIndexByPloy(ploy *DtPoly) int {
@@ -245,11 +245,11 @@ type DtOffMeshConnection struct {
 // / @see DtNavMesh::init()
 // / @ingroup detour
 type NavMeshParams struct {
-	orig       [3]float64 ///< The world space origin of the navigation mesh's tile space. [(x, y, z)]
-	tileWidth  float64    ///< The width of each tile. (Along the x-axis.)
-	tileHeight float64    ///< The height of each tile. (Along the z-axis.)
-	maxTiles   int        ///< The maximum number of tiles the navigation mesh can contain. This and maxPolys are used to calculate how many bits are needed to identify tiles and polygons uniquely.
-	maxPolys   int        ///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
+	Orig       [3]float64 ///< The world space origin of the navigation mesh's tile space. [(x, y, z)]
+	TileWidth  float64    ///< The width of each tile. (Along the x-axis.)
+	TileHeight float64    ///< The height of each tile. (Along the z-axis.)
+	MaxTiles   int        ///< The maximum number of tiles the navigation mesh can contain. This and maxPolys are used to calculate how many bits are needed to identify tiles and polygons uniquely.
+	MaxPolys   int        ///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
 }
 
 type IDtNavMesh interface {

@@ -16,7 +16,7 @@ func newLogger() *logger {
 }
 
 // / Dumps the log to stdout.
-func (l *logger) dumpLog(format string) {
+func (l *logger) dumpLog(format string, s ...interface{}) {
 
 }
 

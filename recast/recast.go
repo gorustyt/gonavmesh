@@ -96,8 +96,10 @@ func RcCalcGridSize(minBounds, maxBounds []float64, cellSize float64, sizeX, siz
 }
 
 func calcTriNormal(v0, v1, v2 []float64, faceNormal []float64) {
-	e0 := common.Vsub(v1, v0)
-	e1 := common.Vsub(v2, v0)
+	e0 := make([]float64, 3)
+	e1 := make([]float64, 3)
+	common.Vsub(e0, v1, v0)
+	common.Vsub(e1, v2, v0)
 	common.Vcross(faceNormal, e0, e1)
 	common.Vnormalize(faceNormal)
 }
@@ -141,11 +143,11 @@ func rcClearUnwalkableTriangles(walkableSlopeAngle float64,
 }
 
 func rcGetHeightFieldSpanCount(heightfield *RcHeightfield) int {
-	numCols := heightfield.width * heightfield.height
+	numCols := heightfield.Width * heightfield.Height
 	spanCount := 0
 	for columnIndex := 0; columnIndex < numCols; columnIndex++ {
-		for span := heightfield.spans[columnIndex]; span != nil; span = span.next {
-			if span.area != RC_NULL_AREA {
+		for span := heightfield.Spans[columnIndex]; span != nil; span = span.Next {
+			if span.Area != RC_NULL_AREA {
 				spanCount++
 			}
 		}
@@ -155,33 +157,33 @@ func rcGetHeightFieldSpanCount(heightfield *RcHeightfield) int {
 
 func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	heightfield *RcHeightfield, compactHeightfield *RcCompactHeightfield) bool {
-	xSize := heightfield.width
-	zSize := heightfield.height
+	xSize := heightfield.Width
+	zSize := heightfield.Height
 	spanCount := rcGetHeightFieldSpanCount(heightfield)
 
 	// Fill in header.
-	compactHeightfield.width = xSize
-	compactHeightfield.height = zSize
-	compactHeightfield.spanCount = spanCount
-	compactHeightfield.walkableHeight = walkableHeight
-	compactHeightfield.walkableClimb = walkableClimb
-	compactHeightfield.maxRegions = 0
-	copy(compactHeightfield.bmin[:], heightfield.bmin[:])
-	copy(compactHeightfield.bmax[:], heightfield.bmax[:])
-	compactHeightfield.bmax[1] += float64(walkableHeight) * heightfield.ch
-	compactHeightfield.cs = heightfield.cs
-	compactHeightfield.ch = heightfield.ch
-	compactHeightfield.cells = make([]*rcCompactCell, xSize*zSize)
-	for i := range compactHeightfield.cells {
-		compactHeightfield.cells[i] = &rcCompactCell{}
+	compactHeightfield.Width = xSize
+	compactHeightfield.Height = zSize
+	compactHeightfield.SpanCount = spanCount
+	compactHeightfield.WalkableHeight = walkableHeight
+	compactHeightfield.WalkableClimb = walkableClimb
+	compactHeightfield.MaxRegions = 0
+	copy(compactHeightfield.Bmin[:], heightfield.Bmin[:])
+	copy(compactHeightfield.Bmax[:], heightfield.Bmax[:])
+	compactHeightfield.Bmax[1] += float64(walkableHeight) * heightfield.Ch
+	compactHeightfield.Cs = heightfield.Cs
+	compactHeightfield.Ch = heightfield.Ch
+	compactHeightfield.Cells = make([]*RcCompactCell, xSize*zSize)
+	for i := range compactHeightfield.Cells {
+		compactHeightfield.Cells[i] = &RcCompactCell{}
 	}
-	compactHeightfield.spans = make([]*rcCompactSpan, spanCount)
-	for i := range compactHeightfield.spans {
-		compactHeightfield.spans[i] = &rcCompactSpan{}
+	compactHeightfield.Spans = make([]*RcCompactSpan, spanCount)
+	for i := range compactHeightfield.Spans {
+		compactHeightfield.Spans[i] = &RcCompactSpan{}
 	}
-	compactHeightfield.areas = make([]int, spanCount)
-	for i := range compactHeightfield.areas {
-		compactHeightfield.areas[i] = RC_NULL_AREA
+	compactHeightfield.Areas = make([]int, spanCount)
+	for i := range compactHeightfield.Areas {
+		compactHeightfield.Areas[i] = RC_NULL_AREA
 	}
 	MAX_HEIGHT := 0xffff
 
@@ -189,29 +191,29 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	currentCellIndex := 0
 	numColumns := xSize * zSize
 	for columnIndex := 0; columnIndex < numColumns; columnIndex++ {
-		span := heightfield.spans[columnIndex]
+		span := heightfield.Spans[columnIndex]
 
 		// If there are no spans at this cell, just leave the data to index=0, count=0.
 		if span == nil {
 			continue
 		}
 
-		cell := compactHeightfield.cells[columnIndex]
-		cell.index = currentCellIndex
-		cell.count = 0
+		cell := compactHeightfield.Cells[columnIndex]
+		cell.Index = currentCellIndex
+		cell.Count = 0
 
-		for ; span != nil; span = span.next {
-			if span.area != RC_NULL_AREA {
-				bot := span.smax
+		for ; span != nil; span = span.Next {
+			if span.Area != RC_NULL_AREA {
+				bot := span.Smax
 				top := MAX_HEIGHT
-				if span.next != nil {
-					top = span.next.smin
+				if span.Next != nil {
+					top = span.Next.Smin
 				}
-				compactHeightfield.spans[currentCellIndex].y = common.Clamp(bot, 0, 0xffff)
-				compactHeightfield.spans[currentCellIndex].h = common.Clamp(top-bot, 0, 0xff)
-				compactHeightfield.areas[currentCellIndex] = span.area
+				compactHeightfield.Spans[currentCellIndex].Y = common.Clamp(bot, 0, 0xffff)
+				compactHeightfield.Spans[currentCellIndex].H = common.Clamp(top-bot, 0, 0xff)
+				compactHeightfield.Areas[currentCellIndex] = span.Area
 				currentCellIndex++
-				cell.count++
+				cell.Count++
 			}
 		}
 	}
@@ -222,11 +224,11 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	zStride := xSize // for readability
 	for z := 0; z < zSize; z++ {
 		for x := 0; x < xSize; x++ {
-			cell := compactHeightfield.cells[x+z*zStride]
-			i := cell.index
-			ni := (cell.index + cell.count)
+			cell := compactHeightfield.Cells[x+z*zStride]
+			i := cell.Index
+			ni := (cell.Index + cell.Count)
 			for ; i < ni; i++ {
-				span := compactHeightfield.spans[i]
+				span := compactHeightfield.Spans[i]
 
 				for dir := 0; dir < 4; dir++ {
 					rcSetCon(span, dir, RC_NOT_CONNECTED)
@@ -239,19 +241,19 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 
 					// Iterate over all neighbour spans and check if any of the is
 					// accessible from current cell.
-					neighborCell := compactHeightfield.cells[neighborX+neighborZ*zStride]
-					k := neighborCell.index
-					nk := (neighborCell.index + neighborCell.count)
+					neighborCell := compactHeightfield.Cells[neighborX+neighborZ*zStride]
+					k := neighborCell.Index
+					nk := (neighborCell.Index + neighborCell.Count)
 					for ; k < nk; k++ {
-						neighborSpan := compactHeightfield.spans[k]
-						bot := common.Max(span.y, neighborSpan.y)
-						top := common.Min(span.y+span.h, neighborSpan.y+neighborSpan.h)
+						neighborSpan := compactHeightfield.Spans[k]
+						bot := common.Max(span.Y, neighborSpan.Y)
+						top := common.Min(span.Y+span.H, neighborSpan.Y+neighborSpan.H)
 
 						// Check that the gap between the spans is walkable,
 						// and that the climb height between the gaps is not too high.
-						if (top-bot) >= walkableHeight && common.Abs(neighborSpan.y-span.y) <= walkableClimb {
+						if (top-bot) >= walkableHeight && common.Abs(neighborSpan.Y-span.Y) <= walkableClimb {
 							// Mark direction as walkable.
-							layerIndex := k - neighborCell.index
+							layerIndex := k - neighborCell.Index
 							if layerIndex < 0 || layerIndex > MAX_LAYERS {
 								maxLayerIndex = common.Max(maxLayerIndex, layerIndex)
 								continue
@@ -276,12 +278,12 @@ func RcCreateHeightfield(sizeX, sizeZ int,
 	minBounds, maxBounds []float64,
 	cellSize, cellHeight float64) (heightfield *RcHeightfield) {
 	heightfield = &RcHeightfield{}
-	heightfield.width = sizeX
-	heightfield.height = sizeZ
-	copy(heightfield.bmin[:], minBounds)
-	copy(heightfield.bmax[:], maxBounds)
-	heightfield.cs = cellSize
-	heightfield.ch = cellHeight
-	heightfield.spans = make([]*rcSpan, heightfield.width*heightfield.height)
+	heightfield.Width = sizeX
+	heightfield.Height = sizeZ
+	copy(heightfield.Bmin[:], minBounds)
+	copy(heightfield.Bmax[:], maxBounds)
+	heightfield.Cs = cellSize
+	heightfield.Ch = cellHeight
+	heightfield.Spans = make([]*RcSpan, heightfield.Width*heightfield.Height)
 	return heightfield
 }

@@ -56,8 +56,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 		return true
 	}
 
-	w := heightfield.width
-	h := heightfield.height
+	w := heightfield.Width
+	h := heightfield.Height
 	by := heightfieldBBMax[1] - heightfieldBBMin[1]
 
 	// Calculate the footprint of the triangle on the grid's z-axis
@@ -171,13 +171,13 @@ func RcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int,
 	heightfield *RcHeightfield, flagMergeThreshold int) bool {
 
 	// Rasterize the triangles.
-	inverseCellSize := 1.0 / heightfield.cs
-	inverseCellHeight := 1.0 / heightfield.ch
+	inverseCellSize := 1.0 / heightfield.Cs
+	inverseCellHeight := 1.0 / heightfield.Ch
 	for triIndex := 0; triIndex < numTris; triIndex++ {
 		v0 := rcGetVert(verts, tris[triIndex*3+0])
 		v1 := rcGetVert(verts, tris[triIndex*3+1])
 		v2 := rcGetVert(verts, tris[triIndex*3+2])
-		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
+		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.Bmin[:], heightfield.Bmax[:], heightfield.Cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			return false
 		}
 	}
@@ -188,13 +188,13 @@ func RcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int,
 func RcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
 	heightfield *RcHeightfield, flagMergeThreshold int) bool {
 	// Rasterize the triangles.
-	inverseCellSize := 1.0 / heightfield.cs
-	inverseCellHeight := 1.0 / heightfield.ch
+	inverseCellSize := 1.0 / heightfield.Cs
+	inverseCellHeight := 1.0 / heightfield.Ch
 	for triIndex := 0; triIndex < numTris; triIndex++ {
 		v0 := rcGetVert(verts, triIndex*3+0)
 		v1 := rcGetVert(verts, triIndex*3+1)
 		v2 := rcGetVert(verts, triIndex*3+2)
-		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
+		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.Bmin[:], heightfield.Bmax[:], heightfield.Cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			log.Printf("rcRasterizeTriangles: Out of memory.")
 			return false
 		}
@@ -303,49 +303,49 @@ func addSpan(heightfield *RcHeightfield,
 	if newSpan == nil {
 		return false
 	}
-	newSpan.smin = min
-	newSpan.smax = max
-	newSpan.area = areaID
-	newSpan.next = nil
+	newSpan.Smin = min
+	newSpan.Smax = max
+	newSpan.Area = areaID
+	newSpan.Next = nil
 
-	columnIndex := x + z*heightfield.width
-	var previousSpan *rcSpan
-	currentSpan := heightfield.spans[columnIndex]
+	columnIndex := x + z*heightfield.Width
+	var previousSpan *RcSpan
+	currentSpan := heightfield.Spans[columnIndex]
 
 	// Insert the new span, possibly merging it with existing spans.
 	for currentSpan != nil {
-		if currentSpan.smin > newSpan.smax {
+		if currentSpan.Smin > newSpan.Smax {
 			// Current span is completely after the new span, break.
 			break
 		}
 
-		if currentSpan.smax < newSpan.smin {
+		if currentSpan.Smax < newSpan.Smin {
 			// Current span is completely before the new span.  Keep going.
 			previousSpan = currentSpan
-			currentSpan = currentSpan.next
+			currentSpan = currentSpan.Next
 		} else {
 			// The new span overlaps with an existing span.  Merge them.
-			if currentSpan.smin < newSpan.smin {
-				newSpan.smin = currentSpan.smin
+			if currentSpan.Smin < newSpan.Smin {
+				newSpan.Smin = currentSpan.Smin
 			}
-			if currentSpan.smax > newSpan.smax {
-				newSpan.smax = currentSpan.smax
+			if currentSpan.Smax > newSpan.Smax {
+				newSpan.Smax = currentSpan.Smax
 			}
 
 			// Merge flags.
-			if common.Abs(newSpan.smax-currentSpan.smax) <= flagMergeThreshold {
+			if common.Abs(newSpan.Smax-currentSpan.Smax) <= flagMergeThreshold {
 				// Higher area ID numbers indicate higher resolution priority.
-				newSpan.area = common.Max(newSpan.area, currentSpan.area)
+				newSpan.Area = common.Max(newSpan.Area, currentSpan.Area)
 			}
 
 			// Remove the current span since it's now merged with newSpan.
 			// Keep going because there might be other overlapping spans that also need to be merged.
-			next := currentSpan.next
+			next := currentSpan.Next
 			freeSpan(heightfield, currentSpan)
 			if previousSpan != nil {
-				previousSpan.next = next
+				previousSpan.Next = next
 			} else {
-				heightfield.spans[columnIndex] = next
+				heightfield.Spans[columnIndex] = next
 			}
 			currentSpan = next
 		}
@@ -353,12 +353,12 @@ func addSpan(heightfield *RcHeightfield,
 
 	// Insert new span after prev
 	if previousSpan != nil {
-		newSpan.next = previousSpan.next
-		previousSpan.next = newSpan
+		newSpan.Next = previousSpan.Next
+		previousSpan.Next = newSpan
 	} else {
 		// This span should go before the others in the list
-		newSpan.next = heightfield.spans[columnIndex]
-		heightfield.spans[columnIndex] = newSpan
+		newSpan.Next = heightfield.Spans[columnIndex]
+		heightfield.Spans[columnIndex] = newSpan
 	}
 
 	return true
@@ -367,13 +367,13 @@ func addSpan(heightfield *RcHeightfield,
 // / Releases the memory used by the span back to the heightfield, so it can be re-used for new spans.
 // / @param[in]	heightfield		The heightfield.
 // / @param[in]	span	A pointer to the span to free
-func freeSpan(heightfield *RcHeightfield, span *rcSpan) {
+func freeSpan(heightfield *RcHeightfield, span *RcSpan) {
 	if span == nil {
 		return
 	}
 	// Add the span to the front of the free list.
-	span.next = heightfield.freelist
-	heightfield.freelist = span
+	span.Next = heightfield.Freelist
+	heightfield.Freelist = span
 }
 
 // / Allocates a new span in the heightfield.
@@ -381,36 +381,36 @@ func freeSpan(heightfield *RcHeightfield, span *rcSpan) {
 // /
 // / @param[in]	heightfield		The heightfield
 // / @returns A pointer to the allocated or re-used span memory.
-func allocSpan(heightfield *RcHeightfield) *rcSpan {
+func allocSpan(heightfield *RcHeightfield) *RcSpan {
 	// If necessary, allocate new page and update the freelist.
-	if heightfield.freelist == nil || heightfield.freelist.next == nil {
+	if heightfield.Freelist == nil || heightfield.Freelist.Next == nil {
 		// Create new page.
 		// Allocate memory for the new pool.
-		spanPool := &rcSpanPool{}
+		spanPool := &RcSpanPool{}
 
 		// Add the pool into the list of pools.
-		spanPool.next = heightfield.pools
-		heightfield.pools = spanPool
+		spanPool.next = heightfield.Pools
+		heightfield.Pools = spanPool
 
 		// Add new spans to the free list.
-		freeList := heightfield.freelist
+		freeList := heightfield.Freelist
 		head := &spanPool.items[0]
 		it := RC_SPANS_PER_POOL - 1
 		it--
-		spanPool.items[it].next = freeList
+		spanPool.items[it].Next = freeList
 		freeList = &spanPool.items[it]
 		for &spanPool.items[it] != head {
 			it--
-			spanPool.items[it].next = freeList
+			spanPool.items[it].Next = freeList
 			freeList = &spanPool.items[it]
 		}
 
-		heightfield.freelist = &spanPool.items[it]
+		heightfield.Freelist = &spanPool.items[it]
 	}
 
 	// Pop item from the front of the free list.
-	newSpan := heightfield.freelist
-	heightfield.freelist = heightfield.freelist.next
+	newSpan := heightfield.Freelist
+	heightfield.Freelist = heightfield.Freelist.Next
 	return newSpan
 }
 
@@ -429,9 +429,9 @@ func rcRasterizeTriangle(
 	areaID int, heightfield *RcHeightfield, flagMergeThreshold int) bool {
 
 	// Rasterize the single triangle.
-	inverseCellSize := 1.0 / heightfield.cs
-	inverseCellHeight := 1.0 / heightfield.ch
-	if !rasterizeTri(v0, v1, v2, areaID, heightfield, heightfield.bmin[:], heightfield.bmax[:], heightfield.cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
+	inverseCellSize := 1.0 / heightfield.Cs
+	inverseCellHeight := 1.0 / heightfield.Ch
+	if !rasterizeTri(v0, v1, v2, areaID, heightfield, heightfield.Bmin[:], heightfield.Bmax[:], heightfield.Cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 		return false
 	}
 	return true

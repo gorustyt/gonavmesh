@@ -62,28 +62,28 @@ type rcLayerSweepSpan struct {
 // / @ingroup recast
 // / @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
 type RcHeightfieldLayerSet struct {
-	layers  []*RcHeightfieldLayer ///< The layers in the set. [Size: #nlayers]
-	nlayers int                   ///< The number of layers in the set.
+	Layers  []*RcHeightfieldLayer ///< The layers in the set. [Size: #nlayers]
+	Nlayers int                   ///< The number of layers in the set.
 }
 
 // / Represents a heightfield layer within a layer set.
 // / @see RcHeightfieldLayerSet
 type RcHeightfieldLayer struct {
-	bmin    [3]float64 ///< The minimum bounds in world space. [(x, y, z)]
-	bmax    [3]float64 ///< The maximum bounds in world space. [(x, y, z)]
-	cs      float64    ///< The size of each cell. (On the xz-plane.)
-	ch      float64    ///< The height of each cell. (The minimum increment along the y-axis.)
-	width   int        ///< The width of the heightfield. (Along the x-axis in cell units.)
-	height  int        ///< The height of the heightfield. (Along the z-axis in cell units.)
-	minx    int        ///< The minimum x-bounds of usable data.
-	maxx    int        ///< The maximum x-bounds of usable data.
-	miny    int        ///< The minimum y-bounds of usable data. (Along the z-axis.)
-	maxy    int        ///< The maximum y-bounds of usable data. (Along the z-axis.)
-	hmin    int        ///< The minimum height bounds of usable data. (Along the y-axis.)
-	hmax    int        ///< The maximum height bounds of usable data. (Along the y-axis.)
-	heights []int      ///< The heightfield. [Size: width * height]
-	areas   []int      ///< Area ids. [Size: Same as #heights]
-	cons    []int      ///< Packed neighbor connection information. [Size: Same as #heights]
+	Bmin    [3]float64 ///< The minimum bounds in world space. [(x, y, z)]
+	Bmax    [3]float64 ///< The maximum bounds in world space. [(x, y, z)]
+	Cs      float64    ///< The size of each cell. (On the xz-plane.)
+	Ch      float64    ///< The height of each cell. (The minimum increment along the y-axis.)
+	Width   int        ///< The width of the heightfield. (Along the x-axis in cell units.)
+	Height  int        ///< The height of the heightfield. (Along the z-axis in cell units.)
+	Minx    int        ///< The minimum x-bounds of usable data.
+	Maxx    int        ///< The maximum x-bounds of usable data.
+	Miny    int        ///< The minimum y-bounds of usable data. (Along the z-axis.)
+	Maxy    int        ///< The maximum y-bounds of usable data. (Along the z-axis.)
+	Hmin    int        ///< The minimum height bounds of usable data. (Along the y-axis.)
+	Hmax    int        ///< The maximum height bounds of usable data. (Along the y-axis.)
+	Heights []int      ///< The heightfield. [Size: width * height]
+	Areas   []int      ///< Area ids. [Size: Same as #heights]
+	Cons    []int      ///< Packed neighbor connection information. [Size: Same as #heights]
 }
 
 // / @par
@@ -93,14 +93,14 @@ type RcHeightfieldLayer struct {
 // / @see rcAllocHeightfieldLayerSet, RcCompactHeightfield, RcHeightfieldLayerSet, RcConfig
 func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHeight int, lset *RcHeightfieldLayerSet) bool {
 
-	w := chf.width
-	h := chf.height
-	srcReg := make([]int, chf.spanCount)
+	w := chf.Width
+	h := chf.Height
+	srcReg := make([]int, chf.SpanCount)
 	for i := range srcReg {
 		srcReg[i] = 0xff
 	}
 
-	nsweeps := chf.width
+	nsweeps := chf.Width
 	sweeps := make([]*rcLayerSweepSpan, nsweeps)
 
 	// Partition walkable area into monotone regions.
@@ -111,13 +111,13 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 		sweepId := 0
 
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
-			i := c.index
-			ni := (c.index + c.count)
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
-				if chf.areas[i] == RC_NULL_AREA {
+				s := chf.Spans[i]
+				if chf.Areas[i] == RC_NULL_AREA {
 					continue
 				}
 				sid := 0xff
@@ -126,8 +126,8 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 				if rcGetCon(s, 0) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(0)
 					ay := y + common.GetDirOffsetY(0)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 0)
-					if chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xff {
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 0)
+					if chf.Areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xff {
 						sid = srcReg[ai]
 					}
 
@@ -144,7 +144,7 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 				if rcGetCon(s, 3) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(3)
 					ay := y + common.GetDirOffsetY(3)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 3)
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 3)
 					nr := srcReg[ai]
 					if nr != 0xff {
 						// Set neighbour when first valid neighbour is encoutered.
@@ -185,9 +185,9 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 
 		// Remap local sweep ids to region ids.
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (int)(c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (int)(c.Index + c.Count)
 			for ; i < ni; i++ {
 				if srcReg[i] != 0xff {
 					srcReg[i] = sweeps[srcReg[i]].id
@@ -212,21 +212,21 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 	// Find region neighbours and overlapping regions.
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
 			lregs := make([]int, RC_MAX_LAYERS)
 			nlregs := 0
-			i := c.index
-			ni := (c.index + c.count)
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
+				s := chf.Spans[i]
 				ri := srcReg[i]
 				if ri == 0xff {
 					continue
 				}
 
-				regs[ri].ymin = common.Min(regs[ri].ymin, s.y)
-				regs[ri].ymax = common.Max(regs[ri].ymax, s.y)
+				regs[ri].ymin = common.Min(regs[ri].ymin, s.Y)
+				regs[ri].ymax = common.Max(regs[ri].ymax, s.Y)
 
 				// Collect all region layers.
 				if nlregs < RC_MAX_LAYERS {
@@ -238,7 +238,7 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 						ax := x + common.GetDirOffsetX(dir)
 						ay := y + common.GetDirOffsetY(dir)
-						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
+						ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
 						rai := srcReg[ai]
 						if rai != 0xff && rai != ri {
 							// Don't check return value -- if we cannot add the neighbor
@@ -462,35 +462,35 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 
 	// Build contracted bbox for layers.
 	var bmin, bmax [3]float64
-	copy(bmin[:], chf.bmin[:])
-	copy(bmax[:], chf.bmax[:])
-	bmin[0] += float64(borderSize) * chf.cs
-	bmin[2] += float64(borderSize) * chf.cs
-	bmax[0] -= float64(borderSize) * chf.cs
-	bmax[2] -= float64(borderSize) * chf.cs
+	copy(bmin[:], chf.Bmin[:])
+	copy(bmax[:], chf.Bmax[:])
+	bmin[0] += float64(borderSize) * chf.Cs
+	bmin[2] += float64(borderSize) * chf.Cs
+	bmax[0] -= float64(borderSize) * chf.Cs
+	bmax[2] -= float64(borderSize) * chf.Cs
 
-	lset.nlayers = layerId
+	lset.Nlayers = layerId
 
-	lset.layers = make([]*RcHeightfieldLayer, lset.nlayers)
-	for i := range lset.layers {
-		lset.layers[i] = &RcHeightfieldLayer{}
+	lset.Layers = make([]*RcHeightfieldLayer, lset.Nlayers)
+	for i := range lset.Layers {
+		lset.Layers[i] = &RcHeightfieldLayer{}
 	}
 
 	// Store layers.
-	for i := 0; i < lset.nlayers; i++ {
+	for i := 0; i < lset.Nlayers; i++ {
 		curId := i
 
-		layer := lset.layers[i]
+		layer := lset.Layers[i]
 
 		gridSize := lw * lh
 
-		layer.heights = make([]int, gridSize)
-		for i := range layer.heights {
-			layer.heights[i] = 0xff
+		layer.Heights = make([]int, gridSize)
+		for i := range layer.Heights {
+			layer.Heights[i] = 0xff
 		}
 
-		layer.areas = make([]int, gridSize)
-		layer.cons = make([]int, gridSize)
+		layer.Areas = make([]int, gridSize)
+		layer.Cons = make([]int, gridSize)
 		// Find layer height bounds.
 		hmin := 0
 		hmax := 0
@@ -501,35 +501,35 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 			}
 		}
 
-		layer.width = lw
-		layer.height = lh
-		layer.cs = chf.cs
-		layer.ch = chf.ch
+		layer.Width = lw
+		layer.Height = lh
+		layer.Cs = chf.Cs
+		layer.Ch = chf.Ch
 
 		// Adjust the bbox to fit the heightfield.
-		copy(layer.bmin[:], bmin[:])
-		copy(layer.bmax[:], bmax[:])
-		layer.bmin[1] = bmin[1] + float64(hmin)*chf.ch
-		layer.bmax[1] = bmin[1] + float64(hmax)*chf.ch
-		layer.hmin = hmin
-		layer.hmax = hmax
+		copy(layer.Bmin[:], bmin[:])
+		copy(layer.Bmax[:], bmax[:])
+		layer.Bmin[1] = bmin[1] + float64(hmin)*chf.Ch
+		layer.Bmax[1] = bmin[1] + float64(hmax)*chf.Ch
+		layer.Hmin = hmin
+		layer.Hmax = hmax
 
 		// Update usable data region.
-		layer.minx = layer.width
-		layer.maxx = 0
-		layer.miny = layer.height
-		layer.maxy = 0
+		layer.Minx = layer.Width
+		layer.Maxx = 0
+		layer.Miny = layer.Height
+		layer.Maxy = 0
 
 		// Copy height and area from compact heightfield.
 		for y := 0; y < lh; y++ {
 			for x := 0; x < lw; x++ {
 				cx := borderSize + x
 				cy := borderSize + y
-				c := chf.cells[cx+cy*w]
-				j := c.index
-				nj := (c.index + c.count)
+				c := chf.Cells[cx+cy*w]
+				j := c.Index
+				nj := (c.Index + c.Count)
 				for ; j < nj; j++ {
-					s := chf.spans[j]
+					s := chf.Spans[j]
 					// Skip unassigned regions.
 					if srcReg[j] == 0xff {
 						continue
@@ -542,15 +542,15 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 					}
 
 					// Update data bounds.
-					layer.minx = common.Min(layer.minx, x)
-					layer.maxx = common.Max(layer.maxx, x)
-					layer.miny = common.Min(layer.miny, y)
-					layer.maxy = common.Max(layer.maxy, y)
+					layer.Minx = common.Min(layer.Minx, x)
+					layer.Maxx = common.Max(layer.Maxx, x)
+					layer.Miny = common.Min(layer.Miny, y)
+					layer.Maxy = common.Max(layer.Maxy, y)
 
 					// Store height and area type.
 					idx := x + y*lw
-					layer.heights[idx] = (s.y - hmin)
-					layer.areas[idx] = chf.areas[j]
+					layer.Heights[idx] = (s.Y - hmin)
+					layer.Areas[idx] = chf.Areas[j]
 
 					// Check connection.
 					portal := 0
@@ -559,23 +559,23 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 						if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 							ax := cx + common.GetDirOffsetX(dir)
 							ay := cy + common.GetDirOffsetY(dir)
-							ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
+							ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
 							alid := 0xff
 							if srcReg[ai] != 0xff {
 								alid = regs[srcReg[ai]].layerId
 							}
 							// Portal mask
-							if chf.areas[ai] != RC_NULL_AREA && lid != alid {
+							if chf.Areas[ai] != RC_NULL_AREA && lid != alid {
 								portal |= (1 << dir)
 								// Update height so that it matches on both sides of the portal.
-								as := chf.spans[ai]
-								if as.y > hmin {
-									layer.heights[idx] = common.Max(layer.heights[idx], (as.y - hmin))
+								as := chf.Spans[ai]
+								if as.Y > hmin {
+									layer.Heights[idx] = common.Max(layer.Heights[idx], (as.Y - hmin))
 								}
 
 							}
 							// Valid connection mask
-							if chf.areas[ai] != RC_NULL_AREA && lid == alid {
+							if chf.Areas[ai] != RC_NULL_AREA && lid == alid {
 								nx := ax - borderSize
 								ny := ay - borderSize
 								if nx >= 0 && ny >= 0 && nx < lw && ny < lh {
@@ -586,19 +586,19 @@ func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 						}
 					}
 
-					layer.cons[idx] = (portal << 4) | con
+					layer.Cons[idx] = (portal << 4) | con
 				}
 			}
 		}
 
-		if layer.minx > layer.maxx {
-			layer.maxx = 0
-			layer.minx = layer.maxx
+		if layer.Minx > layer.Maxx {
+			layer.Maxx = 0
+			layer.Minx = layer.Maxx
 		}
 
-		if layer.miny > layer.maxy {
-			layer.maxy = 0
-			layer.miny = layer.maxy
+		if layer.Miny > layer.Maxy {
+			layer.Maxy = 0
+			layer.Miny = layer.Maxy
 		}
 
 	}

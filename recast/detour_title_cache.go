@@ -5,9 +5,9 @@ import (
 	"math"
 )
 
-type dtObstacleRef int
+type DtObstacleRef int
 
-type dtCompressedTileRef int
+type DtCompressedTileRef int
 
 /// Flags for addTile
 
@@ -15,7 +15,7 @@ const DT_COMPRESSEDTILE_FREE_DATA = 0x01 ///< Navmesh owns the tile memory and s
 
 type dtCompressedTile struct {
 	salt           int ///< Counter describing modifications to the tile.
-	header         *DtTileCacheLayerHeader
+	Header         *DtTileCacheLayerHeader
 	compressed     []int
 	compressedSize int
 	data           []byte
@@ -54,16 +54,16 @@ type dtObstacleOrientedBox struct {
 	rotAux      [2]float64 //{ cos(0.5f*angle)*sin(-0.5f*angle); cos(0.5f*angle)*cos(0.5f*angle) - 0.5 }
 }
 
-type dtTileCacheParams struct {
-	orig                   [3]float64
-	cs, ch                 float64
-	width, height          int
-	walkableHeight         float64
-	walkableRadius         float64
-	walkableClimb          float64
-	maxSimplificationError float64
-	maxTiles               int
-	maxObstacles           int
+type DtTileCacheParams struct {
+	Orig                   [3]float64
+	Cs, Ch                 float64
+	Width, Height          int
+	WalkableHeight         float64
+	WalkableRadius         float64
+	WalkableClimb          float64
+	MaxSimplificationError float64
+	MaxTiles               int
+	MaxObstacles           int
 }
 
 const (
@@ -71,7 +71,7 @@ const (
 	TileCache_MAX_REQUESTS = 64
 )
 
-type dtTileCache struct {
+type DtTileCache struct {
 	m_tileLutSize int ///< Tile hash lookup size (must be pot).
 	m_tileLutMask int ///< Tile hash lookup mask.
 
@@ -82,20 +82,28 @@ type dtTileCache struct {
 	m_saltBits int ///< Number of salt bits in the tile ID.
 	m_tileBits int ///< Number of tile bits in the tile ID.
 
-	m_params *dtTileCacheParams
-	m_tcomp  *dtTileCacheCompressor
-	m_tmproc dtTileCacheMeshProcess
+	m_params *DtTileCacheParams
+	m_tcomp  *DtTileCacheCompressor
+	m_tmproc DtTileCacheMeshProcess
 
-	m_obstacles        []*dtTileCacheObstacle
-	m_nextFreeObstacle *dtTileCacheObstacle
+	m_obstacles        []*DtTileCacheObstacle
+	m_nextFreeObstacle *DtTileCacheObstacle
 	m_reqs             [TileCache_MAX_REQUESTS]*ObstacleRequest
 	m_nreqs            int
 
-	m_update  [TileCache_MAX_UPDATE]dtCompressedTileRef
+	m_update  [TileCache_MAX_UPDATE]DtCompressedTileRef
 	m_nupdate int
 }
 
-func (d *dtTileCache) getTileIndex(t *dtCompressedTile) int {
+func (d *DtTileCache) GetCompressor() *DtTileCacheCompressor { return d.m_tcomp }
+func (d *DtTileCache) GetParams() *DtTileCacheParams         { return d.m_params }
+
+func (d *DtTileCache) GetTileCount() int               { return d.m_params.MaxTiles }
+func (d *DtTileCache) GetTile(i int) *dtCompressedTile { return d.m_tiles[i] }
+
+func (d *DtTileCache) GetObstacleCount() int                  { return d.m_params.MaxObstacles }
+func (d *DtTileCache) GetObstacle(i int) *DtTileCacheObstacle { return d.m_obstacles[i] }
+func (d *DtTileCache) getTileIndex(t *dtCompressedTile) int {
 	for i, v := range d.m_tiles {
 		if v == t {
 			return i
@@ -104,7 +112,7 @@ func (d *dtTileCache) getTileIndex(t *dtCompressedTile) int {
 	return -1
 }
 
-func (d *dtTileCache) getObstaclesIndex(o *dtTileCacheObstacle) int {
+func (d *DtTileCache) getObstaclesIndex(o *DtTileCacheObstacle) int {
 	for i, v := range d.m_obstacles {
 		if v == o {
 			return i
@@ -114,35 +122,35 @@ func (d *dtTileCache) getObstaclesIndex(o *dtTileCacheObstacle) int {
 }
 
 // / Encodes a tile id.
-func (d *dtTileCache) encodeTileId(salt int, it int) dtCompressedTileRef {
-	return dtCompressedTileRef((salt << d.m_tileBits) | it)
+func (d *DtTileCache) encodeTileId(salt int, it int) DtCompressedTileRef {
+	return DtCompressedTileRef((salt << d.m_tileBits) | it)
 }
 
 // / Decodes a tile salt.
-func (d *dtTileCache) decodeTileIdSalt(ref dtCompressedTileRef) int {
+func (d *DtTileCache) decodeTileIdSalt(ref DtCompressedTileRef) int {
 	saltMask := (1 << d.m_saltBits) - 1
 	return (int(ref) >> d.m_tileBits) & saltMask
 }
 
 // / Decodes a tile id.
-func (d *dtTileCache) decodeTileIdTile(ref dtCompressedTileRef) int {
+func (d *DtTileCache) decodeTileIdTile(ref DtCompressedTileRef) int {
 	tileMask := (1 << d.m_tileBits) - 1
 	return int(ref) & tileMask
 }
 
 // / Encodes an obstacle id.
-func (d *dtTileCache) encodeObstacleId(salt int, it int) dtObstacleRef {
-	return dtObstacleRef(salt<<16 | it)
+func (d *DtTileCache) encodeObstacleId(salt int, it int) DtObstacleRef {
+	return DtObstacleRef(salt<<16 | it)
 }
 
 // / Decodes an obstacle salt.
-func (d *dtTileCache) decodeObstacleIdSalt(ref dtObstacleRef) int {
+func (d *DtTileCache) decodeObstacleIdSalt(ref DtObstacleRef) int {
 	saltMask := (1 << 16) - 1
 	return ((int(ref) >> 16) & saltMask)
 }
 
 // / Decodes an obstacle id.
-func (d *dtTileCache) decodeObstacleIdObstacle(ref dtObstacleRef) int {
+func (d *DtTileCache) decodeObstacleIdObstacle(ref DtObstacleRef) int {
 	tileMask := (1 << 16) - 1
 	return int(ref) & tileMask
 }
@@ -157,23 +165,23 @@ const (
 )
 const DT_MAX_TOUCHED_TILES = 8
 
-type dtTileCacheObstacle struct {
+type DtTileCacheObstacle struct {
 	cylinder    dtObstacleCylinder
 	box         dtObstacleBox
 	orientedBox dtObstacleOrientedBox
-	touched     [DT_MAX_TOUCHED_TILES]dtCompressedTileRef
-	pending     [DT_MAX_TOUCHED_TILES]dtCompressedTileRef
+	touched     [DT_MAX_TOUCHED_TILES]DtCompressedTileRef
+	pending     [DT_MAX_TOUCHED_TILES]DtCompressedTileRef
 	salt        int
 	Type        int
-	state       int
+	State       int
 	ntouched    int
 	npending    int
-	next        *dtTileCacheObstacle
+	next        *DtTileCacheObstacle
 }
 
 type ObstacleRequest struct {
 	action int
-	ref    dtObstacleRef
+	ref    DtObstacleRef
 
 	m_tileLutSize int ///< Tile hash lookup size (must be pot).
 	m_tileLutMask int ///< Tile hash lookup mask.
@@ -185,19 +193,22 @@ type ObstacleRequest struct {
 	m_saltBits int ///< Number of salt bits in the tile ID.
 	m_tileBits int ///< Number of tile bits in the tile ID.
 
-	m_params           *dtTileCacheParams
-	m_tcomp            *dtTileCacheCompressor
-	m_tmproc           *dtTileCacheMeshProcess
-	m_obstacles        *dtTileCacheObstacle
-	m_nextFreeObstacle *dtTileCacheObstacle
+	m_params           *DtTileCacheParams
+	m_tcomp            *DtTileCacheCompressor
+	m_tmproc           *DtTileCacheMeshProcess
+	m_obstacles        *DtTileCacheObstacle
+	m_nextFreeObstacle *DtTileCacheObstacle
 	m_reqs             [MAX_REQUESTS]*ObstacleRequest
 	m_nreqs            int
 
-	m_update  [MAX_UPDATE]dtCompressedTileRef
+	m_update  [MAX_UPDATE]DtCompressedTileRef
 	m_nupdate int
 }
 
-func titleCacheContains(a []dtCompressedTileRef, n int, v dtCompressedTileRef) bool {
+func newObstacleRequest() *ObstacleRequest {
+	return &ObstacleRequest{}
+}
+func titleCacheContains(a []DtCompressedTileRef, n int, v DtCompressedTileRef) bool {
 	for i := 0; i < n; i++ {
 		if a[i] == v {
 			return true
@@ -225,14 +236,14 @@ func (d *NavMeshTileBuildContext) purge() {
 	d.lmesh = nil
 }
 
-func (d *dtTileCache) getTileByRef(ref dtCompressedTileRef) *dtCompressedTile {
+func (d *DtTileCache) GetTileByRef(ref DtCompressedTileRef) *dtCompressedTile {
 	if ref == 0 {
 		return nil
 	}
 
 	tileIndex := d.decodeTileIdTile(ref)
 	tileSalt := d.decodeTileIdSalt(ref)
-	if tileIndex >= d.m_params.maxTiles {
+	if tileIndex >= d.m_params.MaxTiles {
 		return nil
 	}
 	tile := d.m_tiles[tileIndex]
@@ -243,18 +254,18 @@ func (d *dtTileCache) getTileByRef(ref dtCompressedTileRef) *dtCompressedTile {
 	return tile
 }
 
-func (d *dtTileCache) init(params *dtTileCacheParams,
-	tcomp *dtTileCacheCompressor,
-	tmproc dtTileCacheMeshProcess) DtStatus {
+func (d *DtTileCache) init(params *DtTileCacheParams,
+	tcomp *DtTileCacheCompressor,
+	tmproc DtTileCacheMeshProcess) DtStatus {
 	d.m_tcomp = tcomp
 	d.m_tmproc = tmproc
 	d.m_nreqs = 0
 	d.m_params = params
 
 	// Alloc space for obstacles.
-	d.m_obstacles = make([]*dtTileCacheObstacle, d.m_params.maxObstacles)
+	d.m_obstacles = make([]*DtTileCacheObstacle, d.m_params.maxObstacles)
 	for i := range d.m_obstacles {
-		d.m_obstacles[i] = &dtTileCacheObstacle{}
+		d.m_obstacles[i] = &DtTileCacheObstacle{}
 	}
 	d.m_nextFreeObstacle = nil
 	for i := d.m_params.maxObstacles - 1; i >= 0; i-- {
@@ -297,7 +308,7 @@ func (d *dtTileCache) init(params *dtTileCacheParams,
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) GetTilesAt(tx, ty int, tiles []dtCompressedTileRef, maxTiles int) int {
+func (d *DtTileCache) GetTilesAt(tx, ty int, tiles []DtCompressedTileRef, maxTiles int) int {
 	n := 0
 
 	// Find tile based on hash.
@@ -319,7 +330,7 @@ func (d *dtTileCache) GetTilesAt(tx, ty int, tiles []dtCompressedTileRef, maxTil
 	return n
 }
 
-func (d *dtTileCache) getTileAt(tx, ty, tlayer int) *dtCompressedTile {
+func (d *DtTileCache) getTileAt(tx, ty, tlayer int) *dtCompressedTile {
 	// Find tile based on hash.
 	h := computeTileHash(tx, ty, d.m_tileLutMask)
 	tile := d.m_posLookup[h]
@@ -335,7 +346,7 @@ func (d *dtTileCache) getTileAt(tx, ty, tlayer int) *dtCompressedTile {
 	return nil
 }
 
-func (d *dtTileCache) getTileRef(tile *dtCompressedTile) dtCompressedTileRef {
+func (d *DtTileCache) getTileRef(tile *dtCompressedTile) DtCompressedTileRef {
 	if tile == nil {
 		return 0
 	}
@@ -343,7 +354,7 @@ func (d *dtTileCache) getTileRef(tile *dtCompressedTile) dtCompressedTileRef {
 	return d.encodeTileId(tile.salt, it)
 }
 
-func (d *dtTileCache) getObstacleRef(ob *dtTileCacheObstacle) dtObstacleRef {
+func (d *DtTileCache) GetObstacleRef(ob *DtTileCacheObstacle) DtObstacleRef {
 	if ob == nil {
 		return 0
 	}
@@ -351,7 +362,7 @@ func (d *dtTileCache) getObstacleRef(ob *dtTileCacheObstacle) dtObstacleRef {
 	return d.encodeObstacleId(ob.salt, idx)
 }
 
-func (d *dtTileCache) getObstacleByRef(ref dtObstacleRef) *dtTileCacheObstacle {
+func (d *DtTileCache) getObstacleByRef(ref DtObstacleRef) *DtTileCacheObstacle {
 	if ref == 0 {
 		return nil
 	}
@@ -370,7 +381,7 @@ func (d *dtTileCache) getObstacleByRef(ref dtObstacleRef) *dtTileCacheObstacle {
 	return ob
 }
 
-func (d *dtTileCache) addTile(header *DtTileCacheLayerHeader, tile *dtCompressedTile, flags int, result *dtCompressedTileRef) DtStatus {
+func (d *DtTileCache) AddTile(header *DtTileCacheLayerHeader, tile *dtCompressedTile, flags int, result *DtCompressedTileRef) DtStatus {
 	// Make sure the data is in right format.
 	if header.Magic != DT_TILECACHE_MAGIC {
 		return DT_FAILURE | DT_WRONG_MAGIC
@@ -412,7 +423,7 @@ func (d *dtTileCache) addTile(header *DtTileCacheLayerHeader, tile *dtCompressed
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) removeTile(ref dtCompressedTileRef, data *[]byte, dataSize *int) DtStatus {
+func (d *DtTileCache) removeTile(ref DtCompressedTileRef, data *[]byte, dataSize *int) DtStatus {
 	if ref == 0 {
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
@@ -486,12 +497,12 @@ func (d *dtTileCache) removeTile(ref dtCompressedTileRef, data *[]byte, dataSize
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) addObstacle(pos []float64, radius, height float64, result *dtObstacleRef) DtStatus {
+func (d *DtTileCache) AddObstacle(pos []float64, radius, height float64, result *DtObstacleRef) DtStatus {
 	if d.m_nreqs >= MAX_REQUESTS {
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL
 	}
 
-	var ob *dtTileCacheObstacle
+	var ob *DtTileCacheObstacle
 	if d.m_nextFreeObstacle != nil {
 		ob = d.m_nextFreeObstacle
 		d.m_nextFreeObstacle = ob.next
@@ -502,9 +513,9 @@ func (d *dtTileCache) addObstacle(pos []float64, radius, height float64, result 
 	}
 
 	salt := ob.salt
-	ob = &dtTileCacheObstacle{}
+	ob = &DtTileCacheObstacle{}
 	ob.salt = salt
-	ob.state = DT_OBSTACLE_PROCESSING
+	ob.State = DT_OBSTACLE_PROCESSING
 	ob.Type = DT_OBSTACLE_CYLINDER
 	copy(ob.cylinder.pos[:], pos)
 	ob.cylinder.radius = radius
@@ -514,7 +525,7 @@ func (d *dtTileCache) addObstacle(pos []float64, radius, height float64, result 
 	d.m_nreqs++
 	d.m_reqs[d.m_nreqs] = req
 	req.action = REQUEST_ADD
-	req.ref = d.getObstacleRef(ob)
+	req.ref = d.GetObstacleRef(ob)
 
 	if result != nil {
 		*result = req.ref
@@ -522,12 +533,12 @@ func (d *dtTileCache) addObstacle(pos []float64, radius, height float64, result 
 
 	return DT_SUCCESS
 }
-func (d *dtTileCache) addBoxObstacle(bmin, bmax []float64, result *dtObstacleRef) DtStatus {
+func (d *DtTileCache) addBoxObstacle(bmin, bmax []float64, result *DtObstacleRef) DtStatus {
 	if d.m_nreqs >= MAX_REQUESTS {
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL
 	}
 
-	var ob *dtTileCacheObstacle
+	var ob *DtTileCacheObstacle
 	if d.m_nextFreeObstacle != nil {
 		ob = d.m_nextFreeObstacle
 		d.m_nextFreeObstacle = ob.next
@@ -538,9 +549,9 @@ func (d *dtTileCache) addBoxObstacle(bmin, bmax []float64, result *dtObstacleRef
 	}
 
 	salt := ob.salt
-	ob = &dtTileCacheObstacle{}
+	ob = &DtTileCacheObstacle{}
 	ob.salt = salt
-	ob.state = DT_OBSTACLE_PROCESSING
+	ob.State = DT_OBSTACLE_PROCESSING
 	ob.Type = DT_OBSTACLE_BOX
 	copy(ob.box.bmin[:], bmin)
 	copy(ob.box.bmax[:], bmax)
@@ -549,7 +560,7 @@ func (d *dtTileCache) addBoxObstacle(bmin, bmax []float64, result *dtObstacleRef
 	d.m_reqs[d.m_nreqs] = req
 	d.m_nreqs++
 	req.action = REQUEST_ADD
-	req.ref = d.getObstacleRef(ob)
+	req.ref = d.GetObstacleRef(ob)
 
 	if result != nil {
 		*result = req.ref
@@ -558,12 +569,12 @@ func (d *dtTileCache) addBoxObstacle(bmin, bmax []float64, result *dtObstacleRef
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) addBoxObstacle1(center []float64, halfExtents []float64, yRadians float64, result *dtObstacleRef) DtStatus {
+func (d *DtTileCache) addBoxObstacle1(center []float64, halfExtents []float64, yRadians float64, result *DtObstacleRef) DtStatus {
 	if d.m_nreqs >= MAX_REQUESTS {
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL
 	}
 
-	var ob *dtTileCacheObstacle
+	var ob *DtTileCacheObstacle
 	if d.m_nextFreeObstacle != nil {
 		ob = d.m_nextFreeObstacle
 		d.m_nextFreeObstacle = ob.next
@@ -574,9 +585,9 @@ func (d *dtTileCache) addBoxObstacle1(center []float64, halfExtents []float64, y
 	}
 
 	salt := ob.salt
-	ob = &dtTileCacheObstacle{}
+	ob = &DtTileCacheObstacle{}
 	ob.salt = salt
-	ob.state = DT_OBSTACLE_PROCESSING
+	ob.State = DT_OBSTACLE_PROCESSING
 	ob.Type = DT_OBSTACLE_ORIENTED_BOX
 	copy(ob.orientedBox.center[:], center)
 	copy(ob.orientedBox.halfExtents[:], halfExtents)
@@ -590,7 +601,7 @@ func (d *dtTileCache) addBoxObstacle1(center []float64, halfExtents []float64, y
 	d.m_reqs[d.m_nreqs] = req
 	d.m_nreqs++
 	req.action = REQUEST_ADD
-	req.ref = d.getObstacleRef(ob)
+	req.ref = d.GetObstacleRef(ob)
 
 	if result != nil {
 		*result = req.ref
@@ -599,37 +610,19 @@ func (d *dtTileCache) addBoxObstacle1(center []float64, halfExtents []float64, y
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) removeObstacle(ref dtObstacleRef) DtStatus {
-	if ref == 0 {
-		return DT_SUCCESS
-	}
-
-	if d.m_nreqs >= MAX_REQUESTS {
-		return DT_FAILURE | DT_BUFFER_TOO_SMALL
-	}
-
-	req := &ObstacleRequest{}
-	d.m_reqs[d.m_nreqs] = req
-	d.m_nreqs++
-	req.action = REQUEST_REMOVE
-	req.ref = ref
-
-	return DT_SUCCESS
-}
-
-func (d *dtTileCache) queryTiles(bmin, bmax []float64,
-	results []dtCompressedTileRef, resultCount *int, maxResults int) DtStatus {
+func (d *DtTileCache) queryTiles(bmin, bmax []float64,
+	results []DtCompressedTileRef, resultCount *int, maxResults int) DtStatus {
 	MAX_TILES := 32
-	tiles := make([]dtCompressedTileRef, MAX_TILES)
+	tiles := make([]DtCompressedTileRef, MAX_TILES)
 
 	n := 0
 
-	tw := float64(d.m_params.width) * d.m_params.cs
-	th := float64(d.m_params.height) * d.m_params.cs
-	tx0 := int(math.Floor((bmin[0] - d.m_params.orig[0]) / tw))
-	tx1 := int(math.Floor((bmax[0] - d.m_params.orig[0]) / tw))
-	ty0 := int(math.Floor((bmin[2] - d.m_params.orig[2]) / th))
-	ty1 := int(math.Floor((bmax[2] - d.m_params.orig[2]) / th))
+	tw := float64(d.m_params.Width) * d.m_params.Cs
+	th := float64(d.m_params.Height) * d.m_params.Cs
+	tx0 := int(math.Floor((bmin[0] - d.m_params.Orig[0]) / tw))
+	tx1 := int(math.Floor((bmax[0] - d.m_params.Orig[0]) / tw))
+	ty0 := int(math.Floor((bmin[2] - d.m_params.Orig[2]) / th))
+	ty1 := int(math.Floor((bmax[2] - d.m_params.Orig[2]) / th))
 
 	for ty := ty0; ty <= ty1; ty++ {
 		for tx := tx0; tx <= tx1; tx++ {
@@ -639,7 +632,7 @@ func (d *dtTileCache) queryTiles(bmin, bmax []float64,
 				tile := d.m_tiles[d.decodeTileIdTile(tiles[i])]
 				tbmin := make([]float64, 3)
 				tbmax := make([]float64, 3)
-				d.calcTightTileBounds(tile.header, tbmin, tbmax)
+				d.CalcTightTileBounds(tile.Header, tbmin, tbmax)
 
 				if dtOverlapBounds(bmin, bmax, tbmin, tbmax) {
 					if n < maxResults {
@@ -657,15 +650,19 @@ func (d *dtTileCache) queryTiles(bmin, bmax []float64,
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
-	upToDate *bool) DtStatus {
+func (d *DtTileCache) Update(dt float64, navmesh IDtNavMesh,
+	upToDates ...*bool) DtStatus {
+	var upToDate *bool
+	if len(upToDates) > 0 {
+		upToDate = upToDates[0]
+	}
 	if d.m_nupdate == 0 {
 		// Process requests.
 		for i := 0; i < d.m_nreqs; i++ {
 			req := d.m_reqs[i]
 
 			idx := d.decodeObstacleIdObstacle(req.ref)
-			if idx >= d.m_params.maxObstacles {
+			if idx >= d.m_params.MaxObstacles {
 				continue
 			}
 
@@ -679,7 +676,7 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 				// Find touched tiles.
 				bmin := make([]float64, 3)
 				bmax := make([]float64, 3)
-				d.getObstacleBounds(ob, bmin, bmax)
+				d.GetObstacleBounds(ob, bmin, bmax)
 
 				ntouched := 0
 				d.queryTiles(bmin, bmax, ob.touched[:], &ntouched, DT_MAX_TOUCHED_TILES)
@@ -699,7 +696,7 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 				}
 			} else if req.action == REQUEST_REMOVE {
 				// Prepare to remove obstacle.
-				ob.state = DT_OBSTACLE_REMOVING
+				ob.State = DT_OBSTACLE_REMOVING
 				// Add tiles to update list.
 				ob.npending = 0
 				for j := 0; j < ob.ntouched; j++ {
@@ -732,9 +729,9 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 		}
 
 		// Update obstacle states.
-		for i := 0; i < d.m_params.maxObstacles; i++ {
+		for i := 0; i < d.m_params.MaxObstacles; i++ {
 			ob := d.m_obstacles[i]
-			if ob.state == DT_OBSTACLE_PROCESSING || ob.state == DT_OBSTACLE_REMOVING {
+			if ob.State == DT_OBSTACLE_PROCESSING || ob.State == DT_OBSTACLE_REMOVING {
 				// Remove handled tile from pending list.
 				for j := 0; j < ob.npending; j++ {
 					if ob.pending[j] == ref {
@@ -746,10 +743,10 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 
 				// If all pending tiles processed, change state.
 				if ob.npending == 0 {
-					if ob.state == DT_OBSTACLE_PROCESSING {
-						ob.state = DT_OBSTACLE_PROCESSED
-					} else if ob.state == DT_OBSTACLE_REMOVING {
-						ob.state = DT_OBSTACLE_EMPTY
+					if ob.State == DT_OBSTACLE_PROCESSING {
+						ob.State = DT_OBSTACLE_PROCESSED
+					} else if ob.State == DT_OBSTACLE_REMOVING {
+						ob.State = DT_OBSTACLE_EMPTY
 						// Update salt, salt should never be zero.
 						ob.salt = (ob.salt + 1) & ((1 << 16) - 1)
 						if ob.salt == 0 {
@@ -772,9 +769,9 @@ func (d *dtTileCache) update(dt float64, navmesh *DtNavMesh,
 	return status
 }
 
-func (d *dtTileCache) buildNavMeshTilesAt(tx, ty int, navmesh *DtNavMesh) DtStatus {
+func (d *DtTileCache) BuildNavMeshTilesAt(tx, ty int, navmesh *DtNavMesh) DtStatus {
 	MAX_TILES := 32
-	tiles := make([]dtCompressedTileRef, MAX_TILES)
+	tiles := make([]DtCompressedTileRef, MAX_TILES)
 	ntiles := d.GetTilesAt(tx, ty, tiles, MAX_TILES)
 
 	for i := 0; i < ntiles; i++ {
@@ -788,7 +785,7 @@ func (d *dtTileCache) buildNavMeshTilesAt(tx, ty int, navmesh *DtNavMesh) DtStat
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMesh) DtStatus {
+func (d *DtTileCache) buildNavMeshTile(ref DtCompressedTileRef, navmesh *DtNavMesh) DtStatus {
 	idx := d.decodeTileIdTile(ref)
 	if idx > d.m_params.maxTiles {
 		return DT_FAILURE | DT_INVALID_PARAM
@@ -908,8 +905,8 @@ func (d *dtTileCache) buildNavMeshTile(ref dtCompressedTileRef, navmesh *DtNavMe
 	return DT_SUCCESS
 }
 
-func (d *dtTileCache) calcTightTileBounds(header *DtTileCacheLayerHeader, bmin, bmax []float64) {
-	cs := d.m_params.cs
+func (d *DtTileCache) CalcTightTileBounds(header *DtTileCacheLayerHeader, bmin, bmax []float64) {
+	cs := d.m_params.Cs
 	bmin[0] = header.Bmin[0] + float64(header.Minx)*cs
 	bmin[1] = header.Bmin[1]
 	bmin[2] = header.Bmin[2] + float64(header.Miny)*cs
@@ -918,7 +915,7 @@ func (d *dtTileCache) calcTightTileBounds(header *DtTileCacheLayerHeader, bmin, 
 	bmax[2] = header.Bmin[2] + float64(header.Maxy+1)*cs
 }
 
-func (d *dtTileCache) getObstacleBounds(ob *dtTileCacheObstacle, bmin, bmax []float64) {
+func (d *DtTileCache) GetObstacleBounds(ob *DtTileCacheObstacle, bmin, bmax []float64) {
 	if ob.Type == DT_OBSTACLE_CYLINDER {
 		cl := ob.cylinder
 
@@ -942,4 +939,23 @@ func (d *dtTileCache) getObstacleBounds(ob *dtTileCacheObstacle, bmin, bmax []fl
 		bmin[2] = orientedBox.center[2] - maxr
 		bmax[2] = orientedBox.center[2] + maxr
 	}
+}
+
+func (d *DtTileCache) RemoveObstacle(ref DtObstacleRef) DtStatus {
+	if ref == 0 {
+		return DT_SUCCESS
+	}
+	if d.m_nreqs >= MAX_REQUESTS {
+		return DT_FAILURE | DT_BUFFER_TOO_SMALL
+	}
+	req := d.m_reqs[d.m_nreqs]
+	if req == nil {
+		req = newObstacleRequest()
+		d.m_reqs[d.m_nreqs] = req
+	}
+	d.m_nreqs++
+	req.action = REQUEST_REMOVE
+	req.ref = ref
+
+	return DT_SUCCESS
 }

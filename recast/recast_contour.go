@@ -11,13 +11,13 @@ const (
 	/// Applied to the region id field of contour vertices in order to extract the region id.
 	/// The region id field of a vertex may have several flags applied to it.  So the
 	/// fields value can't be used directly.
-	/// @see rcContour::verts, rcContour::rverts
+	/// @see RcContour::verts, RcContour::rverts
 	RC_CONTOUR_REG_MASK = 0xffff
 	/// Area border flag.
 	/// If a region ID has this bit set, then the associated element lies on
 	/// the border of an area.
 	/// (Used during the region and contour build process.)
-	/// @see rcCompactSpan::reg, #rcContour::verts, #rcContour::rverts
+	/// @see RcCompactSpan::reg, #RcContour::verts, #RcContour::rverts
 	RC_AREA_BORDER = 0x20000
 	/// Border vertex flag.
 	/// If a region ID has this bit set, then the associated element lies on
@@ -25,7 +25,7 @@ const (
 	/// vertex will later be removed in order to match the segments and vertices
 	/// at tile boundaries.
 	/// (Used during the build process.)
-	/// @see rcCompactSpan::reg, #rcContour::verts, #rcContour::rverts
+	/// @see RcCompactSpan::reg, #RcContour::verts, #RcContour::rverts
 	RC_BORDER_VERTEX = 0x10000
 
 	RC_CONTOUR_TESS_WALL_EDGES = 0x01 ///< Tessellate solid (impassable) edges during contour simplification.
@@ -71,46 +71,46 @@ func intersectSegContour(d0, d1 []int, i, n int, verts []int) bool {
 }
 func getCornerHeight(x, y, i, dir int, chf *RcCompactHeightfield,
 	isBorderVertex *bool) int {
-	s := chf.spans[i]
-	ch := s.y
+	s := chf.Spans[i]
+	ch := s.Y
 	dirp := (dir + 1) & 0x3
 
 	regs := []int{0, 0, 0, 0}
 
 	// Combine region and area codes in order to prevent
 	// border vertices which are in between two areas to be removed.
-	regs[0] = chf.spans[i].reg | (chf.areas[i] << 16)
+	regs[0] = chf.Spans[i].Reg | (chf.Areas[i] << 16)
 
 	if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 		ax := x + common.GetDirOffsetX(dir)
 		ay := y + common.GetDirOffsetY(dir)
-		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
-		as := chf.spans[ai]
-		ch = common.Max(ch, as.y)
-		regs[1] = chf.spans[ai].reg | (chf.areas[ai] << 16)
+		ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
+		as := chf.Spans[ai]
+		ch = common.Max(ch, as.Y)
+		regs[1] = chf.Spans[ai].Reg | (chf.Areas[ai] << 16)
 		if rcGetCon(as, dirp) != RC_NOT_CONNECTED {
 			ax2 := ax + common.GetDirOffsetX(dirp)
 			ay2 := ay + common.GetDirOffsetY(dirp)
-			ai2 := chf.cells[ax2+ay2*chf.width].index + rcGetCon(as, dirp)
-			as2 := chf.spans[ai2]
-			ch = common.Max(ch, as2.y)
-			regs[2] = chf.spans[ai2].reg | (chf.areas[ai2] << 16)
+			ai2 := chf.Cells[ax2+ay2*chf.Width].Index + rcGetCon(as, dirp)
+			as2 := chf.Spans[ai2]
+			ch = common.Max(ch, as2.Y)
+			regs[2] = chf.Spans[ai2].Reg | (chf.Areas[ai2] << 16)
 		}
 	}
 	if rcGetCon(s, dirp) != RC_NOT_CONNECTED {
 		ax := x + common.GetDirOffsetX(dirp)
 		ay := y + common.GetDirOffsetY(dirp)
-		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dirp)
-		as := chf.spans[ai]
-		ch = common.Max(ch, as.y)
-		regs[3] = chf.spans[ai].reg | (chf.areas[ai] << 16)
+		ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dirp)
+		as := chf.Spans[ai]
+		ch = common.Max(ch, as.Y)
+		regs[3] = chf.Spans[ai].Reg | (chf.Areas[ai] << 16)
 		if rcGetCon(as, dir) != RC_NOT_CONNECTED {
 			ax2 := ax + common.GetDirOffsetX(dir)
 			ay2 := ay + common.GetDirOffsetY(dir)
-			ai2 := chf.cells[ax2+ay2*chf.width].index + rcGetCon(as, dir)
-			as2 := chf.spans[ai2]
-			ch = common.Max(ch, as2.y)
-			regs[2] = chf.spans[ai2].reg | (chf.areas[ai2] << 16)
+			ai2 := chf.Cells[ax2+ay2*chf.Width].Index + rcGetCon(as, dir)
+			as2 := chf.Spans[ai2]
+			ch = common.Max(ch, as2.Y)
+			regs[2] = chf.Spans[ai2].Reg | (chf.Areas[ai2] << 16)
 		}
 	}
 
@@ -169,7 +169,7 @@ func walkContour(x, y, i int, chf *RcCompactHeightfield,
 	startDir := dir
 	starti := i
 
-	area := chf.areas[i]
+	area := chf.Areas[i]
 
 	iter := 0
 	for {
@@ -197,13 +197,13 @@ func walkContour(x, y, i int, chf *RcCompactHeightfield,
 				break
 			}
 			r := 0
-			s := chf.spans[i]
+			s := chf.Spans[i]
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 				ax := x + common.GetDirOffsetX(dir)
 				ay := y + common.GetDirOffsetY(dir)
-				ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
-				r = chf.spans[ai].reg
-				if area != chf.areas[ai] {
+				ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
+				r = chf.Spans[ai].Reg
+				if area != chf.Areas[ai] {
 					isAreaBorder = true
 				}
 
@@ -227,10 +227,10 @@ func walkContour(x, y, i int, chf *RcCompactHeightfield,
 			ni := -1
 			nx := x + common.GetDirOffsetX(dir)
 			ny := y + common.GetDirOffsetY(dir)
-			s := chf.spans[i]
+			s := chf.Spans[i]
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-				nc := chf.cells[nx+ny*chf.width]
-				ni = nc.index + rcGetCon(s, dir)
+				nc := chf.Cells[nx+ny*chf.Width]
+				ni = nc.Index + rcGetCon(s, dir)
 			}
 			if ni == -1 {
 				// Should not happen.
@@ -504,16 +504,16 @@ func removeDegenerateSegments(simplified Stack[int]) {
 		}
 	}
 }
-func mergeContours(ca, cb *rcContour, ia, ib int) bool {
-	maxVerts := ca.nverts + cb.nverts + 2
+func mergeContours(ca, cb *RcContour, ia, ib int) bool {
+	maxVerts := ca.Nverts + cb.Nverts + 2
 	verts := make([]int, maxVerts*4)
 
 	nv := 0
 
 	// Copy contour A.
-	for i := 0; i <= ca.nverts; i++ {
+	for i := 0; i <= ca.Nverts; i++ {
 		dst := rcGetVert4(verts, nv)
-		src := rcGetVert4(ca.verts, ((ia + i) % ca.nverts))
+		src := rcGetVert4(ca.Verts, ((ia + i) % ca.Nverts))
 		dst[0] = src[0]
 		dst[1] = src[1]
 		dst[2] = src[2]
@@ -522,9 +522,9 @@ func mergeContours(ca, cb *rcContour, ia, ib int) bool {
 	}
 
 	// Copy contour B
-	for i := 0; i <= cb.nverts; i++ {
+	for i := 0; i <= cb.Nverts; i++ {
 		dst := rcGetVert4(verts, nv)
-		src := rcGetVert4(ca.verts, ((ib + i) % cb.nverts))
+		src := rcGetVert4(ca.Verts, ((ib + i) % cb.Nverts))
 		dst[0] = src[0]
 		dst[1] = src[1]
 		dst[2] = src[2]
@@ -532,23 +532,23 @@ func mergeContours(ca, cb *rcContour, ia, ib int) bool {
 		nv++
 	}
 
-	ca.verts = verts
-	ca.nverts = nv
+	ca.Verts = verts
+	ca.Nverts = nv
 
-	cb.verts = []int{}
-	cb.nverts = 0
+	cb.Verts = []int{}
+	cb.Nverts = 0
 
 	return true
 }
 
-type rcContourHole struct {
-	contour              *rcContour
+type RcContourHole struct {
+	contour              *RcContour
 	minx, minz, leftmost int
 }
 
-type rcContourRegion struct {
-	outline *rcContour
-	holes   []*rcContourHole
+type RcContourRegion struct {
+	outline *RcContour
+	holes   []*RcContourHole
 	nholes  int
 }
 
@@ -558,13 +558,13 @@ type rcPotentialDiagonal struct {
 }
 
 // Finds the lowest leftmost vertex of a contour.
-func findLeftMostVertex(contour *rcContour, minx, minz *int, leftmost *int) {
-	*minx = contour.verts[0]
-	*minz = contour.verts[2]
+func findLeftMostVertex(contour *RcContour, minx, minz *int, leftmost *int) {
+	*minx = contour.Verts[0]
+	*minz = contour.Verts[2]
 	*leftmost = 0
-	for i := 1; i < contour.nverts; i++ {
-		x := contour.verts[i*4+0]
-		z := contour.verts[i*4+2]
+	for i := 1; i < contour.Nverts; i++ {
+		x := contour.Verts[i*4+0]
+		z := contour.Verts[i*4+2]
 		if x < *minx || (x == *minx && z < *minz) {
 			*minx = x
 			*minz = z
@@ -573,7 +573,7 @@ func findLeftMostVertex(contour *rcContour, minx, minz *int, leftmost *int) {
 	}
 }
 
-func compareHoles(va, vb *rcContourHole) int {
+func compareHoles(va, vb *RcContourHole) int {
 	a := va
 	b := vb
 	if a.minx == b.minx {
@@ -612,7 +612,7 @@ func compareDiagDist(va, vb *rcPotentialDiagonal) int {
 	return 0
 }
 
-func mergeRegionHoles(region *rcContourRegion) {
+func mergeRegionHoles(region *RcContourRegion) {
 	// Sort holes from left to right.
 	for i := 0; i < region.nholes; i++ {
 		findLeftMostVertex(region.holes[i].contour, &region.holes[i].minx, &region.holes[i].minz, &region.holes[i].leftmost)
@@ -620,9 +620,9 @@ func mergeRegionHoles(region *rcContourRegion) {
 	sort.Slice(region.holes, func(i, j int) bool {
 		return compareHoles(region.holes[i], region.holes[j]) > 0
 	})
-	maxVerts := region.outline.nverts
+	maxVerts := region.outline.Nverts
 	for i := 0; i < region.nholes; i++ {
-		maxVerts += region.holes[i].contour.nverts
+		maxVerts += region.holes[i].contour.Nverts
 	}
 
 	diags := make([]*rcPotentialDiagonal, maxVerts)
@@ -635,7 +635,7 @@ func mergeRegionHoles(region *rcContourRegion) {
 
 		index := -1
 		bestVertex := region.holes[i].leftmost
-		for iter := 0; iter < hole.nverts; iter++ {
+		for iter := 0; iter < hole.Nverts; iter++ {
 			// Find potential diagonals.
 			// The 'best' vertex must be in the cone described by 3 consecutive vertices of the outline.
 			// ..o j-1
@@ -645,11 +645,11 @@ func mergeRegionHoles(region *rcContourRegion) {
 			// j o-----o j+1
 			//         :
 			ndiags := 0
-			corner := rcGetVert4(hole.verts, bestVertex)
-			for j := 0; j < outline.nverts; j++ {
-				if contourInCone(j, outline.nverts, outline.verts, corner) {
-					dx := outline.verts[j*4+0] - corner[0]
-					dz := outline.verts[j*4+2] - corner[2]
+			corner := rcGetVert4(hole.Verts, bestVertex)
+			for j := 0; j < outline.Nverts; j++ {
+				if contourInCone(j, outline.Nverts, outline.Verts, corner) {
+					dx := outline.Verts[j*4+0] - corner[0]
+					dz := outline.Verts[j*4+2] - corner[2]
 					diags[ndiags].vert = j
 					diags[ndiags].dist = dx*dx + dz*dz
 					ndiags++
@@ -664,10 +664,10 @@ func mergeRegionHoles(region *rcContourRegion) {
 			// Find a diagonal that is not intersecting the outline not the remaining holes.
 			index = -1
 			for j := 0; j < ndiags; j++ {
-				pt := rcGetVert4(outline.verts, diags[j].vert)
-				intersect := intersectSegContour(pt, corner, diags[i].vert, outline.nverts, outline.verts)
+				pt := rcGetVert4(outline.Verts, diags[j].vert)
+				intersect := intersectSegContour(pt, corner, diags[i].vert, outline.Nverts, outline.Verts)
 				for k := i; k < region.nholes && !intersect; k++ {
-					if intersect || intersectSegContour(pt, corner, -1, region.holes[k].contour.nverts, region.holes[k].contour.verts) {
+					if intersect || intersectSegContour(pt, corner, -1, region.holes[k].contour.Nverts, region.holes[k].contour.Verts) {
 						intersect = true
 					}
 				}
@@ -683,7 +683,7 @@ func mergeRegionHoles(region *rcContourRegion) {
 			}
 
 			// All the potential diagonals for the current vertex were intersecting, try next vertex.
-			bestVertex = (bestVertex + 1) % hole.nverts
+			bestVertex = (bestVertex + 1) % hole.Nverts
 		}
 
 		if index == -1 {
@@ -712,42 +712,42 @@ func RcBuildContours(chf *RcCompactHeightfield,
 	maxError float64, maxEdgeLen int,
 	cset *RcContourSet, buildFlags int) bool {
 
-	w := chf.width
-	h := chf.height
-	borderSize := chf.borderSize
+	w := chf.Width
+	h := chf.Height
+	borderSize := chf.BorderSize
 
-	copy(cset.bmin, chf.bmin[:])
-	copy(cset.bmax, chf.bmax[:])
+	copy(cset.Bmin, chf.Bmin[:])
+	copy(cset.Bmax, chf.Bmax[:])
 	if borderSize > 0 {
 		// If the heightfield was build with bordersize, remove the offset.
-		pad := float64(borderSize) * chf.cs
-		cset.bmin[0] += pad
-		cset.bmin[2] += pad
-		cset.bmax[0] -= pad
-		cset.bmax[2] -= pad
+		pad := float64(borderSize) * chf.Cs
+		cset.Bmin[0] += pad
+		cset.Bmin[2] += pad
+		cset.Bmax[0] -= pad
+		cset.Bmax[2] -= pad
 	}
-	cset.cs = chf.cs
-	cset.ch = chf.ch
-	cset.width = chf.width - chf.borderSize*2
-	cset.height = chf.height - chf.borderSize*2
-	cset.borderSize = chf.borderSize
-	cset.maxError = maxError
+	cset.Cs = chf.Cs
+	cset.Ch = chf.Ch
+	cset.Width = chf.Width - chf.BorderSize*2
+	cset.Height = chf.Height - chf.BorderSize*2
+	cset.BorderSize = chf.BorderSize
+	cset.MaxError = maxError
 
-	maxContours := common.Max(chf.maxRegions, 8)
+	maxContours := common.Max(chf.MaxRegions, 8)
 
-	cset.conts = make([]*rcContour, maxContours)
+	cset.Conts = make([]*RcContour, maxContours)
 	cset.Nconts = 0
-	flags := make([]int, chf.spanCount)
+	flags := make([]int, chf.SpanCount)
 	// Mark boundaries.
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
 				res := 0
-				s := chf.spans[i]
-				if chf.spans[i].reg == 0 || (chf.spans[i].reg&RC_BORDER_REG > 0) {
+				s := chf.Spans[i]
+				if chf.Spans[i].Reg == 0 || (chf.Spans[i].Reg&RC_BORDER_REG > 0) {
 					flags[i] = 0
 					continue
 				}
@@ -756,10 +756,10 @@ func RcBuildContours(chf *RcCompactHeightfield,
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 						ax := x + common.GetDirOffsetX(dir)
 						ay := y + common.GetDirOffsetY(dir)
-						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
-						r = chf.spans[ai].reg
+						ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
+						r = chf.Spans[ai].Reg
 					}
-					if r == chf.spans[i].reg {
+					if r == chf.Spans[i].Reg {
 						res |= (1 << dir)
 					}
 
@@ -774,20 +774,20 @@ func RcBuildContours(chf *RcCompactHeightfield,
 
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (int)(c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (int)(c.Index + c.Count)
 			for ; i < ni; i++ {
 				if flags[i] == 0 || flags[i] == 0xf {
 					flags[i] = 0
 					continue
 				}
-				reg := chf.spans[i].reg
+				reg := chf.Spans[i].Reg
 				if reg == 0 || (reg&RC_BORDER_REG > 0) {
 					continue
 				}
 
-				area := chf.areas[i]
+				area := chf.Areas[i]
 
 				verts.Clear()
 				simplified.Clear()
@@ -804,46 +804,46 @@ func RcBuildContours(chf *RcCompactHeightfield,
 						// Allocate more contours.
 						// This happens when a region has holes.
 						maxContours *= 2
-						newConts := make([]*rcContour, maxContours)
+						newConts := make([]*RcContour, maxContours)
 						for j := 0; j < cset.Nconts; j++ {
-							newConts[j] = cset.conts[j]
+							newConts[j] = cset.Conts[j]
 							// Reset source pointers to prevent data deletion.
-							cset.conts[j].verts = []int{}
-							cset.conts[j].rverts = []int{}
+							cset.Conts[j].Verts = []int{}
+							cset.Conts[j].Rverts = []int{}
 						}
-						cset.conts = newConts
+						cset.Conts = newConts
 					}
 
-					cont := cset.conts[cset.Nconts]
+					cont := cset.Conts[cset.Nconts]
 					cset.Nconts++
 
-					cont.nverts = simplified.Len() / 4
-					cont.verts = make([]int, cont.nverts*4)
-					copy(cont.verts, simplified.Slice(0, cont.nverts*4))
+					cont.Nverts = simplified.Len() / 4
+					cont.Verts = make([]int, cont.Nverts*4)
+					copy(cont.Verts, simplified.Slice(0, cont.Nverts*4))
 					if borderSize > 0 {
 						// If the heightfield was build with bordersize, remove the offset.
-						for j := 0; j < cont.nverts; j++ {
-							v := rcGetVert4(cont.verts, j)
+						for j := 0; j < cont.Nverts; j++ {
+							v := rcGetVert4(cont.Verts, j)
 							v[0] -= borderSize
 							v[2] -= borderSize
 						}
 					}
 
-					cont.nrverts = verts.Len() / 4
-					cont.rverts = make([]int, cont.nrverts*4)
+					cont.Nrverts = verts.Len() / 4
+					cont.Rverts = make([]int, cont.Nrverts*4)
 
-					copy(cont.rverts, verts.Slice(0, cont.nrverts*4))
+					copy(cont.Rverts, verts.Slice(0, cont.Nrverts*4))
 					if borderSize > 0 {
 						// If the heightfield was build with bordersize, remove the offset.
-						for j := 0; j < cont.nrverts; j++ {
-							v := rcGetVert4(cont.rverts, j)
+						for j := 0; j < cont.Nrverts; j++ {
+							v := rcGetVert4(cont.Rverts, j)
 							v[0] -= borderSize
 							v[2] -= borderSize
 						}
 					}
 
-					cont.reg = reg
-					cont.area = area
+					cont.Reg = reg
+					cont.Area = area
 				}
 			}
 		}
@@ -855,10 +855,10 @@ func RcBuildContours(chf *RcCompactHeightfield,
 		winding := make([]int, cset.Nconts)
 		nholes := 0
 		for i := 0; i < cset.Nconts; i++ {
-			cont := cset.conts[i]
+			cont := cset.Conts[i]
 			// If the contour is wound backwards, it is a hole.
 			winding[i] = 1
-			if calcAreaOfPolygon2D(cont.verts, cont.nverts) < 0 {
+			if calcAreaOfPolygon2D(cont.Verts, cont.Nverts) < 0 {
 				winding[i] = -1
 			}
 			if winding[i] < 0 {
@@ -870,25 +870,25 @@ func RcBuildContours(chf *RcCompactHeightfield,
 		if nholes > 0 {
 			// Collect outline contour and holes contours per region.
 			// We assume that there is one outline and multiple holes.
-			nregions := chf.maxRegions + 1
-			regions := make([]*rcContourRegion, nregions)
+			nregions := chf.MaxRegions + 1
+			regions := make([]*RcContourRegion, nregions)
 			for i := range regions {
-				regions[i] = &rcContourRegion{}
+				regions[i] = &RcContourRegion{}
 			}
-			holes := make([]*rcContourHole, cset.Nconts)
+			holes := make([]*RcContourHole, cset.Nconts)
 			for i := range holes {
-				holes[i] = &rcContourHole{}
+				holes[i] = &RcContourHole{}
 			}
 			for i := 0; i < cset.Nconts; i++ {
-				cont := cset.conts[i]
+				cont := cset.Conts[i]
 				// Positively would contours are outlines, negative holes.
 				if winding[i] > 0 {
-					if regions[cont.reg].outline != nil {
-						regions[cont.reg].outline = cont
+					if regions[cont.Reg].outline != nil {
+						regions[cont.Reg].outline = cont
 					}
 
 				} else {
-					regions[cont.reg].nholes++
+					regions[cont.Reg].nholes++
 				}
 			}
 			index := 0
@@ -900,8 +900,8 @@ func RcBuildContours(chf *RcCompactHeightfield,
 				}
 			}
 			for i := 0; i < cset.Nconts; i++ {
-				cont := cset.conts[i]
-				reg := regions[cont.reg]
+				cont := cset.Conts[i]
+				reg := regions[cont.Reg]
 				if winding[i] < 0 {
 					reg.holes[reg.nholes].contour = cont
 					reg.nholes++

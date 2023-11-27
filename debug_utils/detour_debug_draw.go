@@ -543,7 +543,7 @@ func DebugDrawTileCachePortals(dd DuDebugDraw, layer *recast.DtTileCacheLayer, c
 	dd.End()
 }
 
-func duDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *recast.DtTileCacheLayer, cs, ch float64) {
+func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *recast.DtTileCacheLayer, cs, ch float64) {
 	w := layer.Header.Width
 	h := layer.Header.Height
 	bmin := layer.Header.Bmin
@@ -598,7 +598,7 @@ func duDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *recast.DtTileCacheLay
 	DebugDrawTileCachePortals(dd, layer, cs, ch)
 }
 
-func duDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *recast.DtTileCacheLayer, cs, ch float64) {
+func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *recast.DtTileCacheLayer, cs, ch float64) {
 	w := layer.Header.Width
 	h := layer.Header.Height
 	bmin := layer.Header.Bmin
@@ -660,7 +660,7 @@ struct dtTileCacheContourSet
 	dtTileCacheContour* conts;
 };*/
 
-func duDebugDrawTileCacheContours(dd DuDebugDraw, lcset *recast.DtTileCacheContourSet,
+func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *recast.DtTileCacheContourSet,
 	orig []float64, cs, ch float64) {
 	if dd == nil {
 		return

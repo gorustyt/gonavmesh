@@ -4,11 +4,11 @@ import "gonavamesh/common"
 
 const (
 	/// The number of spans allocated per span spool.
-	/// @see rcSpanPool
+	/// @see RcSpanPool
 	RC_SPANS_PER_POOL = 2048
-	/// Defines the number of bits allocated to rcSpan::smin and rcSpan::smax.
+	/// Defines the number of bits allocated to RcSpan::smin and RcSpan::smax.
 	RC_SPAN_HEIGHT_BITS = 13
-	/// Defines the maximum value for rcSpan::smin and rcSpan::smax.
+	/// Defines the maximum value for RcSpan::smin and RcSpan::smax.
 	RC_SPAN_MAX_HEIGHT = (1 << RC_SPAN_HEIGHT_BITS) - 1
 	/// Represents the null area.
 	/// When a data element is given this value it is considered to no longer be
@@ -16,98 +16,98 @@ const (
 	RC_NULL_AREA = 0
 )
 
-type rcSpan struct {
-	smin int     ///< The lower limit of the span. [Limit: < #smax]
-	smax int     ///< The upper limit of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT]
-	area int     ///< The area id assigned to the span.
-	next *rcSpan ///< The next span higher up in column.
+type RcSpan struct {
+	Smin int     ///< The lower limit of the span. [Limit: < #smax]
+	Smax int     ///< The upper limit of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT]
+	Area int     ///< The area id assigned to the span.
+	Next *RcSpan ///< The next span higher up in column.
 }
 
-func NewRcSpan() *rcSpan {
-	return &rcSpan{
-		smin: RC_SPAN_HEIGHT_BITS,
-		smax: RC_SPAN_HEIGHT_BITS,
-		area: 6,
+func NewRcSpan() *RcSpan {
+	return &RcSpan{
+		Smin: RC_SPAN_HEIGHT_BITS,
+		Smax: RC_SPAN_HEIGHT_BITS,
+		Area: 6,
 	}
 }
 
 // / A memory pool used for quick allocation of spans within a heightfield.
 // / @see RcHeightfield
-type rcSpanPool struct {
-	next  *rcSpanPool               ///< The next span pool.
-	items [RC_SPANS_PER_POOL]rcSpan ///< Array of spans in the pool.
+type RcSpanPool struct {
+	next  *RcSpanPool               ///< The next span pool.
+	items [RC_SPANS_PER_POOL]RcSpan ///< Array of spans in the pool.
 }
 
 // / A dynamic heightfield representing obstructed space.
 // / @ingroup recast
 type RcHeightfield struct {
-	width    int         ///< The width of the heightfield. (Along the x-axis in cell units.)
-	height   int         ///< The height of the heightfield. (Along the z-axis in cell units.)
-	bmin     [3]float64  ///< The minimum bounds in world space. [(x, y, z)]
-	bmax     [3]float64  ///< The maximum bounds in world space. [(x, y, z)]
-	cs       float64     ///< The size of each cell. (On the xz-plane.)
-	ch       float64     ///< The height of each cell. (The minimum increment along the y-axis.)
-	spans    []*rcSpan   ///< Heightfield of spans (width*height).
-	pools    *rcSpanPool ///< Linked list of span pools.
-	freelist *rcSpan     ///< The next free span.
+	Width    int         ///< The width of the heightfield. (Along the x-axis in cell units.)
+	Height   int         ///< The height of the heightfield. (Along the z-axis in cell units.)
+	Bmin     [3]float64  ///< The minimum bounds in world space. [(x, y, z)]
+	Bmax     [3]float64  ///< The maximum bounds in world space. [(x, y, z)]
+	Cs       float64     ///< The size of each cell. (On the xz-plane.)
+	Ch       float64     ///< The height of each cell. (The minimum increment along the y-axis.)
+	Spans    []*RcSpan   ///< Heightfield of spans (width*height).
+	Pools    *RcSpanPool ///< Linked list of span pools.
+	Freelist *RcSpan     ///< The next free span.
 	// Explicitly-disabled copy constructor and copy assignment operator.
 }
 
 func RcFilterLowHangingWalkableObstacles(walkableClimb int, heightfield *RcHeightfield) {
-	xSize := heightfield.width
-	zSize := heightfield.height
+	xSize := heightfield.Width
+	zSize := heightfield.Height
 
 	for z := 0; z < zSize; z++ {
 		for x := 0; x < xSize; x++ {
-			var previousSpan *rcSpan
+			var previousSpan *RcSpan
 			previousWasWalkable := false
 			previousArea := RC_NULL_AREA
 
-			for span := heightfield.spans[x+z*xSize]; span != nil; {
-				walkable := span.area != RC_NULL_AREA
+			for span := heightfield.Spans[x+z*xSize]; span != nil; {
+				walkable := span.Area != RC_NULL_AREA
 				// If current span is not walkable, but there is walkable
 				// span just below it, mark the span above it walkable too.
 				if !walkable && previousWasWalkable {
-					if common.Abs(span.smax-previousSpan.smax) <= walkableClimb {
-						span.area = previousArea
+					if common.Abs(span.Smax-previousSpan.Smax) <= walkableClimb {
+						span.Area = previousArea
 					}
 				}
 				// Copy walkable flag so that it cannot propagate
 				// past multiple non-walkable objects.
 				previousWasWalkable = walkable
-				previousArea = span.area
+				previousArea = span.Area
 				previousSpan = span
-				span = span.next
+				span = span.Next
 			}
 		}
 	}
 }
 
 func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHeightfield) {
-	xSize := heightfield.width
-	zSize := heightfield.height
+	xSize := heightfield.Width
+	zSize := heightfield.Height
 	MAX_HEIGHT := 0xffff // TODO (graham): Move this to a more visible constant and update usages.
 
 	// Mark border spans.
 	for z := 0; z < zSize; z++ {
 		for x := 0; x < xSize; x++ {
-			for span := heightfield.spans[x+z*xSize]; span != nil; span = span.next {
+			for span := heightfield.Spans[x+z*xSize]; span != nil; span = span.Next {
 				// Skip non walkable spans.
-				if span.area == RC_NULL_AREA {
+				if span.Area == RC_NULL_AREA {
 					continue
 				}
 
-				bot := span.smax
+				bot := span.Smax
 				top := MAX_HEIGHT
-				if span.next != nil {
-					top = span.next.smin
+				if span.Next != nil {
+					top = span.Next.Smin
 				}
 				// Find neighbours minimum height.
 				minNeighborHeight := MAX_HEIGHT
 
 				// Min and max height of accessible neighbours.
-				accessibleNeighborMinHeight := span.smax
-				accessibleNeighborMaxHeight := span.smax
+				accessibleNeighborMinHeight := span.Smax
+				accessibleNeighborMaxHeight := span.Smax
 
 				for direction := 0; direction < 4; direction++ {
 					dx := x + common.GetDirOffsetX(direction)
@@ -119,11 +119,11 @@ func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHe
 					}
 
 					// From minus infinity to the first span.
-					neighborSpan := heightfield.spans[dx+dy*xSize]
+					neighborSpan := heightfield.Spans[dx+dy*xSize]
 					neighborBot := -walkableClimb
 					neighborTop := MAX_HEIGHT
 					if neighborSpan != nil {
-						neighborTop = neighborSpan.smin
+						neighborTop = neighborSpan.Smin
 					}
 					// Skip neighbour if the gap between the spans is too small.
 					if common.Min(top, neighborTop)-common.Max(bot, neighborBot) > walkableHeight {
@@ -131,11 +131,11 @@ func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHe
 					}
 
 					// Rest of the spans.
-					for neighborSpan := heightfield.spans[dx+dy*xSize]; neighborSpan != nil; neighborSpan = neighborSpan.next {
-						neighborBot = neighborSpan.smax
+					for neighborSpan := heightfield.Spans[dx+dy*xSize]; neighborSpan != nil; neighborSpan = neighborSpan.Next {
+						neighborBot = neighborSpan.Smax
 						neighborTop := MAX_HEIGHT
-						if neighborSpan.next != nil {
-							neighborTop = neighborSpan.next.smin
+						if neighborSpan.Next != nil {
+							neighborTop = neighborSpan.Next.Smin
 						}
 
 						// Skip neighbour if the gap between the spans is too small.
@@ -159,11 +159,11 @@ func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHe
 				// The current span is close to a ledge if the drop to any
 				// neighbour span is less than the walkableClimb.
 				if minNeighborHeight < -walkableClimb {
-					span.area = RC_NULL_AREA
+					span.Area = RC_NULL_AREA
 					// If the difference between all neighbours is too large,
 					// we are at steep slope, mark the span as ledge.
 				} else if (accessibleNeighborMaxHeight - accessibleNeighborMinHeight) > walkableClimb {
-					span.area = RC_NULL_AREA
+					span.Area = RC_NULL_AREA
 				}
 			}
 		}
@@ -172,22 +172,22 @@ func RcFilterLedgeSpans(walkableHeight int, walkableClimb int, heightfield *RcHe
 
 func RcFilterWalkableLowHeightSpans(walkableHeight int, heightfield *RcHeightfield) {
 	var (
-		xSize      = heightfield.width
-		zSize      = heightfield.height
+		xSize      = heightfield.Width
+		zSize      = heightfield.Height
 		MAX_HEIGHT = 0xffff
 	)
 	// Remove walkable flag from spans which do not have enough
 	// space above them for the agent to stand there.
 	for z := 0; z < zSize; z++ {
 		for x := 0; x < xSize; x++ {
-			for span := heightfield.spans[x+z*xSize]; span != nil; span = span.next {
-				bot := span.smax
+			for span := heightfield.Spans[x+z*xSize]; span != nil; span = span.Next {
+				bot := span.Smax
 				top := MAX_HEIGHT
-				if span.next != nil {
-					top = span.next.smin
+				if span.Next != nil {
+					top = span.Next.Smin
 				}
 				if (top - bot) < walkableHeight {
-					span.area = RC_NULL_AREA
+					span.Area = RC_NULL_AREA
 				}
 			}
 		}

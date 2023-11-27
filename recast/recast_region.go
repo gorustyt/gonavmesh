@@ -11,36 +11,36 @@ const (
 	/// If a heightfield region ID has this bit set, then the region is a border
 	/// region and its spans are considered un-walkable.
 	/// (Used during the region and contour build process.)
-	/// @see rcCompactSpan::reg
+	/// @see RcCompactSpan::reg
 	RC_BORDER_REG = 0x8000
 )
 
 func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) {
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 
 	// Init distance and points.
-	for i := 0; i < chf.spanCount; i++ {
+	for i := 0; i < chf.SpanCount; i++ {
 		src[i] = 0xffff
 	}
 
 	// Mark boundary cells.
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
-				area := chf.areas[i]
+				s := chf.Spans[i]
+				area := chf.Areas[i]
 
 				nc := 0
 				for dir := 0; dir < 4; dir++ {
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 						ax := x + common.GetDirOffsetX(dir)
 						ay := y + common.GetDirOffsetY(dir)
-						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
-						if area == chf.areas[ai] {
+						ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
+						if area == chf.Areas[ai] {
 							nc++
 						}
 
@@ -57,18 +57,18 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 	// Pass 1
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
+				s := chf.Spans[i]
 
 				if rcGetCon(s, 0) != RC_NOT_CONNECTED {
 					// (-1,0)
 					ax := x + common.GetDirOffsetX(0)
 					ay := y + common.GetDirOffsetY(0)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 0)
-					as := chf.spans[ai]
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 0)
+					as := chf.Spans[ai]
 					if src[ai]+2 < src[i] {
 						src[i] = src[ai] + 2
 					}
@@ -77,7 +77,7 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					if rcGetCon(as, 3) != RC_NOT_CONNECTED {
 						aax := ax + common.GetDirOffsetX(3)
 						aay := ay + common.GetDirOffsetY(3)
-						aai := chf.cells[aax+aay*w].index + rcGetCon(as, 3)
+						aai := chf.Cells[aax+aay*w].Index + rcGetCon(as, 3)
 						if src[aai]+3 < src[i] {
 							src[i] = src[aai] + 3
 						}
@@ -88,8 +88,8 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					// (0,-1)
 					ax := x + common.GetDirOffsetX(3)
 					ay := y + common.GetDirOffsetY(3)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 3)
-					as := chf.spans[ai]
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 3)
+					as := chf.Spans[ai]
 					if src[ai]+2 < src[i] {
 						src[i] = src[ai] + 2
 					}
@@ -98,7 +98,7 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					if rcGetCon(as, 2) != RC_NOT_CONNECTED {
 						aax := ax + common.GetDirOffsetX(2)
 						aay := ay + common.GetDirOffsetY(2)
-						aai := chf.cells[aax+aay*w].index + rcGetCon(as, 2)
+						aai := chf.Cells[aax+aay*w].Index + rcGetCon(as, 2)
 						if src[aai]+3 < src[i] {
 							src[i] = src[aai] + 3
 						}
@@ -112,18 +112,18 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 	// Pass 2
 	for y := h - 1; y >= 0; y-- {
 		for x := w - 1; x >= 0; x-- {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
+				s := chf.Spans[i]
 
 				if rcGetCon(s, 2) != RC_NOT_CONNECTED {
 					// (1,0)
 					ax := x + common.GetDirOffsetX(2)
 					ay := y + common.GetDirOffsetY(2)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 2)
-					as := chf.spans[ai]
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 2)
+					as := chf.Spans[ai]
 					if src[ai]+2 < src[i] {
 						src[i] = src[ai] + 2
 					}
@@ -132,7 +132,7 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					if rcGetCon(as, 1) != RC_NOT_CONNECTED {
 						aax := ax + common.GetDirOffsetX(1)
 						aay := ay + common.GetDirOffsetY(1)
-						aai := chf.cells[aax+aay*w].index + rcGetCon(as, 1)
+						aai := chf.Cells[aax+aay*w].Index + rcGetCon(as, 1)
 						if src[aai]+3 < src[i] {
 							src[i] = src[aai] + 3
 						}
@@ -143,8 +143,8 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					// (0,1)
 					ax := x + common.GetDirOffsetX(1)
 					ay := y + common.GetDirOffsetY(1)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 1)
-					as := chf.spans[ai]
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 1)
+					as := chf.Spans[ai]
 					if src[ai]+2 < src[i] {
 						src[i] = src[ai] + 2
 					}
@@ -153,7 +153,7 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 					if rcGetCon(as, 0) != RC_NOT_CONNECTED {
 						aax := ax + common.GetDirOffsetX(0)
 						aay := ay + common.GetDirOffsetY(0)
-						aai := chf.cells[aax+aay*w].index + rcGetCon(as, 0)
+						aai := chf.Cells[aax+aay*w].Index + rcGetCon(as, 0)
 						if src[aai]+3 < src[i] {
 							src[i] = src[aai] + 3
 						}
@@ -165,25 +165,25 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []int, maxDist *int) 
 	}
 
 	*maxDist = 0
-	for i := 0; i < chf.spanCount; i++ {
+	for i := 0; i < chf.SpanCount; i++ {
 		*maxDist = common.Max(src[i], *maxDist)
 	}
 
 }
 
 func boxBlur(chf *RcCompactHeightfield, thr int, src, dst []int) []int {
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 
 	thr *= 2
 
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
+				s := chf.Spans[i]
 				cd := src[i]
 				if cd <= thr {
 					dst[i] = cd
@@ -195,15 +195,15 @@ func boxBlur(chf *RcCompactHeightfield, thr int, src, dst []int) []int {
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 						ax := x + common.GetDirOffsetX(dir)
 						ay := y + common.GetDirOffsetY(dir)
-						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
+						ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
 						d += src[ai]
 
-						as := chf.spans[ai]
+						as := chf.Spans[ai]
 						dir2 := (dir + 1) & 0x3
 						if rcGetCon(as, dir2) != RC_NOT_CONNECTED {
 							ax2 := ax + common.GetDirOffsetX(dir2)
 							ay2 := ay + common.GetDirOffsetY(dir2)
-							ai2 := chf.cells[ax2+ay2*w].index + rcGetCon(as, dir2)
+							ai2 := chf.Cells[ax2+ay2*w].Index + rcGetCon(as, dir2)
 							d += src[ai2]
 						} else {
 							d += cd
@@ -234,9 +234,9 @@ func newLevelStackEntry(x int, y int, index int) *LevelStackEntry {
 }
 func floodRegion(x, y, i int, level, r int,
 	chf *RcCompactHeightfield, srcReg, srcDist []int, stack Stack[*LevelStackEntry]) bool {
-	w := chf.width
+	w := chf.Width
 
-	area := chf.areas[i]
+	area := chf.Areas[i]
 
 	// Flood fill mark region.
 	stack.Clear()
@@ -257,7 +257,7 @@ func floodRegion(x, y, i int, level, r int,
 		ci := back.index
 		stack.Pop()
 
-		cs := chf.spans[ci]
+		cs := chf.Spans[ci]
 
 		// Check if any of the neighbours already have a valid region set.
 		ar := 0
@@ -266,8 +266,8 @@ func floodRegion(x, y, i int, level, r int,
 			if rcGetCon(cs, dir) != RC_NOT_CONNECTED {
 				ax := cx + common.GetDirOffsetX(dir)
 				ay := cy + common.GetDirOffsetY(dir)
-				ai := chf.cells[ax+ay*w].index + rcGetCon(cs, dir)
-				if chf.areas[ai] != area {
+				ai := chf.Cells[ax+ay*w].Index + rcGetCon(cs, dir)
+				if chf.Areas[ai] != area {
 					continue
 				}
 
@@ -281,14 +281,14 @@ func floodRegion(x, y, i int, level, r int,
 					break
 				}
 
-				as := chf.spans[ai]
+				as := chf.Spans[ai]
 
 				dir2 := (dir + 1) & 0x3
 				if rcGetCon(as, dir2) != RC_NOT_CONNECTED {
 					ax2 := ax + common.GetDirOffsetX(dir2)
 					ay2 := ay + common.GetDirOffsetY(dir2)
-					ai2 := chf.cells[ax2+ay2*w].index + rcGetCon(as, dir2)
-					if chf.areas[ai2] != area {
+					ai2 := chf.Cells[ax2+ay2*w].Index + rcGetCon(as, dir2)
+					if chf.Areas[ai2] != area {
 						continue
 					}
 
@@ -312,12 +312,12 @@ func floodRegion(x, y, i int, level, r int,
 			if rcGetCon(cs, dir) != RC_NOT_CONNECTED {
 				ax := cx + common.GetDirOffsetX(dir)
 				ay := cy + common.GetDirOffsetY(dir)
-				ai := chf.cells[ax+ay*w].index + rcGetCon(cs, dir)
-				if chf.areas[ai] != area {
+				ai := chf.Cells[ax+ay*w].Index + rcGetCon(cs, dir)
+				if chf.Areas[ai] != area {
 					continue
 				}
 
-				if chf.dist[ai] >= lev && srcReg[ai] == 0 {
+				if chf.Dist[ai] >= lev && srcReg[ai] == 0 {
 					srcReg[ai] = r
 					srcDist[ai] = 0
 					stack.Push(newLevelStackEntry(ax, ay, ai))
@@ -345,19 +345,19 @@ func expandRegions(maxIter, level int,
 	srcReg, srcDist []int,
 	stack Stack[*LevelStackEntry],
 	fillStack bool) {
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 
 	if fillStack {
 		// Find cells revealed by the raised level.
 		stack.Clear()
 		for y := 0; y < h; y++ {
 			for x := 0; x < w; x++ {
-				c := chf.cells[x+y*w]
-				i := c.index
-				ni := (c.index + c.count)
+				c := chf.Cells[x+y*w]
+				i := c.Index
+				ni := (c.Index + c.Count)
 				for ; i < ni; i++ {
-					if chf.dist[i] >= level && srcReg[i] == 0 && chf.areas[i] != RC_NULL_AREA {
+					if chf.Dist[i] >= level && srcReg[i] == 0 && chf.Areas[i] != RC_NULL_AREA {
 						stack.Push(newLevelStackEntry(x, y, i))
 					}
 				}
@@ -394,16 +394,16 @@ func expandRegions(maxIter, level int,
 
 			r := srcReg[i]
 			d2 := 0xffff
-			area := chf.areas[i]
-			s := chf.spans[i]
+			area := chf.Areas[i]
+			s := chf.Spans[i]
 			for dir := 0; dir < 4; dir++ {
 				if rcGetCon(s, dir) == RC_NOT_CONNECTED {
 					continue
 				}
 				ax := x + common.GetDirOffsetX(dir)
 				ay := y + common.GetDirOffsetY(dir)
-				ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
-				if chf.areas[ai] != area {
+				ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
+				if chf.Areas[ai] != area {
 					continue
 				}
 				if srcReg[ai] > 0 && (srcReg[ai]&RC_BORDER_REG) == 0 {
@@ -448,8 +448,8 @@ func sortCellsByLevel(startLevel int,
 	nbStacks int, stacks []Stack[*LevelStackEntry],
 	loglevelsPerStack int) { // the levels per stack (2 in our case) as a bit shift
 
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 	startLevel = startLevel >> loglevelsPerStack
 
 	for j := 0; j < nbStacks; j++ {
@@ -459,15 +459,15 @@ func sortCellsByLevel(startLevel int,
 	// put all cells in the level range into the appropriate stacks
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				if chf.areas[i] == RC_NULL_AREA || srcReg[i] != 0 {
+				if chf.Areas[i] == RC_NULL_AREA || srcReg[i] != 0 {
 					continue
 				}
 
-				level := chf.dist[i] >> loglevelsPerStack
+				level := chf.Dist[i] >> loglevelsPerStack
 				sId := startLevel - level
 				if sId >= nbStacks {
 					continue
@@ -668,12 +668,12 @@ func isRegionConnectedToBorder(reg *rcRegion[int]) bool {
 }
 
 func isSolidEdge(chf *RcCompactHeightfield, srcReg []int, x, y, i, dir int) bool {
-	s := chf.spans[i]
+	s := chf.Spans[i]
 	r := 0
 	if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 		ax := x + common.GetDirOffsetX(dir)
 		ay := y + common.GetDirOffsetY(dir)
-		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
+		ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
 		r = srcReg[ai]
 	}
 	if r == srcReg[i] {
@@ -688,12 +688,12 @@ func regionWalkContour(x, y, i, dir int, chf *RcCompactHeightfield, srcReg []int
 	startDir := dir
 	starti := i
 
-	ss := chf.spans[i]
+	ss := chf.Spans[i]
 	curReg := 0
 	if rcGetCon(ss, dir) != RC_NOT_CONNECTED {
 		ax := x + common.GetDirOffsetX(dir)
 		ay := y + common.GetDirOffsetY(dir)
-		ai := chf.cells[ax+ay*chf.width].index + rcGetCon(ss, dir)
+		ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(ss, dir)
 		curReg = srcReg[ai]
 	}
 	cont.Push(curReg)
@@ -704,7 +704,7 @@ func regionWalkContour(x, y, i, dir int, chf *RcCompactHeightfield, srcReg []int
 		if iter >= 40000 {
 			break
 		}
-		s := chf.spans[i]
+		s := chf.Spans[i]
 
 		if isSolidEdge(chf, srcReg, x, y, i, dir) {
 			// Choose the edge corner
@@ -712,7 +712,7 @@ func regionWalkContour(x, y, i, dir int, chf *RcCompactHeightfield, srcReg []int
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 				ax := x + common.GetDirOffsetX(dir)
 				ay := y + common.GetDirOffsetY(dir)
-				ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
+				ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
 				r = srcReg[ai]
 			}
 			if r != curReg {
@@ -726,8 +726,8 @@ func regionWalkContour(x, y, i, dir int, chf *RcCompactHeightfield, srcReg []int
 			nx := x + common.GetDirOffsetX(dir)
 			ny := y + common.GetDirOffsetY(dir)
 			if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-				nc := chf.cells[nx+ny*chf.width]
-				ni = nc.index + rcGetCon(s, dir)
+				nc := chf.Cells[nx+ny*chf.Width]
+				ni = nc.Index + rcGetCon(s, dir)
 			}
 			if ni == -1 {
 				// Should not happen.
@@ -774,8 +774,8 @@ func addUniqueConnection(reg *rcRegion[int], n int) {
 }
 func mergeAndFilterLayerRegions(minRegionArea int, maxRegionId *int, chf *RcCompactHeightfield,
 	srcReg []int) bool {
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 
 	nreg := *maxRegionId + 1
 	regions := NewStack[*rcRegion[int]](func() *rcRegion[int] {
@@ -792,13 +792,13 @@ func mergeAndFilterLayerRegions(minRegionArea int, maxRegionId *int, chf *RcComp
 	lregs := NewStackArray(func() int { return 0 }, 32)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
 			lregs.Clear()
-			i := c.index
-			ni := c.index + c.count
+			i := c.Index
+			ni := c.Index + c.Count
 			for ; i < ni; i++ {
-				s := chf.spans[i]
+				s := chf.Spans[i]
 				ri := srcReg[i]
 				if ri == 0 || ri >= nreg {
 					continue
@@ -807,8 +807,8 @@ func mergeAndFilterLayerRegions(minRegionArea int, maxRegionId *int, chf *RcComp
 
 				reg.spanCount++
 
-				reg.ymin = common.Min(reg.ymin, s.y)
-				reg.ymax = common.Max(reg.ymax, s.y)
+				reg.ymin = common.Min(reg.ymin, s.Y)
+				reg.ymax = common.Max(reg.ymax, s.Y)
 
 				// Collect all region layers.
 				lregs.Push(ri)
@@ -818,7 +818,7 @@ func mergeAndFilterLayerRegions(minRegionArea int, maxRegionId *int, chf *RcComp
 					if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 						ax := x + common.GetDirOffsetX(dir)
 						ay := y + common.GetDirOffsetY(dir)
-						ai := chf.cells[ax+ay*w].index + rcGetCon(s, dir)
+						ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, dir)
 						rai := srcReg[ai]
 						if rai > 0 && rai < nreg && rai != ri {
 							addUniqueConnection(reg, rai)
@@ -968,7 +968,7 @@ func mergeAndFilterLayerRegions(minRegionArea int, maxRegionId *int, chf *RcComp
 	*maxRegionId = regIdGen
 
 	// Remap regions.
-	for i := 0; i < chf.spanCount; i++ {
+	for i := 0; i < chf.SpanCount; i++ {
 		if (srcReg[i] & RC_BORDER_REG) == 0 {
 			srcReg[i] = regions.Index(srcReg[i]).id
 		}
@@ -982,8 +982,8 @@ func mergeAndFilterRegions(minRegionArea, mergeRegionSize int,
 	maxRegionId *int,
 	chf *RcCompactHeightfield,
 	srcReg []int, overlaps Stack[int]) bool {
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 
 	nreg := *maxRegionId + 1
 	regions := NewStack[*rcRegion[int]](func() *rcRegion[int] {
@@ -998,9 +998,9 @@ func mergeAndFilterRegions(minRegionArea, mergeRegionSize int,
 	// Find edge of a region and find connections around the contour.
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
 				r := srcReg[i]
 				if r == 0 || r >= nreg {
@@ -1011,7 +1011,7 @@ func mergeAndFilterRegions(minRegionArea, mergeRegionSize int,
 				reg.spanCount++
 
 				// Update floors.
-				for j := c.index; j < ni; j++ {
+				for j := c.Index; j < ni; j++ {
 					if i == j {
 						continue
 					}
@@ -1031,7 +1031,7 @@ func mergeAndFilterRegions(minRegionArea, mergeRegionSize int,
 					continue
 				}
 
-				reg.areaType = chf.areas[i]
+				reg.areaType = chf.Areas[i]
 
 				// Check if this cell is next to a border.
 				ndir := -1
@@ -1227,7 +1227,7 @@ BEGIN:
 	*maxRegionId = regIdGen
 
 	// Remap regions.
-	for i := 0; i < chf.spanCount; i++ {
+	for i := 0; i < chf.SpanCount; i++ {
 		if (srcReg[i] & RC_BORDER_REG) == 0 {
 			srcReg[i] = regions.Index(srcReg[i]).id
 		}
@@ -1255,36 +1255,36 @@ BEGIN:
 // /
 // / @see RcCompactHeightfield, rcBuildRegions, rcBuildRegionsMonotone
 func RcBuildDistanceField(chf *RcCompactHeightfield) bool {
-	if chf.dist != nil {
-		chf.dist = nil
-		chf.dist = []int{}
+	if chf.Dist != nil {
+		chf.Dist = nil
+		chf.Dist = []int{}
 	}
-	src := make([]int, chf.spanCount)
-	dst := make([]int, chf.spanCount)
+	src := make([]int, chf.SpanCount)
+	dst := make([]int, chf.SpanCount)
 
 	maxDist := 0
 	calculateDistanceField(chf, src, &maxDist)
-	chf.maxDistance = maxDist
+	chf.MaxDistance = maxDist
 
 	// Blur
 	if !reflect.DeepEqual(boxBlur(chf, 1, src, dst), src) {
 		dst, src = src, dst
 	}
 	// Store distance.
-	chf.dist = src
+	chf.Dist = src
 
 	return true
 }
 func paintRectRegion(minx, maxx, miny, maxy, regId int,
 	chf *RcCompactHeightfield, srcReg []int) {
-	w := chf.width
+	w := chf.Width
 	for y := miny; y < maxy; y++ {
 		for x := minx; x < maxx; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := c.index + c.count
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := c.Index + c.Count
 			for ; i < ni; i++ {
-				if chf.areas[i] != RC_NULL_AREA {
+				if chf.Areas[i] != RC_NULL_AREA {
 					srcReg[i] = regId
 				}
 
@@ -1316,20 +1316,20 @@ type rcSweepSpan struct {
 // / See the #RcConfig documentation for more information on the configuration parameters.
 // /
 // / The region data will be available via the RcCompactHeightfield::maxRegions
-// / and rcCompactSpan::reg fields.
+// / and RcCompactSpan::reg fields.
 // /
 // / @warning The distance field must be created using #rcBuildDistanceField before attempting to build regions.
 // /
-// / @see RcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, RcConfig
+// / @see RcCompactHeightfield, RcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, RcConfig
 func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 	borderSize, minRegionArea, mergeRegionArea int) bool {
 
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 	id := 1
-	srcReg := make([]int, chf.spanCount)
+	srcReg := make([]int, chf.SpanCount)
 
-	nsweeps := common.Max(chf.width, chf.height)
+	nsweeps := common.Max(chf.Width, chf.Height)
 	sweeps := make([]*rcSweepSpan, nsweeps)
 
 	// Mark border regions.
@@ -1348,7 +1348,7 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 		id++
 	}
 
-	chf.borderSize = borderSize
+	chf.BorderSize = borderSize
 
 	prev := NewStackArray(func() int {
 		return 0
@@ -1362,13 +1362,13 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 		rid := 1
 
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
-			i := c.index
-			ni := (c.index + c.count)
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
-				if chf.areas[i] == RC_NULL_AREA {
+				s := chf.Spans[i]
+				if chf.Areas[i] == RC_NULL_AREA {
 					continue
 				}
 
@@ -1377,8 +1377,8 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 				if rcGetCon(s, 0) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(0)
 					ay := y + common.GetDirOffsetY(0)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 0)
-					if (srcReg[ai]&RC_BORDER_REG) == 0 && chf.areas[i] == chf.areas[ai] {
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 0)
+					if (srcReg[ai]&RC_BORDER_REG) == 0 && chf.Areas[i] == chf.Areas[ai] {
 						previd = srcReg[ai]
 					}
 
@@ -1396,8 +1396,8 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 				if rcGetCon(s, 3) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(3)
 					ay := y + common.GetDirOffsetY(3)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 3)
-					if srcReg[ai] > 0 && (srcReg[ai]&RC_BORDER_REG) == 0 && chf.areas[i] == chf.areas[ai] {
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 3)
+					if srcReg[ai] > 0 && (srcReg[ai]&RC_BORDER_REG) == 0 && chf.Areas[i] == chf.Areas[ai] {
 						nr := srcReg[ai]
 						if sweeps[previd].nei == 0 || sweeps[previd].nei == nr {
 							sweeps[previd].nei = nr
@@ -1425,9 +1425,9 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 
 		// Remap IDs
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[x+y*w]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
 				if srcReg[i] > 0 && srcReg[i] < rid {
 					srcReg[i] = sweeps[srcReg[i]].id
@@ -1441,16 +1441,16 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 	overlaps := NewStack(func() int {
 		return 0
 	})
-	chf.maxRegions = id
-	if !mergeAndFilterRegions(minRegionArea, mergeRegionArea, &chf.maxRegions, chf, srcReg, overlaps) {
+	chf.MaxRegions = id
+	if !mergeAndFilterRegions(minRegionArea, mergeRegionArea, &chf.MaxRegions, chf, srcReg, overlaps) {
 		return false
 	}
 
 	// Monotone partitioning does not generate overlapping regions.
 
 	// Store the result out.
-	for i := 0; i < chf.spanCount; i++ {
-		chf.spans[i].reg = srcReg[i]
+	for i := 0; i < chf.SpanCount; i++ {
+		chf.Spans[i].Reg = srcReg[i]
 	}
 
 	return true
@@ -1470,16 +1470,16 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 // / See the #RcConfig documentation for more information on the configuration parameters.
 // /
 // / The region data will be available via the RcCompactHeightfield::maxRegions
-// / and rcCompactSpan::reg fields.
+// / and RcCompactSpan::reg fields.
 // /
 // / @warning The distance field must be created using #rcBuildDistanceField before attempting to build regions.
 // /
-// / @see RcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, RcConfig
+// / @see RcCompactHeightfield, RcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, RcConfig
 func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeRegionArea int) bool {
 
-	w := chf.width
-	h := chf.height
-	buf := make([]int, chf.spanCount*2)
+	w := chf.Width
+	h := chf.Height
+	buf := make([]int, chf.SpanCount*2)
 	LOG_NB_STACKS := 3
 	NB_STACKS := 1 << LOG_NB_STACKS
 	lvlStacks := make([]Stack[*LevelStackEntry], NB_STACKS)
@@ -1493,9 +1493,9 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 	stack.Reserve(256)
 
 	srcReg := buf
-	srcDist := buf[chf.spanCount:]
+	srcDist := buf[chf.SpanCount:]
 	regionId := 1
-	level := (chf.maxDistance + 1) & ^1
+	level := (chf.MaxDistance + 1) & ^1
 
 	// TODO: Figure better formula, expandIters defines how much the
 	// watershed "overflows" and simplifies the regions. Tying it to
@@ -1519,7 +1519,7 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 		regionId++
 	}
 
-	chf.borderSize = borderSize
+	chf.BorderSize = borderSize
 
 	sId := -1
 	for level > 0 {
@@ -1560,8 +1560,8 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 	overlaps := NewStack(func() int {
 		return 0
 	})
-	chf.maxRegions = regionId
-	if !mergeAndFilterRegions(minRegionArea, mergeRegionArea, &chf.maxRegions, chf, srcReg, overlaps) {
+	chf.MaxRegions = regionId
+	if !mergeAndFilterRegions(minRegionArea, mergeRegionArea, &chf.MaxRegions, chf, srcReg, overlaps) {
 		return false
 	}
 
@@ -1571,8 +1571,8 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 	}
 
 	// Write the result out.
-	for i := 0; i < chf.spanCount; i++ {
-		chf.spans[i].reg = srcReg[i]
+	for i := 0; i < chf.SpanCount; i++ {
+		chf.Spans[i].Reg = srcReg[i]
 	}
 
 	return true
@@ -1580,12 +1580,12 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 
 func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea int) bool {
 
-	w := chf.width
-	h := chf.height
+	w := chf.Width
+	h := chf.Height
 	id := 1
-	srcReg := make([]int, chf.spanCount)
+	srcReg := make([]int, chf.SpanCount)
 
-	nsweeps := common.Max(chf.width, chf.height)
+	nsweeps := common.Max(chf.Width, chf.Height)
 	sweeps := make([]*rcSweepSpan, nsweeps)
 
 	// Mark border regions.
@@ -1604,7 +1604,7 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 		id++
 	}
 
-	chf.borderSize = borderSize
+	chf.BorderSize = borderSize
 
 	prev := NewStackArray(func() int {
 		return 0
@@ -1617,13 +1617,13 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 		rid := 1
 
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
-			i := c.index
-			ni := (c.index + c.count)
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni; i++ {
-				s := chf.spans[i]
-				if chf.areas[i] == RC_NULL_AREA {
+				s := chf.Spans[i]
+				if chf.Areas[i] == RC_NULL_AREA {
 					continue
 				}
 
@@ -1632,8 +1632,8 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 				if rcGetCon(s, 0) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(0)
 					ay := y + common.GetDirOffsetY(0)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 0)
-					if (srcReg[ai]&RC_BORDER_REG) == 0 && chf.areas[i] == chf.areas[ai] {
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 0)
+					if (srcReg[ai]&RC_BORDER_REG) == 0 && chf.Areas[i] == chf.Areas[ai] {
 						previd = srcReg[ai]
 					}
 
@@ -1651,8 +1651,8 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 				if rcGetCon(s, 3) != RC_NOT_CONNECTED {
 					ax := x + common.GetDirOffsetX(3)
 					ay := y + common.GetDirOffsetY(3)
-					ai := chf.cells[ax+ay*w].index + rcGetCon(s, 3)
-					if srcReg[ai] > 0 && (srcReg[ai]&RC_BORDER_REG) == 0 && chf.areas[i] == chf.areas[ai] {
+					ai := chf.Cells[ax+ay*w].Index + rcGetCon(s, 3)
+					if srcReg[ai] > 0 && (srcReg[ai]&RC_BORDER_REG) == 0 && chf.Areas[i] == chf.Areas[ai] {
 						nr := srcReg[ai]
 						if sweeps[previd].nei == 0 || sweeps[previd].nei == nr {
 							sweeps[previd].nei = nr
@@ -1680,10 +1680,10 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 
 		// Remap IDs
 		for x := borderSize; x < w-borderSize; x++ {
-			c := chf.cells[x+y*w]
+			c := chf.Cells[x+y*w]
 
-			i := c.index
-			ni := (int)(c.index + c.count)
+			i := c.Index
+			ni := (int)(c.Index + c.Count)
 			for ; i < ni; i++ {
 				if srcReg[i] > 0 && srcReg[i] < rid {
 					srcReg[i] = sweeps[srcReg[i]].id
@@ -1694,14 +1694,14 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 	}
 
 	// Merge monotone regions to layers and remove small regions.
-	chf.maxRegions = id
-	if !mergeAndFilterLayerRegions(minRegionArea, &chf.maxRegions, chf, srcReg) {
+	chf.MaxRegions = id
+	if !mergeAndFilterLayerRegions(minRegionArea, &chf.MaxRegions, chf, srcReg) {
 		return false
 	}
 
 	// Store the result out.
-	for i := 0; i < chf.spanCount; i++ {
-		chf.spans[i].reg = srcReg[i]
+	for i := 0; i < chf.SpanCount; i++ {
+		chf.Spans[i].Reg = srcReg[i]
 	}
 
 	return true

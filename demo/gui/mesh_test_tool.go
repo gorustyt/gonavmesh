@@ -501,7 +501,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 			// Iterate over the path to find smooth path on the detail mesh surface.
 			tmp := false
 			m.m_navQuery.ClosestPointOnPoly(m.m_startRef, m.m_spos, m.m_iterPos, &tmp)
-			m.m_navQuery.ClosestPointOnPoly(m.m_pathIterPolys[m.m_pathIterPolyCount-1], m.m_epos, m.m_targetPos, 0)
+			m.m_navQuery.ClosestPointOnPoly(m.m_pathIterPolys[m.m_pathIterPolyCount-1], m.m_epos, m.m_targetPos, &tmp)
 
 			m.m_nsmoothPath = 0
 

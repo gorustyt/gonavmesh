@@ -327,13 +327,13 @@ func tween(t, t0, t1 float64) float64 {
 func integrate(ag *DtCrowdAgent, dt float64) {
 	// Fake dynamic constraint.
 	maxDelta := ag.Params.MaxAcceleration * dt
-
-	dv := common.Vsub(ag.Nvel[:], ag.Vel[:])
+	dv := make([]float64, 3)
+	common.Vsub(dv, ag.Nvel[:], ag.Vel[:])
 	ds := common.Vlen(dv)
 	if ds > maxDelta {
-		dv = common.Vscale(dv, maxDelta/ds)
+		common.Vscale(dv, dv, maxDelta/ds)
 	}
-	copy(ag.Vel[:], common.Vadd(ag.Vel[:], dv))
+	common.Vadd(ag.Vel[:], ag.Vel[:], dv)
 
 	// Integrate
 	if common.Vlen(ag.Vel[:]) > 0.0001 {
@@ -390,16 +390,17 @@ func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float64) {
 	ip1 := common.Min(1, ag.Ncorners-1)
 	p0 := rcGetVert(ag.CornerVerts[:], ip0)
 	p1 := rcGetVert(ag.CornerVerts[:], ip1)
-
-	dir0 := common.Vsub(p0, ag.Npos[:])
-	dir1 := common.Vsub(p1, ag.Npos[:])
+	dir0 := make([]float64, 3)
+	dir1 := make([]float64, 3)
+	common.Vsub(dir0, p0, ag.Npos[:])
+	common.Vsub(dir1, p1, ag.Npos[:])
 	dir0[1] = 0
 	dir1[1] = 0
 
 	len0 := common.Vlen(dir0)
 	len1 := common.Vlen(dir1)
 	if len1 > 0.001 {
-		dir1 = common.Vscale(dir1, 1.0/len1)
+		common.Vscale(dir1, dir1, 1.0/len1)
 	}
 
 	dir[0] = dir0[0] - dir1[0]*len0*0.5
@@ -414,7 +415,7 @@ func calcStraightSteerDirection(ag *DtCrowdAgent, dir []float64) {
 		common.Vset(dir, 0, 0, 0)
 		return
 	}
-	copy(dir, common.Vsub(ag.CornerVerts[:], ag.Npos[:]))
+	common.Vsub(dir, ag.CornerVerts[:], ag.Npos[:])
 	dir[1] = 0
 	common.Vnormalize(dir)
 }
@@ -475,8 +476,8 @@ func getNeighbours(pos []float64, height float64, rangef float64,
 		}
 
 		// Check for overlap.
-
-		diff := common.Vsub(pos, ag.Npos[:])
+		diff := make([]float64, 3)
+		common.Vsub(diff, pos, ag.Npos[:])
 		if math.Abs(diff[1]) >= (height+ag.Params.Height)/2.0 {
 			continue
 		}
@@ -1318,7 +1319,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			speedScale := getDistanceToGoal(ag, slowDownRadius) / slowDownRadius
 
 			ag.desiredSpeed = ag.Params.MaxSpeed
-			copy(dvel, common.Vscale(dvel, ag.desiredSpeed*speedScale))
+			common.Vscale(dvel, dvel, ag.desiredSpeed*speedScale)
 
 		}
 
@@ -1333,8 +1334,8 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 
 			for j := 0; j < ag.Nneis; j++ {
 				nei := d.m_agents[ag.Neis[j].Idx]
-
-				diff := common.Vsub(ag.Npos[:], nei.Npos[:])
+				diff := make([]float64, 3)
+				common.Vsub(diff, ag.Npos[:], nei.Npos[:])
 				diff[1] = 0
 
 				distSqr := common.VlenSqr(diff)
@@ -1360,7 +1361,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 				speedSqr := common.VlenSqr(dvel)
 				desiredSqr := common.Sqr(ag.desiredSpeed)
 				if speedSqr > desiredSqr {
-					copy(dvel, common.Vscale(dvel, desiredSqr/speedSqr))
+					common.Vscale(dvel, dvel, desiredSqr/speedSqr)
 				}
 
 			}
@@ -1451,8 +1452,8 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			for j := 0; j < ag.Nneis; j++ {
 				nei := d.m_agents[ag.Neis[j].Idx]
 				idx1 := d.GetAgentIndex(nei)
-
-				diff := common.Vsub(ag.Npos[:], nei.Npos[:])
+				diff := make([]float64, 3)
+				common.Vsub(diff, ag.Npos[:], nei.Npos[:])
 				diff[1] = 0
 
 				dist := common.VlenSqr(diff)
@@ -1482,7 +1483,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 
 			if w > 0.0001 {
 				iw := 1.0 / w
-				copy(ag.Disp[:], common.Vscale(ag.Disp[:], iw))
+				common.Vscale(ag.Disp[:], ag.Disp[:], iw)
 			}
 		}
 
@@ -1492,7 +1493,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 				continue
 			}
 
-			copy(ag.Npos[:], common.Vadd(ag.Npos[:], ag.Disp[:]))
+			common.Vadd(ag.Npos[:], ag.Npos[:], ag.Disp[:])
 
 		}
 	}

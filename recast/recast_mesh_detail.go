@@ -40,8 +40,10 @@ func circumCircle(p1, p2, p3, c []float64, r *float64) bool {
 	EPS := 1e-6
 	// Calculate the circle relative to p1, to avoid some precision issues.
 	v1 := []float64{0, 0, 0}
-	v2 := common.Vsub(p2, p1)
-	v3 := common.Vsub(p3, p1)
+	v2 := make([]float64, 3)
+	v3 := make([]float64, 3)
+	common.Vsub(v2, p2, p1)
+	common.Vsub(v3, p3, p1)
 
 	cp := vcross2(v1, v2, v3)
 	if math.Abs(cp) > EPS {
@@ -52,7 +54,7 @@ func circumCircle(p1, p2, p3, c []float64, r *float64) bool {
 		c[1] = 0
 		c[2] = (v1Sq*(v3[0]-v2[0]) + v2Sq*(v1[0]-v3[0]) + v3Sq*(v2[0]-v1[0])) / (2 * cp)
 		*r = vdist2(c, v1)
-		c = common.Vadd(c, p1)
+		common.Vadd(c, c, p1)
 		return true
 	}
 
@@ -70,10 +72,12 @@ func vcross2(p1, p2, p3 []float64) float64 {
 }
 
 func distPtTri(p, a, b, c []float64) float64 {
-
-	v0 := common.Vsub(c, a)
-	v1 := common.Vsub(b, a)
-	v2 := common.Vsub(p, a)
+	v0 := make([]float64, 3)
+	v1 := make([]float64, 3)
+	v2 := make([]float64, 3)
+	common.Vsub(v0, c, a)
+	common.Vsub(v1, b, a)
+	common.Vsub(v2, p, a)
 
 	dot00 := vdot2(v0, v0)
 	dot01 := vdot2(v0, v1)
@@ -614,7 +618,7 @@ func buildPolyDetail(in []float64, nin int,
 	edges.Clear()
 	tris.Clear()
 
-	cs := chf.cs
+	cs := chf.Cs
 	ics := 1.0 / cs
 
 	// Calculate minimum extents of the polygon based on input data.
@@ -662,7 +666,7 @@ func buildPolyDetail(in []float64, nin int,
 				pos[0] = vj[0] + dx*u
 				pos[1] = vj[1] + dy*u
 				pos[2] = vj[2] + dz*u
-				pos[1] = float64(getHeight(pos[0], pos[1], pos[2], cs, ics, chf.ch, heightSearchRadius, hp)) * chf.ch
+				pos[1] = float64(getHeight(pos[0], pos[1], pos[2], cs, ics, chf.Ch, heightSearchRadius, hp)) * chf.Ch
 			}
 			// Simplify samples.
 			idx := make([]int, MAX_VERTS_PER_EDGE)
@@ -764,7 +768,7 @@ func buildPolyDetail(in []float64, nin int,
 					continue
 				}
 				samples.Push(x)
-				samples.Push(getHeight(pt[0], pt[1], pt[2], cs, ics, chf.ch, heightSearchRadius, hp))
+				samples.Push(getHeight(pt[0], pt[1], pt[2], cs, ics, chf.Ch, heightSearchRadius, hp))
 				samples.Push(z)
 				samples.Push(0) // Not added
 			}
@@ -792,7 +796,7 @@ func buildPolyDetail(in []float64, nin int,
 				// The sample location is jittered to get rid of some bad triangulations
 				// which are cause by symmetrical data from the grid structure.
 				pt[0] = float64(s[0])*sampleDist + getJitterX(i)*float64(cs)*0.1
-				pt[1] = float64(s[1]) * chf.ch
+				pt[1] = float64(s[1]) * chf.Ch
 				pt[2] = float64(s[2])*sampleDist + getJitterY(i)*cs*0.1
 				d := distToTriMesh(pt, verts, *nverts, tris.Data(), tris.Len()/4)
 				if d < 0 {
@@ -855,12 +859,12 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 				continue
 			}
 
-			c := chf.cells[(ax+bs)+(az+bs)*chf.width]
-			i := c.index
-			ni := (c.index + c.count)
+			c := chf.Cells[(ax+bs)+(az+bs)*chf.Width]
+			i := c.Index
+			ni := (c.Index + c.Count)
 			for ; i < ni && dmin > 0; i++ {
-				s := chf.spans[i]
-				d := common.Abs(ay - s.y)
+				s := chf.Spans[i]
+				d := common.Abs(ay - s.Y)
 				if d < dmin {
 					startCellX = ax
 					startCellY = az
@@ -933,7 +937,7 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 		// Push the direct dir last so we start with this on next iteration
 		dirs[directDir], dirs[3] = dirs[3], dirs[directDir]
 
-		cs := chf.spans[ci]
+		cs := chf.Spans[ci]
 		for i := 0; i < 4; i++ {
 			dir := dirs[i]
 			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
@@ -956,7 +960,7 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 			hp.data[hpx+hpy*hp.width] = 1
 			array.Push(newX)
 			array.Push(newY)
-			array.Push(chf.cells[(newX+bs)+(newY+bs)*chf.width].index + rcGetCon(cs, dir))
+			array.Push(chf.Cells[(newX+bs)+(newY+bs)*chf.Width].Index + rcGetCon(cs, dir))
 		}
 
 		dirs[directDir], dirs[3] = dirs[3], dirs[directDir]
@@ -971,8 +975,8 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 		hp.data[i] = 0xff
 	}
 
-	cs := chf.spans[ci]
-	hp.data[cx-hp.xmin+(cy-hp.ymin)*hp.width] = cs.y
+	cs := chf.Spans[ci]
+	hp.data[cx-hp.xmin+(cy-hp.ymin)*hp.width] = cs.Y
 }
 
 func push3(queue Stack[int], v1, v2, v3 int) {
@@ -1011,14 +1015,14 @@ func etHeightData(chf *RcCompactHeightfield,
 			y := hp.ymin + hy + bs
 			for hx := 0; hx < hp.width; hx++ {
 				x := hp.xmin + hx + bs
-				c := chf.cells[x+y*chf.width]
-				i := c.index
-				ni := (c.index + c.count)
+				c := chf.Cells[x+y*chf.Width]
+				i := c.Index
+				ni := (c.Index + c.Count)
 				for ; i < ni; i++ {
-					s := chf.spans[i]
-					if s.reg == region {
+					s := chf.Spans[i]
+					if s.Reg == region {
 						// Store height
-						hp.data[hx+hy*hp.width] = s.y
+						hp.data[hx+hy*hp.width] = s.Y
 						empty = false
 
 						// If any of the neighbours is not in same region,
@@ -1028,9 +1032,9 @@ func etHeightData(chf *RcCompactHeightfield,
 							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 								ax := x + common.GetDirOffsetX(dir)
 								ay := y + common.GetDirOffsetY(dir)
-								ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
-								as := chf.spans[ai]
-								if as.reg != region {
+								ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
+								as := chf.Spans[ai]
+								if as.Reg != region {
 									border = true
 									break
 								}
@@ -1074,7 +1078,7 @@ func etHeightData(chf *RcCompactHeightfield,
 			queue.Resize(queue.Len() - RETRACT_SIZE*3)
 		}
 
-		cs := chf.spans[ci]
+		cs := chf.Spans[ci]
 		for dir := 0; dir < 4; dir++ {
 			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
 				continue
@@ -1093,10 +1097,10 @@ func etHeightData(chf *RcCompactHeightfield,
 				continue
 			}
 
-			ai := chf.cells[ax+ay*chf.width].index + rcGetCon(cs, dir)
-			as := chf.spans[ai]
+			ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(cs, dir)
+			as := chf.Spans[ai]
 
-			hp.data[hx+hy*hp.width] = as.y
+			hp.data[hx+hy*hp.width] = as.Y
 
 			push3(queue, ax, ay, ai)
 		}
@@ -1130,14 +1134,14 @@ func getHeightData(chf *RcCompactHeightfield,
 			y := hp.ymin + hy + bs
 			for hx := 0; hx < hp.width; hx++ {
 				x := hp.xmin + hx + bs
-				c := chf.cells[x+y*chf.width]
-				i := c.index
-				ni := (c.index + c.count)
+				c := chf.Cells[x+y*chf.Width]
+				i := c.Index
+				ni := (c.Index + c.Count)
 				for ; i < ni; i++ {
-					s := chf.spans[i]
-					if s.reg == region {
+					s := chf.Spans[i]
+					if s.Reg == region {
 						// Store height
-						hp.data[hx+hy*hp.width] = s.y
+						hp.data[hx+hy*hp.width] = s.Y
 						empty = false
 
 						// If any of the neighbours is not in same region,
@@ -1147,9 +1151,9 @@ func getHeightData(chf *RcCompactHeightfield,
 							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 								ax := x + common.GetDirOffsetX(dir)
 								ay := y + common.GetDirOffsetY(dir)
-								ai := chf.cells[ax+ay*chf.width].index + rcGetCon(s, dir)
-								as := chf.spans[ai]
-								if as.reg != region {
+								ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
+								as := chf.Spans[ai]
+								if as.Reg != region {
 									border = true
 									break
 								}
@@ -1193,7 +1197,7 @@ func getHeightData(chf *RcCompactHeightfield,
 			queue.Resize(queue.Len() - RETRACT_SIZE*3)
 		}
 
-		cs := chf.spans[ci]
+		cs := chf.Spans[ci]
 		for dir := 0; dir < 4; dir++ {
 			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
 				continue
@@ -1212,10 +1216,10 @@ func getHeightData(chf *RcCompactHeightfield,
 				continue
 			}
 
-			ai := chf.cells[ax+ay*chf.width].index + rcGetCon(cs, dir)
-			as := chf.spans[ai]
+			ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(cs, dir)
+			as := chf.Spans[ai]
 
-			hp.data[hx+hy*hp.width] = as.y
+			hp.data[hx+hy*hp.width] = as.Y
 
 			push3(queue, ax, ay, ai)
 		}
@@ -1300,9 +1304,9 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		xmax := &bounds[i*4+1]
 		ymin := &bounds[i*4+2]
 		ymax := &bounds[i*4+3]
-		*xmin = chf.width
+		*xmin = chf.Width
 		*xmax = 0
-		*ymin = chf.height
+		*ymin = chf.Height
 		*ymax = 0
 		for j := 0; j < nvp; j++ {
 			if p[j] == RC_MESH_NULL_IDX {
@@ -1316,9 +1320,9 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 			nPolyVerts++
 		}
 		*xmin = common.Max(0, *xmin-1)
-		*xmax = common.Min(chf.width, *xmax+1)
+		*xmax = common.Min(chf.Width, *xmax+1)
 		*ymin = common.Max(0, *ymin-1)
-		*ymax = common.Min(chf.height, *ymax+1)
+		*ymax = common.Min(chf.Height, *ymax+1)
 		if *xmin >= *xmax || *ymin >= *ymax {
 			continue
 		}
@@ -1380,7 +1384,7 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		// Move detail verts to world space.
 		for j := 0; j < nverts; j++ {
 			verts[j*3+0] += orig[0]
-			verts[j*3+1] += orig[1] + chf.ch // Is this offset necessary?
+			verts[j*3+1] += orig[1] + chf.Ch // Is this offset necessary?
 			verts[j*3+2] += orig[2]
 		}
 		// Offset poly too, will be used to flag checking.
