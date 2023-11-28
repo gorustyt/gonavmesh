@@ -710,8 +710,11 @@ func mergeRegionHoles(region *RcContourRegion) {
 // / @see rcAllocContourSet, RcCompactHeightfield, RcContourSet, RcConfig
 func RcBuildContours(chf *RcCompactHeightfield,
 	maxError float64, maxEdgeLen int,
-	cset *RcContourSet, buildFlags int) bool {
-
+	cset *RcContourSet, buildFlagss ...int) bool {
+	buildFlags := RC_CONTOUR_TESS_WALL_EDGES
+	if len(buildFlagss) > 0 {
+		buildFlags = buildFlagss[0]
+	}
 	w := chf.Width
 	h := chf.Height
 	borderSize := chf.BorderSize

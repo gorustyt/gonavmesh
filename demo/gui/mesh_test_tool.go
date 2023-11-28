@@ -4,6 +4,7 @@ import (
 	"gonavamesh/common"
 	"gonavamesh/debug_utils"
 	"gonavamesh/recast"
+	"log"
 	"math"
 )
 
@@ -885,7 +886,293 @@ func (m *NavMeshTesterTool) handleUpdate(dt float64) {
 }
 
 func (m *NavMeshTesterTool) recalc() {
+	if m.m_navMesh == nil {
+		return
+	}
 
+	if m.m_sposSet {
+		m.m_startRef, _ = m.m_navQuery.FindNearestPoly(m.m_spos, m.m_polyPickExt, m.m_filter, []float64{})
+	} else {
+		m.m_startRef = 0
+	}
+
+	if m.m_eposSet {
+		m.m_endRef, _ = m.m_navQuery.FindNearestPoly(m.m_epos, m.m_polyPickExt, m.m_filter, []float64{})
+	} else {
+		m.m_endRef = 0
+	}
+
+	m.m_pathFindStatus = recast.DT_FAILURE
+
+	if m.m_toolMode == TOOLMODE_PATHFIND_FOLLOW {
+		m.m_pathIterNum = 0
+		if m.m_sposSet && m.m_eposSet && m.m_startRef != 0 && m.m_endRef != 0 {
+
+			log.Printf("pi  %f %f %f  %f %f %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], m.m_epos[0], m.m_epos[1], m.m_epos[2],
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+
+			m.m_npolys, _ = m.m_navQuery.FindPath(m.m_startRef, m.m_endRef, m.m_spos, m.m_epos, m.m_filter, m.m_polys, MAX_POLYS)
+
+			m.m_nsmoothPath = 0
+
+			if m.m_npolys > 0 {
+				// Iterate over the path to find smooth path on the detail mesh surface.
+				polys := make([]recast.DtPolyRef, MAX_POLYS)
+				copy(polys, m.m_polys[:m.m_npolys])
+				npolys := m.m_npolys
+
+				iterPos := make([]float64, 3)
+				targetPos := make([]float64, 3)
+				tmp := false
+				m.m_navQuery.ClosestPointOnPoly(m.m_startRef, m.m_spos, iterPos, &tmp)
+				m.m_navQuery.ClosestPointOnPoly(polys[npolys-1], m.m_epos, targetPos, &tmp)
+
+				STEP_SIZE := 0.5
+				SLOP := 0.01
+
+				m.m_nsmoothPath = 0
+
+				copy(m.m_smoothPath[m.m_nsmoothPath*3:], iterPos)
+				m.m_nsmoothPath++
+
+				// Move towards target a small advancement at a time until target reached or
+				// when ran out of memory to store the path.
+				for npolys > 0 && m.m_nsmoothPath < MAX_SMOOTH {
+					// Find location to steer towards.
+					steerPos := make([]float64, 3)
+					var steerPosFlag int
+					var steerPosRef recast.DtPolyRef
+
+					if !getSteerTarget(m.m_navQuery, iterPos, targetPos, SLOP, polys, npolys, steerPos, &steerPosFlag, steerPosRef, []float64{}, nil) {
+						break
+					}
+
+					endOfPath := false
+					if steerPosFlag&recast.DT_STRAIGHTPATH_END != 0 {
+						endOfPath = true
+					}
+					offMeshConnection := false
+					if steerPosFlag&recast.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
+						offMeshConnection = true
+					}
+					// Find movement delta.
+					delta := make([]float64, 3)
+					var length float64
+					common.Vsub(delta, steerPos, iterPos)
+					length = math.Sqrt(common.Vdot(delta, delta))
+					// If the steer target is end of path or off-mesh link, do not move past the location.
+					if (endOfPath || offMeshConnection) && length < STEP_SIZE {
+						length = 1
+					} else {
+						length = STEP_SIZE / length
+					}
+
+					moveTgt := make([]float64, 3)
+					common.Vmad(moveTgt, iterPos, delta, length)
+
+					// Move
+					result := make([]float64, 3)
+					visited := make([]recast.DtPolyRef, 16)
+					nvisited := 0
+					m.m_navQuery.MoveAlongSurface(polys[0], iterPos, moveTgt, m.m_filter,
+						result, visited, &nvisited, 16)
+
+					npolys = recast.DtMergeCorridorStartMoved(polys, npolys, MAX_POLYS, visited, nvisited)
+					npolys = fixupShortcuts(polys, npolys, m.m_navQuery)
+
+					h, _ := m.m_navQuery.GetPolyHeight(polys[0], result)
+					result[1] = h
+					copy(iterPos, result)
+
+					// Handle end of path and off-mesh links when close enough.
+					if endOfPath && inRange(iterPos, steerPos, SLOP, 1.0) {
+						// Reached end of path.
+						copy(iterPos, targetPos)
+						if m.m_nsmoothPath < MAX_SMOOTH {
+							copy(m.m_smoothPath[m.m_nsmoothPath*3:], iterPos)
+							m.m_nsmoothPath++
+						}
+						break
+					} else if offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.0) {
+						// Reached off-mesh connection.
+						startPos := make([]float64, 3)
+						endPos := make([]float64, 3)
+
+						// Advance the path up to and over the off-mesh connection.
+						var prevRef recast.DtPolyRef
+						polyRef := polys[0]
+						npos := 0
+						for npos < npolys && polyRef != steerPosRef {
+							prevRef = polyRef
+							polyRef = polys[npos]
+							npos++
+						}
+						for i := npos; i < npolys; i++ {
+							polys[i-npos] = polys[i]
+						}
+
+						npolys -= npos
+
+						// Handle the connection.
+						status := m.m_navMesh.GetOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos)
+						if status.DtStatusSucceed() {
+							if m.m_nsmoothPath < MAX_SMOOTH {
+								copy(m.m_smoothPath[m.m_nsmoothPath*3:], startPos)
+								m.m_nsmoothPath++
+								// Hack to make the dotted path not visible during off-mesh connection.
+								if m.m_nsmoothPath&1 > 0 {
+									copy(m.m_smoothPath[m.m_nsmoothPath*3:], startPos)
+									m.m_nsmoothPath++
+								}
+							}
+							// Move position at the other side of the off-mesh link.
+							copy(iterPos, endPos)
+							eh, _ := m.m_navQuery.GetPolyHeight(polys[0], iterPos)
+							iterPos[1] = eh
+						}
+					}
+
+					// Store results.
+					if m.m_nsmoothPath < MAX_SMOOTH {
+						copy(m.m_smoothPath[m.m_nsmoothPath*3:], iterPos)
+						m.m_nsmoothPath++
+					}
+				}
+			}
+
+		} else {
+			m.m_npolys = 0
+			m.m_nsmoothPath = 0
+		}
+	} else if m.m_toolMode == TOOLMODE_PATHFIND_STRAIGHT {
+		if m.m_sposSet && m.m_eposSet && m.m_startRef != 0 && m.m_endRef != 0 {
+			log.Printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], m.m_epos[0], m.m_epos[1], m.m_epos[2],
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_npolys, _ = m.m_navQuery.FindPath(m.m_startRef, m.m_endRef, m.m_spos, m.m_epos, m.m_filter, m.m_polys, MAX_POLYS)
+			m.m_nstraightPath = 0
+			if m.m_npolys != 0 {
+				// In case of partial path, make sure the end point is clamped to the last polygon.
+				epos := make([]float64, 3)
+				copy(epos, m.m_epos)
+				if m.m_polys[m.m_npolys-1] != m.m_endRef {
+					tmp := false
+					m.m_navQuery.ClosestPointOnPoly(m.m_polys[m.m_npolys-1], m.m_epos, epos, &tmp)
+				}
+				m.m_navQuery.FindStraightPath(m.m_spos, epos, m.m_polys, m.m_npolys,
+					m.m_straightPath, m.m_straightPathFlags,
+					m.m_straightPathPolys, m.m_nstraightPath, MAX_POLYS, m.m_straightPathOptions)
+			}
+		} else {
+			m.m_npolys = 0
+			m.m_nstraightPath = 0
+		}
+	} else if m.m_toolMode == TOOLMODE_PATHFIND_SLICED {
+		if m.m_sposSet && m.m_eposSet && m.m_startRef != 0 && m.m_endRef != 0 {
+			log.Printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], m.m_epos[0], m.m_epos[1], m.m_epos[2],
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_npolys = 0
+			m.m_nstraightPath = 0
+
+			m.m_pathFindStatus = m.m_navQuery.InitSlicedFindPath(m.m_startRef, m.m_endRef, m.m_spos, m.m_epos, m.m_filter, recast.DT_FINDPATH_ANY_ANGLE)
+
+		} else {
+			m.m_npolys = 0
+			m.m_nstraightPath = 0
+		}
+	} else if m.m_toolMode == TOOLMODE_RAYCAST {
+		m.m_nstraightPath = 0
+		if m.m_sposSet && m.m_eposSet && m.m_startRef != 0 {
+			log.Printf("rc  %f %f %f  %f %f %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], m.m_epos[0], m.m_epos[1], m.m_epos[2],
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			t := 0.0
+			m.m_npolys = 0
+			m.m_nstraightPath = 2
+			m.m_straightPath[0] = m.m_spos[0]
+			m.m_straightPath[1] = m.m_spos[1]
+			m.m_straightPath[2] = m.m_spos[2]
+			m.m_navQuery.Raycast(m.m_startRef, m.m_spos, m.m_epos, m.m_filter, &t, m.m_hitNormal, m.m_polys, &m.m_npolys, MAX_POLYS)
+			if t > 1 {
+				// No hit
+				copy(m.m_hitPos, m.m_epos)
+				m.m_hitResult = false
+			} else {
+				// Hit
+				common.Vlerp(m.m_hitPos, m.m_spos, m.m_epos, t)
+				m.m_hitResult = true
+			}
+			// Adjust height.
+			if m.m_npolys > 0 {
+				h, _ := m.m_navQuery.GetPolyHeight(m.m_polys[m.m_npolys-1], m.m_hitPos)
+				m.m_hitPos[1] = h
+			}
+			copy(m.m_straightPath[3:], m.m_hitPos)
+		}
+	} else if m.m_toolMode == TOOLMODE_DISTANCE_TO_WALL {
+		m.m_distanceToWall = 0
+		if m.m_sposSet && m.m_startRef != 0 {
+			log.Printf("dw  %f %f %f  %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], 100.0,
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_distanceToWall = 0.0
+			m.m_navQuery.FindDistanceToWall(m.m_startRef, m.m_spos, 100.0, m.m_filter, &m.m_distanceToWall, m.m_hitPos, m.m_hitNormal)
+		}
+	} else if m.m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE {
+		if m.m_sposSet && m.m_startRef != 0 && m.m_eposSet {
+			dx := m.m_epos[0] - m.m_spos[0]
+			dz := m.m_epos[2] - m.m_spos[2]
+			dist := math.Sqrt(dx*dx + dz*dz)
+			log.Printf("fpc  %f %f %f  %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], dist,
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_navQuery.FindPolysAroundCircle(m.m_startRef, m.m_spos, dist, m.m_filter,
+				m.m_polys, m.m_parent, []float64{}, &m.m_npolys, MAX_POLYS)
+
+		}
+	} else if m.m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE {
+		if m.m_sposSet && m.m_startRef != 0 && m.m_eposSet {
+			nx := (m.m_epos[2] - m.m_spos[2]) * 0.25
+			nz := -(m.m_epos[0] - m.m_spos[0]) * 0.25
+			agentHeight := 0.0
+			if m.m_sample != nil {
+				agentHeight = m.m_sample.getAgentHeight()
+			}
+			m.m_queryPoly[0] = m.m_spos[0] + nx*1.2
+			m.m_queryPoly[1] = m.m_spos[1] + agentHeight/2
+			m.m_queryPoly[2] = m.m_spos[2] + nz*1.2
+
+			m.m_queryPoly[3] = m.m_spos[0] - nx*1.3
+			m.m_queryPoly[4] = m.m_spos[1] + agentHeight/2
+			m.m_queryPoly[5] = m.m_spos[2] - nz*1.3
+
+			m.m_queryPoly[6] = m.m_epos[0] - nx*0.8
+			m.m_queryPoly[7] = m.m_epos[1] + agentHeight/2
+			m.m_queryPoly[8] = m.m_epos[2] - nz*0.8
+
+			m.m_queryPoly[9] = m.m_epos[0] + nx
+			m.m_queryPoly[10] = m.m_epos[1] + agentHeight/2
+			m.m_queryPoly[11] = m.m_epos[2] + nz
+			log.Printf("fpp  %f %f %f  %f %f %f  %f %f %f  %f %f %f  0x%x 0x%x\n",
+				m.m_queryPoly[0], m.m_queryPoly[1], m.m_queryPoly[2],
+				m.m_queryPoly[3], m.m_queryPoly[4], m.m_queryPoly[5],
+				m.m_queryPoly[6], m.m_queryPoly[7], m.m_queryPoly[8],
+				m.m_queryPoly[9], m.m_queryPoly[10], m.m_queryPoly[11],
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_npolys, _ = m.m_navQuery.FindPolysAroundShape(m.m_startRef, m.m_queryPoly, 4, m.m_filter,
+				m.m_polys, m.m_parent, []float64{}, MAX_POLYS)
+		}
+	} else if m.m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD {
+		if m.m_sposSet && m.m_startRef != 0 {
+			log.Printf("fln  %f %f %f  %f  0x%x 0x%x\n",
+				m.m_spos[0], m.m_spos[1], m.m_spos[2], m.m_neighbourhoodRadius,
+				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
+			m.m_npolys, _ = m.m_navQuery.FindLocalNeighbourhood(m.m_startRef, m.m_spos, m.m_neighbourhoodRadius, m.m_filter,
+				m.m_polys, m.m_parent, MAX_POLYS)
+		}
+	}
 }
 func (m *NavMeshTesterTool) Type() int { return TOOL_NAVMESH_TESTER }
 func (m *NavMeshTesterTool) reset() {

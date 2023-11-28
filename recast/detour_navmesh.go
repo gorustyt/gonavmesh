@@ -13,14 +13,14 @@ import (
 // / @return The status flags for the operation.
 func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatus) {
 	mesh := &DtNavMesh{}
-	mesh.m_orig = params.orig
-	mesh.m_tileWidth = params.tileWidth
-	mesh.m_tileHeight = params.tileHeight
+	mesh.m_orig = params.Orig
+	mesh.m_tileWidth = params.TileWidth
+	mesh.m_tileHeight = params.TileHeight
 	mesh.m_params = params
 
 	// Init tiles
-	mesh.m_maxTiles = params.maxTiles
-	mesh.m_tileLutSize = common.NextPow2(params.maxTiles / 4)
+	mesh.m_maxTiles = params.MaxTiles
+	mesh.m_tileLutSize = common.NextPow2(params.MaxTiles / 4)
 	if mesh.m_tileLutSize == 0 {
 		mesh.m_tileLutSize = 1
 	}
@@ -28,14 +28,14 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 	var m_nextFree *DtMeshTile
 	for i := mesh.m_maxTiles - 1; i >= 0; i-- {
 		mesh.m_tiles[i].salt = 1
-		mesh.m_tiles[i].next = m_nextFree
+		mesh.m_tiles[i].Next = m_nextFree
 		m_nextFree = mesh.m_tiles[i]
 	}
 
 	// Init ID generator values.
 	if DT_POLYREF64 == 1 {
-		mesh.m_tileBits = common.Ilog2(common.NextPow2(params.maxTiles))
-		mesh.m_polyBits = common.Ilog2(common.NextPow2(params.maxPolys))
+		mesh.m_tileBits = common.Ilog2(common.NextPow2(params.MaxTiles))
+		mesh.m_polyBits = common.Ilog2(common.NextPow2(params.MaxPolys))
 		// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
 		mesh.m_saltBits = common.Min(31, 32-mesh.m_tileBits-mesh.m_polyBits)
 
@@ -53,29 +53,30 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 // /  @param[in]	flags		The tile flags. (See: #dtTileFlags)
 // / @return The status flags for the operation.
 // /  @see dtCreateNavMeshData
-func NewDtNavMesh(header *DtMeshHeader, titleData *DtMeshTile, dataSize int, flags int) (result DtTileRef, status DtStatus) {
+func NewDtNavMesh(data *NavMeshData, flags int) (m IDtNavMesh, result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
+	header := data.Header
 	if header.Magic != DT_NAVMESH_MAGIC {
-		return result, DT_FAILURE | DT_WRONG_MAGIC
+		return m, result, DT_FAILURE | DT_WRONG_MAGIC
 	}
 
 	if header.Version != DT_NAVMESH_VERSION {
-		return result, DT_FAILURE | DT_WRONG_VERSION
+		return m, result, DT_FAILURE | DT_WRONG_VERSION
 	}
 
 	var params NavMeshParams
-	params.orig = header.Bmin
-	params.tileWidth = header.Bmax[0] - header.Bmin[0]
-	params.tileHeight = header.Bmax[2] - header.Bmin[2]
-	params.maxTiles = 1
-	params.maxPolys = header.PolyCount
+	params.Orig = header.Bmin
+	params.TileWidth = header.Bmax[0] - header.Bmin[0]
+	params.TileHeight = header.Bmax[2] - header.Bmin[2]
+	params.MaxTiles = 1
+	params.MaxPolys = header.PolyCount
 
 	mesh, status := NewDtNavMeshWithParams(&params)
 	if status.DtStatusFailed() {
-		return result, status
+		return mesh, result, status
 	}
-
-	return mesh.AddTile(header, titleData, dataSize, flags, 0)
+	result, status = mesh.AddTile(data, flags, 0)
+	return mesh, result, status
 }
 
 // / @par
@@ -301,7 +302,7 @@ func (mesh *DtNavMesh) GetTileRefAt(x, y, layer int) DtTileRef {
 			tile.Header.Layer == layer {
 			return mesh.GetTileRef(tile)
 		}
-		tile = tile.next
+		tile = tile.Next
 	}
 	return 0
 }
@@ -808,9 +809,9 @@ func (mesh *DtNavMesh) RestoreTileState(tile *DtMeshTile, tileState *dtTileState
 // / removed from this nav mesh.
 // /
 // / @see dtCreateNavMeshData, #removeTile
-func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, dataSize int, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus) {
+func (mesh *DtNavMesh) AddTile(data *NavMeshData, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
-
+	header := data.Header
 	if header.Magic != DT_NAVMESH_MAGIC {
 		return result, DT_FAILURE | DT_WRONG_MAGIC
 	}
@@ -836,8 +837,8 @@ func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, data
 	if lastRef == 0 {
 		if mesh.m_nextFree != nil {
 			tile = mesh.m_nextFree
-			mesh.m_nextFree = tile.next
-			tile.next = nil
+			mesh.m_nextFree = tile.Next
+			tile.Next = nil
 		}
 	} else {
 		// Try to relocate the tile to specific index with same salt.
@@ -852,7 +853,7 @@ func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, data
 		tile = mesh.m_nextFree
 		for tile != nil && tile != target {
 			prev = tile
-			tile = tile.next
+			tile = tile.Next
 		}
 		// Could not find the correct location.
 		if tile != target {
@@ -861,9 +862,9 @@ func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, data
 
 		// Remove from freelist
 		if prev == nil {
-			mesh.m_nextFree = tile.next
+			mesh.m_nextFree = tile.Next
 		} else {
-			prev.next = tile.next
+			prev.Next = tile.Next
 		}
 
 		// Restore salt.
@@ -877,18 +878,18 @@ func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, data
 
 	// Insert tile into the position lut.
 	h := computeTileHash(header.X, header.Y, mesh.m_tileLutMask)
-	tile.next = mesh.m_posLookup[h]
+	tile.Next = mesh.m_posLookup[h]
 	mesh.m_posLookup[h] = tile
 
 	// Patch header pointers.
-	tile.Verts = titleData.Verts
-	tile.Polys = titleData.Polys
-	tile.Links = titleData.Links
-	tile.DetailMeshes = titleData.DetailMeshes
-	tile.DetailVerts = titleData.DetailVerts
-	tile.DetailTris = titleData.DetailTris
-	tile.BvTree = titleData.BvTree
-	tile.OffMeshCons = titleData.OffMeshCons
+	tile.Verts = data.NavVerts
+	tile.Polys = data.NavPolys
+	tile.Links = data.Links
+	tile.DetailMeshes = data.navDMeshes
+	tile.DetailVerts = data.NavDVerts
+	tile.DetailTris = data.NavDTris
+	tile.BvTree = data.NavBvtree
+	tile.OffMeshCons = data.OffMeshCons
 
 	// If there are no items in the bvtree, reset the tree pointer.
 	// Build links freelist
@@ -900,9 +901,8 @@ func (mesh *DtNavMesh) AddTile(header *DtMeshHeader, titleData *DtMeshTile, data
 
 	// Init tile.
 	tile.Header = header
-	//tile.data = data
-	tile.dataSize = dataSize
-	tile.flags = flags
+	tile.Data = data
+	tile.Flags = flags
 
 	mesh.connectIntLinks(tile)
 
@@ -1049,7 +1049,7 @@ func (mesh *DtNavMesh) GetTileAt(x, y, layer int) *DtMeshTile {
 		if tile.Header != nil && tile.Header.X == x && tile.Header.Y == y && tile.Header.Layer == layer {
 			return tile
 		}
-		tile = tile.next
+		tile = tile.Next
 	}
 	return nil
 }
@@ -1060,20 +1060,20 @@ func (mesh *DtNavMesh) GetTileAt(x, y, layer int) *DtMeshTile {
 // / it can be added back to the navigation mesh at a later point.
 // /
 // / @see #addTile
-func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data []int, dataSize int, status DtStatus) {
+func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data *NavMeshData, status DtStatus) {
 	if ref == 0 {
-		return data, dataSize, DT_FAILURE | DT_INVALID_PARAM
+		return data, DT_FAILURE | DT_INVALID_PARAM
 	}
 
 	tileIndex := mesh.DecodePolyIdTile((DtPolyRef(ref)))
 	tileSalt := mesh.DecodePolyIdSalt((DtPolyRef(ref)))
 	if tileIndex >= mesh.m_maxTiles {
-		return data, dataSize, DT_FAILURE | DT_INVALID_PARAM
+		return data, DT_FAILURE | DT_INVALID_PARAM
 	}
 
 	tile := mesh.m_tiles[tileIndex]
 	if tile.salt != tileSalt {
-		return data, dataSize, DT_FAILURE | DT_INVALID_PARAM
+		return data, DT_FAILURE | DT_INVALID_PARAM
 	}
 
 	// Remove tile from hash lookup.
@@ -1083,15 +1083,15 @@ func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data []int, dataSize int, stat
 	for cur != nil {
 		if cur == tile {
 			if prev != nil {
-				prev.next = cur.next
+				prev.Next = cur.Next
 			} else {
-				mesh.m_posLookup[h] = cur.next
+				mesh.m_posLookup[h] = cur.Next
 			}
 
 			break
 		}
 		prev = cur
-		cur = cur.next
+		cur = cur.Next
 	}
 	MAX_NEIS := 32
 	// Remove connections to neighbour tiles.
@@ -1114,27 +1114,15 @@ func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data []int, dataSize int, stat
 	}
 
 	// Reset tile.
-	if tile.flags&DT_TILE_FREE_DATA > 0 {
+	if tile.Flags&DT_TILE_FREE_DATA > 0 {
 		// Owns data
-		tile.data = tile.data[:]
-		tile.dataSize = 0
-		if len(data) > 0 {
-			data = []int{}
-		}
-		if dataSize > 0 {
-			dataSize = 0
-		}
-	} else {
-		if len(data) > 0 {
-			data = tile.data
-		}
-		if dataSize > 0 {
-			dataSize = tile.dataSize
-		}
+		tile.Data = nil
+	} else if data != nil {
+		data = tile.Data
 	}
 
 	tile.Header = nil
-	tile.flags = 0
+	tile.Flags = 0
 	tile.linksFreeList = 0
 	tile.Polys = tile.Polys[:]
 	tile.Verts = tile.Verts[:]
@@ -1157,10 +1145,10 @@ func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data []int, dataSize int, stat
 	}
 
 	// Add to free list.
-	tile.next = mesh.m_nextFree
+	tile.Next = mesh.m_nextFree
 	mesh.m_nextFree = tile
 
-	return data, dataSize, DT_SUCCESS
+	return data, DT_SUCCESS
 }
 
 func (mesh *DtNavMesh) getNeighbourTilesAt(x, y, side, maxTiles int) ([]*DtMeshTile, int) {
@@ -1215,7 +1203,7 @@ func (mesh *DtNavMesh) GetTilesAt(x, y int, maxTiles int) ([]*DtMeshTile, int) {
 			}
 
 		}
-		tile = tile.next
+		tile = tile.Next
 	}
 
 	return tiles, n

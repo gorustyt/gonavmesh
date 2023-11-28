@@ -214,7 +214,7 @@ func DuDebugDrawHeightfieldWalkable(dd DuDebugDraw, hf *recast.RcHeightfield) {
 	dd.End()
 }
 
-func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf recast.RcCompactHeightfield) {
+func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf *recast.RcCompactHeightfield) {
 	if dd == nil {
 		return
 	}
@@ -255,7 +255,7 @@ func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf recast.RcCompactHeig
 	dd.End()
 }
 
-func DuDebugDrawCompactHeightfieldRegions(dd DuDebugDraw, chf recast.RcCompactHeightfield) {
+func DuDebugDrawCompactHeightfieldRegions(dd DuDebugDraw, chf *recast.RcCompactHeightfield) {
 	if dd == nil {
 		return
 	}
@@ -392,7 +392,7 @@ func DuDebugDrawHeightfieldLayer(dd DuDebugDraw, layer *recast.RcHeightfieldLaye
 	bmax[0] = layer.Bmin[0] + float64(layer.Maxx+1)*cs
 	bmax[1] = layer.Bmax[1]
 	bmax[2] = layer.Bmin[2] + float64(layer.Maxy+1)*cs
-	DuDebugDrawBoxWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duTransCol(color, 128), 2.0)
+	DuDebugDrawBoxWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
 	dd.Begin(DU_DRAW_QUADS)
@@ -690,7 +690,11 @@ func findContourFromSet(cset *recast.RcContourSet, reg int) *recast.RcContour {
 	return nil
 }
 
-func duDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alpha float64) {
+func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float64) {
+	alpha := 1.0
+	if len(alphas) > 0 {
+		alpha = alphas[0]
+	}
 	if dd == nil {
 		return
 	}
@@ -738,7 +742,11 @@ func duDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alp
 	dd.End()
 }
 
-func duDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alpha float64) {
+func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float64) {
+	alpha := 1.0
+	if len(alphas) > 0 {
+		alpha = alphas[0]
+	}
 	if dd == nil {
 		return
 	}
@@ -799,7 +807,11 @@ func duDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alpha flo
 	dd.End()
 }
 
-func duDebugDrawContours(dd DuDebugDraw, cset recast.RcContourSet, alpha float64) {
+func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float64) {
+	alpha := 1.0
+	if len(alphas) > 0 {
+		alpha = alphas[0]
+	}
 	if dd == nil {
 		return
 	}

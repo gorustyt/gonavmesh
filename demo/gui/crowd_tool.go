@@ -225,7 +225,7 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 						res = common.GluProject([]float64{node.Pos[0], node.Pos[1] + off, node.Pos[2]}, model, proj, view)
 						x, y = int(res[0]), int(res[1])
 						if len(res) > 0 {
-							heuristic := node.Total // - node->cost;
+							heuristic := node.Total // - node.cost;
 							label := fmt.Sprintf("%.2f", heuristic)
 							c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
 						}
@@ -442,18 +442,18 @@ func (c *CrowdToolState) handleRender() {
 
 				if c.m_toolParams.m_anticipateTurns {
 					/*					float dvel[3], pos[3];
-										calcSmoothSteerDirection(ag->pos, ag->cornerVerts, ag->ncorners, dvel);
-										pos[0] = ag->pos[0] + dvel[0];
-										pos[1] = ag->pos[1] + dvel[1];
-										pos[2] = ag->pos[2] + dvel[2];
+										calcSmoothSteerDirection(ag.pos, ag.cornerVerts, ag.ncorners, dvel);
+										pos[0] = ag.pos[0] + dvel[0];
+										pos[1] = ag.pos[1] + dvel[1];
+										pos[2] = ag.pos[2] + dvel[2];
 
-										const float off = ag->radius+0.1f;
-										const float* tgt = &ag->cornerVerts[0];
-										const float y = ag->pos[1]+off;
+										const float off = ag.radius+0.1f;
+										const float* tgt = &ag.cornerVerts[0];
+										const float y = ag.pos[1]+off;
 
 										dd.begin(DU_DRAW_LINES, 2.0f);
 
-										dd.vertex(ag->pos[0],y,ag->pos[2], duRGBA(255,0,0,192));
+										dd.vertex(ag.pos[0],y,ag.pos[2], duRGBA(255,0,0,192));
 										dd.vertex(pos[0],y,pos[2], duRGBA(255,0,0,192));
 
 										dd.vertex(pos[0],y,pos[2], duRGBA(255,0,0,192));

@@ -102,15 +102,12 @@ func newDtTempContour(vbuf []int, nvbuf int, pbuf []int, npbuf int) *dtTempConto
 }
 
 type DtTileCacheCompressor interface {
-	maxCompressedSize(bufferSize int) int
-	compress(buffer []byte, bufferSize int,
-		compressed, maxCompressedSize int, compressedSize *int) DtStatus
-	decompress(compressed []byte, compressedSize int,
-		buffer []byte, maxBufferSizeint, bufferSize *int) DtStatus
+	Compress(buffer []byte) ([]byte, error)
+	Decompress(compressed []byte) ([]byte, error)
 }
 
 type DtTileCacheMeshProcess interface {
-	process(params *DtNavMeshCreateParams, polyAreas []int, polyFlags []int)
+	Process(params *DtNavMeshCreateParams, polyAreas []int, polyFlags []int)
 }
 
 func overlapRangeExl(amin, amax,
@@ -1026,49 +1023,6 @@ type titleCacheRcEdge struct {
 	vert     [2]int
 	polyEdge [2]int
 	poly     [2]int
-}
-
-func DtDecompressTileCacheLayer(comp *DtTileCacheCompressor,
-	data []byte, compressedSize int,
-) (layerOut *DtTileCacheLayer, status DtStatus) {
-	//if compressedHeader.magic != DT_TILECACHE_MAGIC {
-	//	return nil, DT_FAILURE | DT_WRONG_MAGIC
-	//}
-	//
-	//if compressedHeader.version != DT_TILECACHE_VERSION {
-	//	return nil, DT_FAILURE | DT_WRONG_VERSION
-	//}
-
-	//const int layerSize = dtAlign4(sizeof(DtTileCacheLayer));
-	//const int headerSize = dtAlign4(sizeof(DtTileCacheLayerHeader));
-	//gridSize := compressedHeader.width * compressedHeader.height;
-	//const int bufferSize = layerSize + headerSize + gridSize*4;
-	//
-	//buffer = (unsigned char*)alloc->alloc(bufferSize);
-	//
-	//layer := &DtTileCacheLayer{}
-	//header = &DtTileCacheLayerHeader{}
-	//unsigned char* grids = buffer + layerSize + headerSize;
-	//const int gridsSize = bufferSize - (layerSize + headerSize);
-	//
-	//// Copy header
-	//memcpy(header, compressedHeader, headerSize);
-	//// Decompress grid.
-	//int size = 0;
-	//DtStatus status = comp.decompress(compressed+headerSize, compressedSize-headerSize,
-	//	grids, gridsSize, &size);
-	//if (status.DtStatusFailed()) {
-	//	alloc->free(buffer);
-	//	return status;
-	//}
-	//
-	//layer.header = header;
-	//layer.heights = grids;
-	//layer.areas = grids + gridSize;
-	//layer.cons = grids + gridSize*2;
-	//layer.regs = grids + gridSize*3;
-	return layerOut, DT_SUCCESS
-
 }
 
 func dtMarkCylinderArea(layer *DtTileCacheLayer, orig []float64, cs float64, ch float64,
@@ -1995,4 +1949,20 @@ func titleCacheRemoveVertex(mesh *DtTileCachePolyMesh, rem int, maxTris int) DtS
 	}
 
 	return DT_SUCCESS
+}
+
+func DtBuildTileCacheLayer(comp DtTileCacheCompressor,
+	header *DtTileCacheLayerHeader,
+	heights []int,
+	areas []int,
+	cons []int,
+) *DetourTitleCacheLayerData {
+	return &DetourTitleCacheLayerData{
+		Comp:    comp,
+		Header:  header,
+		Heights: heights,
+		Areas:   areas,
+		Cons:    cons,
+	}
+
 }

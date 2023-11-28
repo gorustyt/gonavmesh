@@ -1,5 +1,11 @@
 package gui
 
+import (
+	"fmt"
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"gonavamesh/common"
+)
+
 type meshTitleTool struct {
 	m_sample    *Sample_TileMesh
 	m_hitPos    [3]float64
@@ -54,33 +60,34 @@ func (m *meshTitleTool) handleUpdate(dt float64) {}
 
 func (m *meshTitleTool) handleRender() {
 	if m.m_hitPosSet {
-		//s := m.m_sample.getAgentRadius();
-		//glColor4ub(0,0,0,128);
-		//glLineWidth(2.0);
-		//glBegin(GL_LINES);
-		//glVertex3f(m_hitPos[0]-s,m_hitPos[1]+0.1f,m_hitPos[2]);
-		//glVertex3f(m_hitPos[0]+s,m_hitPos[1]+0.1f,m_hitPos[2]);
-		//glVertex3f(m_hitPos[0],m_hitPos[1]-s+0.1f,m_hitPos[2]);
-		//glVertex3f(m_hitPos[0],m_hitPos[1]+s+0.1f,m_hitPos[2]);
-		//glVertex3f(m_hitPos[0],m_hitPos[1]+0.1f,m_hitPos[2]-s);
-		//glVertex3f(m_hitPos[0],m_hitPos[1]+0.1f,m_hitPos[2]+s);
-		//glEnd();
-		//glLineWidth(1.0f);
+		s := m.m_sample.getAgentRadius()
+		glColor4ub(0, 0, 0, 128)
+		glLineWidth(2.0)
+		glBegin(GL_LINES)
+		glVertex3f(m.m_hitPos[0]-s, m.m_hitPos[1]+0.1, m.m_hitPos[2])
+		glVertex3f(m.m_hitPos[0]+s, m.m_hitPos[1]+0.1, m.m_hitPos[2])
+		glVertex3f(m.m_hitPos[0], m.m_hitPos[1]-s+0.1, m.m_hitPos[2])
+		glVertex3f(m.m_hitPos[0], m.m_hitPos[1]+s+0.1, m.m_hitPos[2])
+		glVertex3f(m.m_hitPos[0], m.m_hitPos[1]+0.1, m.m_hitPos[2]-s)
+		glVertex3f(m.m_hitPos[0], m.m_hitPos[1]+0.1, m.m_hitPos[2]+s)
+		gl.End()
+		gl.LineWidth(1.0)
 	}
 }
 
 func (m *meshTitleTool) handleRenderOverlay(proj, model []float64, view []int) {
-	//var  x, y, z float64
-	//if (m_hitPosSet && gluProject((GLdouble)m_hitPos[0], (GLdouble)m_hitPos[1], (GLdouble)m_hitPos[2],
-	//model, proj, view, &x, &y, &z)){
-	//int tx=0, ty=0;
-	//m_sample->getTilePos(m_hitPos, tx, ty);
-	//char text[32];
-	//snprintf(text,32,"(%d,%d)", tx,ty);
-	//imguiDrawText((int)x, (int)y-25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0,0,0,220));
-	//}
+	res := common.GluProject([]float64{m.m_hitPos[0], m.m_hitPos[1], m.m_hitPos[2]},
+		model, proj, view)
+	if m.m_hitPosSet && len(res) > 0 {
+		tx := 0
+		ty := 0
+		x, y := int(res[0]), int(res[1])
+		m.m_sample.getTilePos(m.m_hitPos[:], &tx, &ty)
+		text := fmt.Sprintf("(%d,%d)", tx, ty)
+		m.gs.imguiDrawText(x, y-25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220))
+	}
 
-	// Tool help
-	//h := view[3];
-	//imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255,255,255,192));
+	//Tool help
+	h := view[3]
+	m.gs.imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255, 255, 255, 192))
 }

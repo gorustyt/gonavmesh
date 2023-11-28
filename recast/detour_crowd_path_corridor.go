@@ -340,10 +340,13 @@ func (d *dtPathCorridor) optimizePathVisibility(next []float64, pathOptimization
 	MAX_RES := 32
 	res := make([]DtPolyRef, MAX_RES)
 
-	var t float64
+	var (
+		t float64
+	)
 	norm := make([]float64, 3)
 	nres := 0
-	t, nres, _ = navquery.Raycast(d.m_path[0], d.m_pos[:], goal, filter, norm, res, MAX_RES)
+
+	navquery.Raycast(d.m_path[0], d.m_pos[:], goal, filter, &t, norm, res, &nres, MAX_RES)
 	if nres > 1 && t > 0.99 {
 		d.m_npath = dtMergeCorridorStartShortcut(d.m_path, d.m_npath, d.m_maxPath, res, nres)
 	}

@@ -91,7 +91,7 @@ type RcHeightfieldLayer struct {
 // / See the #RcConfig documentation for more information on the configuration parameters.
 // /
 // / @see rcAllocHeightfieldLayerSet, RcCompactHeightfield, RcHeightfieldLayerSet, RcConfig
-func rcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHeight int, lset *RcHeightfieldLayerSet) bool {
+func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHeight int, lset *RcHeightfieldLayerSet) bool {
 
 	w := chf.Width
 	h := chf.Height

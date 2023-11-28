@@ -639,7 +639,11 @@ func (gs *guiState) imguiButton(text string, enableds ...bool) bool {
 	return res
 }
 
-func (gs *guiState) imguiItem(text string, enabled bool) bool {
+func (gs *guiState) imguiItem(text string, enableds ...bool) bool {
+	enabled := true
+	if len(enableds) > 0 {
+		enabled = enableds[0]
+	}
 	gs.widgetId++
 	id := (gs.areaId << 16) | gs.widgetId
 

@@ -1,6 +1,12 @@
 package gui
 
-import "gonavamesh/debug_utils"
+import (
+	"fmt"
+	"gonavamesh/common"
+	"gonavamesh/debug_utils"
+	"os"
+	"path/filepath"
+)
 
 const MAX_CONVEXVOL_PTS = 12
 
@@ -60,11 +66,85 @@ func newInputGeom() *InputGeom {
 		m_volumes:         make([]*ConvexVolume, MAX_VOLUMES),
 	}
 }
-func (g *InputGeom) loadMesh(l *logger, filepath string) {
+func (g *InputGeom) loadMesh(path string) bool {
 	panic("impl")
 }
-func (g *InputGeom) loadGeomSet(l *logger, filepath string) bool {
+func (g *InputGeom) loadGeomSet(path string) bool {
 	panic("impl")
+}
+func (g *InputGeom) load(path string) bool {
+	extension := filepath.Ext(path)
+	if extension == ".gset" {
+		return g.loadGeomSet(path)
+	}
+
+	if extension == ".obj" {
+		return g.loadMesh(path)
+	}
+	return false
+}
+func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
+	if g.m_mesh == nil {
+		return false
+	}
+
+	// Change extension
+	path := g.m_mesh.getFileName() + ".gset"
+	fp, err := os.Open(path)
+	defer fp.Close()
+	common.AssertTrue(err == nil)
+	// Store mesh filename.
+	_, err = fmt.Fscanln(fp, "f %s", g.m_mesh.getFileName())
+	common.AssertTrue(err == nil)
+	// Store settings if any
+	if settings != nil {
+		fmt.Fscanln(fp,
+			"s %f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
+			settings.cellSize,
+			settings.cellHeight,
+			settings.agentHeight,
+			settings.agentRadius,
+			settings.agentMaxClimb,
+			settings.agentMaxSlope,
+			settings.regionMinSize,
+			settings.regionMergeSize,
+			settings.edgeMaxLen,
+			settings.edgeMaxError,
+			settings.vertsPerPoly,
+			settings.detailSampleDist,
+			settings.detailSampleMaxError,
+			settings.partitionType,
+			settings.navMeshBMin[0],
+			settings.navMeshBMin[1],
+			settings.navMeshBMin[2],
+			settings.navMeshBMax[0],
+			settings.navMeshBMax[1],
+			settings.navMeshBMax[2],
+			settings.tileSize)
+	}
+
+	// Store off-mesh links.
+	for i := 0; i < g.m_offMeshConCount; i++ {
+		v := g.m_offMeshConVerts[i*3*2:]
+		rad := g.m_offMeshConRads[i]
+		bidir := g.m_offMeshConDirs[i]
+		area := g.m_offMeshConAreas[i]
+		flags := g.m_offMeshConFlags[i]
+		fmt.Fscanln(fp, "c %f %f %f  %f %f %f  %f %d %d %d",
+			v[0], v[1], v[2], v[3], v[4], v[5], rad, bidir, area, flags)
+	}
+
+	// Convex volumes
+	for i := 0; i < g.m_volumeCount; i++ {
+		vol := g.m_volumes[i]
+		fmt.Fscanln(fp, "v %d %d %f %f", vol.nverts, vol.area, vol.hmin, vol.hmax)
+		for j := 0; j < vol.nverts; j++ {
+			fmt.Fscanln(fp, "%f %f %f", vol.verts[j*3+0], vol.verts[j*3+1], vol.verts[j*3+2])
+		}
+
+	}
+
+	return true
 }
 
 // / Method to return static mesh data.
@@ -108,7 +188,179 @@ func (g *InputGeom) addConvexVolume(verts []float64, nverts int, minh, maxh floa
 	vol.area = area
 }
 
-func (g *InputGeom) drawOffMeshConnections(dd debug_utils.DuDebugDraw, hilight bool) {
+func (g *InputGeom) drawConvexVolumes(dd debug_utils.DuDebugDraw, hilights ...bool) {
+	var hilight bool
+	if len(hilights) > 0 {
+		hilight = hilights[0]
+	}
+	_ = hilight
+	dd.DepthMask(false)
+
+	dd.Begin(debug_utils.DU_DRAW_TRIS)
+
+	for i := 0; i < g.m_volumeCount; i++ {
+		vol := g.m_volumes[i]
+		col := debug_utils.DuTransCol(dd.AreaToCol(vol.area), 32)
+		j := 0
+		k := vol.nverts - 1
+		for j < vol.nverts {
+			va := common.GetVs3(vol.verts, k)
+			vb := common.GetVs3(vol.verts, j)
+
+			dd.Vertex1(vol.verts[0], vol.hmax, vol.verts[2], col)
+			dd.Vertex1(vb[0], vol.hmax, vb[2], col)
+			dd.Vertex1(va[0], vol.hmax, va[2], col)
+
+			dd.Vertex1(va[0], vol.hmin, va[2], debug_utils.DuDarkenCol(col))
+			dd.Vertex1(va[0], vol.hmax, va[2], col)
+			dd.Vertex1(vb[0], vol.hmax, vb[2], col)
+
+			dd.Vertex1(va[0], vol.hmin, va[2], debug_utils.DuDarkenCol(col))
+			dd.Vertex1(vb[0], vol.hmax, vb[2], col)
+			dd.Vertex1(vb[0], vol.hmin, vb[2], debug_utils.DuDarkenCol(col))
+			k = j
+			j++
+		}
+	}
+
+	dd.End()
+
+	dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
+	for i := 0; i < g.m_volumeCount; i++ {
+		vol := g.m_volumes[i]
+		col := debug_utils.DuTransCol(dd.AreaToCol(vol.area), 220)
+		j := 0
+		k := vol.nverts - 1
+		for j < vol.nverts {
+			va := common.GetVs3(vol.verts, k)
+			vb := common.GetVs3(vol.verts, j)
+			dd.Vertex1(va[0], vol.hmin, va[2], debug_utils.DuDarkenCol(col))
+			dd.Vertex1(vb[0], vol.hmin, vb[2], debug_utils.DuDarkenCol(col))
+			dd.Vertex1(va[0], vol.hmax, va[2], col)
+			dd.Vertex1(vb[0], vol.hmax, vb[2], col)
+			dd.Vertex1(va[0], vol.hmin, va[2], debug_utils.DuDarkenCol(col))
+			dd.Vertex1(va[0], vol.hmax, va[2], col)
+			k = j
+			j++
+		}
+	}
+	dd.End()
+
+	dd.Begin(debug_utils.DU_DRAW_POINTS, 3.0)
+	for i := 0; i < g.m_volumeCount; i++ {
+		vol := g.m_volumes[i]
+		col := debug_utils.DuDarkenCol(debug_utils.DuTransCol(dd.AreaToCol(vol.area), 220))
+		for j := 0; j < vol.nverts; j++ {
+			dd.Vertex1(vol.verts[j*3+0], vol.verts[j*3+1]+0.1, vol.verts[j*3+2], col)
+			dd.Vertex1(vol.verts[j*3+0], vol.hmin, vol.verts[j*3+2], col)
+			dd.Vertex1(vol.verts[j*3+0], vol.hmax, vol.verts[j*3+2], col)
+		}
+	}
+	dd.End()
+
+	dd.DepthMask(true)
+}
+func (g *InputGeom) raycastMesh(src, dst []float64, tmin *float64) bool {
+	// Prune hit ray.
+	var btmin, btmax float64
+	if !isectSegAABB(src, dst, g.m_meshBMin, g.m_meshBMax, btmin, btmax) {
+		return false
+	}
+
+	var p, q [2]float64
+	p[0] = src[0] + (dst[0]-src[0])*btmin
+	p[1] = src[2] + (dst[2]-src[2])*btmin
+	q[0] = src[0] + (dst[0]-src[0])*btmax
+	q[1] = src[2] + (dst[2]-src[2])*btmax
+
+	cid := make([]int, 512)
+	ncid := rcGetChunksOverlappingSegment(g.m_chunkyMesh, p, q, cid, 512)
+	if ncid == 0 {
+		return false
+	}
+
+	*tmin = 1.0
+	hit := false
+	verts := g.m_mesh.getVerts()
+
+	for i := 0; i < ncid; i++ {
+		node := g.m_chunkyMesh.nodes[cid[i]]
+		tris := g.m_chunkyMesh.tris[node.i*3:]
+		ntris := node.n
+
+		for j := 0; j < ntris*3; j += 3 {
+			t := 1.0
+			if intersectSegmentTriangle(src, dst,
+				common.GetVs3(verts, tris[j]),
+				common.GetVs3(verts, tris[j+1]),
+				common.GetVs3(verts, tris[j+2]), t) {
+				if t < *tmin {
+					*tmin = t
+				}
+				hit = true
+			}
+		}
+	}
+
+	return hit
+}
+func intersectSegmentTriangle(sp, sq, a, b, c []float64, t float64) bool {
+	var v, w float64
+	ab := make([]float64, 3)
+	ac := make([]float64, 3)
+	qp := make([]float64, 3)
+	ap := make([]float64, 3)
+	norm := make([]float64, 3)
+	e := make([]float64, 3)
+	common.Vsub(ab, b, a)
+	common.Vsub(ac, c, a)
+	common.Vsub(qp, sp, sq)
+
+	// Compute triangle normal. Can be precalculated or cached if
+	// intersecting multiple segments against the same triangle
+	common.Vcross(norm, ab, ac)
+
+	// Compute denominator d. If d <= 0, segment is parallel to or points
+	// away from triangle, so exit early
+	d := common.Vdot(qp, norm)
+	if d <= 0.0 {
+		return false
+	}
+
+	// Compute intersection t value of pq with plane of triangle. A ray
+	// intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
+	// dividing by d until intersection has been found to pierce triangle
+	common.Vsub(ap, sp, a)
+	t = common.Vdot(ap, norm)
+	if t < 0.0 {
+		return false
+	}
+	if t > d {
+		return false
+	} // For segment; exclude this code line for a ray test
+
+	// Compute barycentric coordinate components and test if within bounds
+	common.Vcross(e, qp, ap)
+	v = common.Vdot(ac, e)
+	if v < 0.0 || v > d {
+		return false
+	}
+	w = -common.Vdot(ab, e)
+	if w < 0.0 || v+w > d {
+		return false
+	}
+
+	// Segment/ray intersects triangle. Perform delayed division
+	t /= d
+
+	return true
+}
+
+func (g *InputGeom) drawOffMeshConnections(dd debug_utils.DuDebugDraw, hilights ...bool) {
+	var hilight bool
+	if len(hilights) > 0 {
+		hilight = hilights[0]
+	}
 	conColor := debug_utils.DuRGBA(192, 0, 128, 192)
 	baseColor := debug_utils.DuRGBA(0, 0, 0, 64)
 	dd.DepthMask(false)

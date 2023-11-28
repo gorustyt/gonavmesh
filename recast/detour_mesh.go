@@ -169,11 +169,10 @@ type DtMeshTile struct {
 	BvTree []*DtBVNode
 
 	OffMeshCons []*DtOffMeshConnection ///< The tile off-mesh connections. [Size: DtMeshHeader::offMeshConCount]
-
-	Data     []int       ///< The tile data. (Not directly accessed under normal situations.)
-	DataSize int         ///< Size of the tile data.
-	Flags    int         ///< Tile flags. (See: #dtTileFlags)
-	Next     *DtMeshTile ///< The next free tile, or the next tile in the spatial grid.
+	Flags       int                    ///< Tile flags. (See: #dtTileFlags)
+	Next        *DtMeshTile            ///< The next free tile, or the next tile in the spatial grid.
+	//存儲的數據
+	Data *NavMeshData
 }
 
 func (d *DtMeshTile) GetIndexByPloy(ploy *DtPoly) int {
@@ -260,13 +259,11 @@ type IDtNavMesh interface {
 	///  @param[in]		lastRef		The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
 	///  @param[out]	result		The tile reference. (If the tile was succesfully added.) [opt]
 	/// @return The status flags for the operation.
-	AddTile(header *DtMeshHeader, titleData *DtMeshTile, dataSize int, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus)
+	AddTile(data *NavMeshData, flags int, lastRef DtTileRef) (result DtTileRef, status DtStatus)
 	/// Removes the specified tile from the navigation mesh.
 	///  @param[in]		ref			The reference of the tile to remove.
-	///  @param[out]	data		Data associated with deleted tile.
-	///  @param[out]	dataSize	Size of the data associated with deleted tile.
 	/// @return The status flags for the operation.
-	RemoveTile(ref DtTileRef) (data []int, dataSize int, status DtStatus)
+	RemoveTile(ref DtTileRef) (data *NavMeshData, status DtStatus)
 	/// @name Query Functions
 
 	/// Calculates the tile grid location for the specified world position.

@@ -375,21 +375,21 @@ func createBVTree(params *DtNavMeshCreateParams, nodes []*DtBVNode) int {
 // / mesh.
 // /
 // / @see DtNavMesh, DtNavMesh::addTile()
-func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
+func DtCreateNavMeshData(params *DtNavMeshCreateParams) (outData *NavMeshData, ok bool) {
 	if params.Nvp > DT_VERTS_PER_POLYGON {
-		return false
+		return outData, false
 	}
 
 	if params.VertCount >= 0xffff {
-		return false
+		return outData, false
 	}
 
 	if params.VertCount == 0 || len(params.Verts) == 0 {
-		return false
+		return outData, false
 	}
 
 	if params.PolyCount == 0 || len(params.Polys) == 0 {
-		return false
+		return outData, false
 	}
 	nvp := params.Nvp
 	offMeshConClass := make([]int, params.OffMeshConCount*2)
@@ -420,8 +420,8 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 		hmin -= params.WalkableClimb
 		hmax += params.WalkableClimb
 		var bmin, bmax [3]float64
-		copy(bmin[:], params.Bmin[:])
-		copy(bmax[:], params.Bmax[:])
+		bmin = params.Bmin
+		bmax = params.Bmax
 		bmin[1] = hmin
 		bmax[1] = hmax
 
@@ -538,6 +538,16 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 		navBvtreeSize = params.PolyCount * 2
 	}
 	navBvtree := make([]*DtBVNode, navBvtreeSize)
+	data := &NavMeshData{
+		Header:      &header,
+		NavVerts:    navVerts,
+		NavPolys:    navPolys,
+		navDMeshes:  navDMeshes,
+		NavDVerts:   navDVerts,
+		NavBvtree:   navBvtree,
+		NavDTris:    navDTris,
+		OffMeshCons: offMeshCons,
+	}
 	// Store header
 	header.Magic = DT_NAVMESH_MAGIC
 	header.Version = DT_NAVMESH_VERSION
@@ -548,8 +558,8 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 	header.PolyCount = totPolyCount
 	header.VertCount = totVertCount
 	header.MaxLinkCount = maxLinkCount
-	copy(header.Bmin[:], params.Bmin[:])
-	copy(header.Bmax[:], params.Bmax[:])
+	header.Bmin = params.Bmin
+	header.Bmax = params.Bmax
 	header.DetailMeshCount = params.PolyCount
 	header.DetailVertCount = uniqueDetailVertCount
 	header.DetailTriCount = detailTriCount
@@ -721,6 +731,7 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) bool {
 			n++
 		}
 	}
-	return true
+
+	return data, true
 
 }

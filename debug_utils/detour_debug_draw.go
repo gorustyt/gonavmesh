@@ -130,7 +130,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh recast.IDtNavMesh, query recast.NavMeshQu
 			if flags&DU_DRAWNAVMESH_COLOR_TILES != 0 {
 				col = tileColor
 			} else {
-				col = duTransCol(dd.AreaToCol(p.GetArea()), 64)
+				col = DuTransCol(dd.AreaToCol(p.GetArea()), 64)
 			}
 
 		}
@@ -167,7 +167,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh recast.IDtNavMesh, query recast.NavMeshQu
 			if query != nil && query.IsInClosedList(base|recast.DtPolyRef(i)) {
 				col = DuRGBA(255, 196, 0, 220)
 			} else {
-				col = DuDarkenCol(duTransCol(dd.AreaToCol(p.GetArea()), 220))
+				col = DuDarkenCol(DuTransCol(dd.AreaToCol(p.GetArea()), 220))
 			}
 
 			con := tile.OffMeshCons[i-tile.Header.OffMeshBase]
@@ -330,7 +330,7 @@ func DrawMeshTileBVTree(dd DuDebugDraw, tile *recast.DtMeshTile) {
 	dd.End()
 }
 
-func DuDebugDrawNavMeshBVTree(dd DuDebugDraw, mesh recast.DtNavMesh) {
+func DuDebugDrawNavMeshBVTree(dd DuDebugDraw, mesh recast.IDtNavMesh) {
 	if dd == nil {
 		return
 	}
@@ -467,7 +467,7 @@ func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh recast.IDtNavMesh, ref recast.D
 
 	dd.DepthMask(false)
 
-	c := duTransCol(col, 64)
+	c := DuTransCol(col, 64)
 	ip := tile.GetIndexByPloy(poly)
 	if poly.GetType() == recast.DT_POLYTYPE_OFFMESH_CONNECTION {
 		con := tile.OffMeshCons[ip-tile.Header.OffMeshBase]
@@ -561,7 +561,7 @@ func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *recast.DtTileCacheLay
 	lbmax[0] = bmin[0] + float64(layer.Header.Maxx+1)*cs
 	lbmax[1] = bmax[1]
 	lbmax[2] = bmin[2] + float64(layer.Header.Maxy+1)*cs
-	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], duTransCol(color, 128), 2.0)
+	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
 	dd.Begin(DU_DRAW_QUADS)
@@ -616,7 +616,7 @@ func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *recast.DtTileCacheL
 	lbmax[0] = bmin[0] + float64(layer.Header.Maxx+1)*cs
 	lbmax[1] = bmax[1]
 	lbmax[2] = bmin[2] + float64(layer.Header.Maxy+1)*cs
-	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], duTransCol(color, 128), 2.0)
+	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
 	dd.Begin(DU_DRAW_QUADS)

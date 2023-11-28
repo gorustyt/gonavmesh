@@ -544,7 +544,7 @@ func DuLerpCol(ca, cb, u int) int {
 	return DuRGBA(r, g, b, a)
 }
 
-func duTransCol(c, a int) int {
+func DuTransCol(c, a int) int {
 	return (a << 24) | (c & 0x00ffffff)
 }
 

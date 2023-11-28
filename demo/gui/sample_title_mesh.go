@@ -10,28 +10,28 @@ import (
 	"time"
 )
 
-type DrawMode int
+type TitleMeshDrawMode int
 
 const (
-	DRAWMODE_NAVMESH = iota
-	DRAWMODE_NAVMESH_TRANS
-	DRAWMODE_NAVMESH_BVTREE
-	DRAWMODE_NAVMESH_NODES
-	DRAWMODE_NAVMESH_PORTALS
-	DRAWMODE_NAVMESH_INVIS
-	DRAWMODE_MESH
-	DRAWMODE_VOXELS
-	DRAWMODE_VOXELS_WALKABLE
-	DRAWMODE_COMPACT
-	DRAWMODE_COMPACT_DISTANCE
-	DRAWMODE_COMPACT_REGIONS
-	DRAWMODE_REGION_CONNECTIONS
-	DRAWMODE_RAW_CONTOURS
-	DRAWMODE_BOTH_CONTOURS
-	DRAWMODE_CONTOURS
-	DRAWMODE_POLYMESH
-	DRAWMODE_POLYMESH_DETAIL
-	MAX_DRAWMODE
+	TitleMeshDRAWMODE_NAVMESH TitleMeshDrawMode = iota
+	TitleMeshDRAWMODE_NAVMESH_TRANS
+	TitleMeshDRAWMODE_NAVMESH_BVTREE
+	TitleMeshDRAWMODE_NAVMESH_NODES
+	TitleMeshDRAWMODE_NAVMESH_PORTALS
+	TitleMeshDRAWMODE_NAVMESH_INVIS
+	TitleMeshDRAWMODE_MESH
+	TitleMeshDRAWMODE_VOXELS
+	TitleMeshDRAWMODE_VOXELS_WALKABLE
+	TitleMeshDRAWMODE_COMPACT
+	TitleMeshDRAWMODE_COMPACT_DISTANCE
+	TitleMeshDRAWMODE_COMPACT_REGIONS
+	TitleMeshDRAWMODE_REGION_CONNECTIONS
+	TitleMeshDRAWMODE_RAW_CONTOURS
+	TitleMeshDRAWMODE_BOTH_CONTOURS
+	TitleMeshDRAWMODE_CONTOURS
+	TitleMeshDRAWMODE_POLYMESH
+	TitleMeshDRAWMODE_POLYMESH_DETAIL
+	TitleMeshMAX_DRAWMODE
 )
 
 type Sample_TileMesh struct {
@@ -47,7 +47,7 @@ type Sample_TileMesh struct {
 	m_pmesh           *recast.RcPolyMesh
 	m_dmesh           *recast.RcPolyMeshDetail
 	m_cfg             *recast.RcConfig
-	m_drawMode        DrawMode
+	m_drawMode        TitleMeshDrawMode
 	m_maxTiles        int
 	m_maxPolysPerTile int
 	m_tileSize        float64
@@ -65,7 +65,7 @@ func newSampleTileMesh(s *Sample, gs *guiState, logger *logger) *Sample_TileMesh
 	t := &Sample_TileMesh{
 		Sample:     s,
 		l:          logger,
-		m_drawMode: DRAWMODE_NAVMESH,
+		m_drawMode: TitleMeshDRAWMODE_NAVMESH,
 		m_tileCol:  debug_utils.DuRGBA(0, 0, 0, 32),
 		m_buildAll: true,
 		m_tileSize: 32,
@@ -293,16 +293,15 @@ func (s *Sample_TileMesh) buildTile(pos []float64) {
 
 	s.l.reset()
 
-	var dataSize int
-	data := s.buildTileMesh(tx, ty, s.m_lastBuiltTileBmin, s.m_lastBuiltTileBmax, dataSize)
+	data := s.buildTileMesh(tx, ty, s.m_lastBuiltTileBmin[:], s.m_lastBuiltTileBmax[:])
 
 	// Remove any previous data (navmesh owns and deletes the data).
-	s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(tx, ty, 0), 0, 0)
+	s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(tx, ty, 0))
 
 	// Add tile, or leave the location empty.
-	if data {
+	if data != nil {
 		// Let the navmesh own the data.
-		s.m_navMesh.AddTile(data, dataSize, recast.DT_TILE_FREE_DATA, 0)
+		s.m_navMesh.AddTile(data, recast.DT_TILE_FREE_DATA, 0)
 	}
 
 	s.l.dumpLog("Build Tile (%d,%d):", tx, ty)
@@ -339,114 +338,114 @@ func (s *Sample_TileMesh) cleanup() {
 }
 func (s *Sample_TileMesh) handleDebugMode() {
 	// Check which modes are valid.
-	valid := make([]bool, MAX_DRAWMODE)
-	for i := 0; i < MAX_DRAWMODE; i++ {
+	valid := make([]bool, TitleMeshMAX_DRAWMODE)
+	for i := 0; i < int(TitleMeshMAX_DRAWMODE); i++ {
 		valid[i] = false
 	}
 
 	if s.m_geom != nil {
-		valid[DRAWMODE_NAVMESH] = s.m_navMesh != nil
-		valid[DRAWMODE_NAVMESH_TRANS] = s.m_navMesh != nil
-		valid[DRAWMODE_NAVMESH_BVTREE] = s.m_navMesh != nil
-		valid[DRAWMODE_NAVMESH_NODES] = s.m_navQuery != nil
-		valid[DRAWMODE_NAVMESH_PORTALS] = s.m_navMesh != nil
-		valid[DRAWMODE_NAVMESH_INVIS] = s.m_navMesh != nil
-		valid[DRAWMODE_MESH] = true
-		valid[DRAWMODE_VOXELS] = s.m_solid != nil
-		valid[DRAWMODE_VOXELS_WALKABLE] = s.m_solid != nil
-		valid[DRAWMODE_COMPACT] = s.m_chf != nil
-		valid[DRAWMODE_COMPACT_DISTANCE] = s.m_chf != nil
-		valid[DRAWMODE_COMPACT_REGIONS] = s.m_chf != nil
-		valid[DRAWMODE_REGION_CONNECTIONS] = s.m_cset != nil
-		valid[DRAWMODE_RAW_CONTOURS] = s.m_cset != nil
-		valid[DRAWMODE_BOTH_CONTOURS] = s.m_cset != nil
-		valid[DRAWMODE_CONTOURS] = s.m_cset != nil
-		valid[DRAWMODE_POLYMESH] = s.m_pmesh != nil
-		valid[DRAWMODE_POLYMESH_DETAIL] = s.m_dmesh != nil
+		valid[TitleMeshDRAWMODE_NAVMESH] = s.m_navMesh != nil
+		valid[TitleMeshDRAWMODE_NAVMESH_TRANS] = s.m_navMesh != nil
+		valid[TitleMeshDRAWMODE_NAVMESH_BVTREE] = s.m_navMesh != nil
+		valid[TitleMeshDRAWMODE_NAVMESH_NODES] = s.m_navQuery != nil
+		valid[TitleMeshDRAWMODE_NAVMESH_PORTALS] = s.m_navMesh != nil
+		valid[TitleMeshDRAWMODE_NAVMESH_INVIS] = s.m_navMesh != nil
+		valid[TitleMeshDRAWMODE_MESH] = true
+		valid[TitleMeshDRAWMODE_VOXELS] = s.m_solid != nil
+		valid[TitleMeshDRAWMODE_VOXELS_WALKABLE] = s.m_solid != nil
+		valid[TitleMeshDRAWMODE_COMPACT] = s.m_chf != nil
+		valid[TitleMeshDRAWMODE_COMPACT_DISTANCE] = s.m_chf != nil
+		valid[TitleMeshDRAWMODE_COMPACT_REGIONS] = s.m_chf != nil
+		valid[TitleMeshDRAWMODE_REGION_CONNECTIONS] = s.m_cset != nil
+		valid[TitleMeshDRAWMODE_RAW_CONTOURS] = s.m_cset != nil
+		valid[TitleMeshDRAWMODE_BOTH_CONTOURS] = s.m_cset != nil
+		valid[TitleMeshDRAWMODE_CONTOURS] = s.m_cset != nil
+		valid[TitleMeshDRAWMODE_POLYMESH] = s.m_pmesh != nil
+		valid[TitleMeshDRAWMODE_POLYMESH_DETAIL] = s.m_dmesh != nil
 	}
 
 	unavail := 0
-	for i := 0; i < MAX_DRAWMODE; i++ {
+	for i := 0; i < int(TitleMeshMAX_DRAWMODE); i++ {
 		if !valid[i] {
 			unavail++
 		}
 	}
 
-	if unavail == MAX_DRAWMODE {
+	if unavail == int(TitleMeshMAX_DRAWMODE) {
 		return
 	}
 
 	s.gs.imguiLabel("Draw")
-	if s.gs.imguiCheck("Input Mesh", s.m_drawMode == DRAWMODE_MESH, valid[DRAWMODE_MESH]) {
-		s.m_drawMode = DRAWMODE_MESH
+	if s.gs.imguiCheck("Input Mesh", s.m_drawMode == TitleMeshDRAWMODE_MESH, valid[TitleMeshDRAWMODE_MESH]) {
+		s.m_drawMode = TitleMeshDRAWMODE_MESH
 	}
 
-	if s.gs.imguiCheck("Navmesh", s.m_drawMode == DRAWMODE_NAVMESH, valid[DRAWMODE_NAVMESH]) {
-		s.m_drawMode = DRAWMODE_NAVMESH
+	if s.gs.imguiCheck("Navmesh", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH, valid[TitleMeshDRAWMODE_NAVMESH]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH
 	}
 
-	if s.gs.imguiCheck("Navmesh Invis", s.m_drawMode == DRAWMODE_NAVMESH_INVIS, valid[DRAWMODE_NAVMESH_INVIS]) {
-		s.m_drawMode = DRAWMODE_NAVMESH_INVIS
+	if s.gs.imguiCheck("Navmesh Invis", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH_INVIS, valid[TitleMeshDRAWMODE_NAVMESH_INVIS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH_INVIS
 	}
 
-	if s.gs.imguiCheck("Navmesh Trans", s.m_drawMode == DRAWMODE_NAVMESH_TRANS, valid[DRAWMODE_NAVMESH_TRANS]) {
-		s.m_drawMode = DRAWMODE_NAVMESH_TRANS
+	if s.gs.imguiCheck("Navmesh Trans", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH_TRANS, valid[TitleMeshDRAWMODE_NAVMESH_TRANS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH_TRANS
 	}
 
-	if s.gs.imguiCheck("Navmesh BVTree", s.m_drawMode == DRAWMODE_NAVMESH_BVTREE, valid[DRAWMODE_NAVMESH_BVTREE]) {
-		s.m_drawMode = DRAWMODE_NAVMESH_BVTREE
+	if s.gs.imguiCheck("Navmesh BVTree", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH_BVTREE, valid[TitleMeshDRAWMODE_NAVMESH_BVTREE]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH_BVTREE
 	}
 
-	if s.gs.imguiCheck("Navmesh Nodes", s.m_drawMode == DRAWMODE_NAVMESH_NODES, valid[DRAWMODE_NAVMESH_NODES]) {
-		s.m_drawMode = DRAWMODE_NAVMESH_NODES
+	if s.gs.imguiCheck("Navmesh Nodes", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH_NODES, valid[TitleMeshDRAWMODE_NAVMESH_NODES]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH_NODES
 	}
 
-	if s.gs.imguiCheck("Navmesh Portals", s.m_drawMode == DRAWMODE_NAVMESH_PORTALS, valid[DRAWMODE_NAVMESH_PORTALS]) {
-		s.m_drawMode = DRAWMODE_NAVMESH_PORTALS
+	if s.gs.imguiCheck("Navmesh Portals", s.m_drawMode == TitleMeshDRAWMODE_NAVMESH_PORTALS, valid[TitleMeshDRAWMODE_NAVMESH_PORTALS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_NAVMESH_PORTALS
 	}
 
-	if s.gs.imguiCheck("Voxels", s.m_drawMode == DRAWMODE_VOXELS, valid[DRAWMODE_VOXELS]) {
-		s.m_drawMode = DRAWMODE_VOXELS
+	if s.gs.imguiCheck("Voxels", s.m_drawMode == TitleMeshDRAWMODE_VOXELS, valid[TitleMeshDRAWMODE_VOXELS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_VOXELS
 	}
 
-	if s.gs.imguiCheck("Walkable Voxels", s.m_drawMode == DRAWMODE_VOXELS_WALKABLE, valid[DRAWMODE_VOXELS_WALKABLE]) {
-		s.m_drawMode = DRAWMODE_VOXELS_WALKABLE
+	if s.gs.imguiCheck("Walkable Voxels", s.m_drawMode == TitleMeshDRAWMODE_VOXELS_WALKABLE, valid[TitleMeshDRAWMODE_VOXELS_WALKABLE]) {
+		s.m_drawMode = TitleMeshDRAWMODE_VOXELS_WALKABLE
 	}
 
-	if s.gs.imguiCheck("Compact", s.m_drawMode == DRAWMODE_COMPACT, valid[DRAWMODE_COMPACT]) {
-		s.m_drawMode = DRAWMODE_COMPACT
+	if s.gs.imguiCheck("Compact", s.m_drawMode == TitleMeshDRAWMODE_COMPACT, valid[TitleMeshDRAWMODE_COMPACT]) {
+		s.m_drawMode = TitleMeshDRAWMODE_COMPACT
 	}
 
-	if s.gs.imguiCheck("Compact Distance", s.m_drawMode == DRAWMODE_COMPACT_DISTANCE, valid[DRAWMODE_COMPACT_DISTANCE]) {
-		s.m_drawMode = DRAWMODE_COMPACT_DISTANCE
+	if s.gs.imguiCheck("Compact Distance", s.m_drawMode == TitleMeshDRAWMODE_COMPACT_DISTANCE, valid[TitleMeshDRAWMODE_COMPACT_DISTANCE]) {
+		s.m_drawMode = TitleMeshDRAWMODE_COMPACT_DISTANCE
 	}
 
-	if s.gs.imguiCheck("Compact Regions", s.m_drawMode == DRAWMODE_COMPACT_REGIONS, valid[DRAWMODE_COMPACT_REGIONS]) {
-		s.m_drawMode = DRAWMODE_COMPACT_REGIONS
+	if s.gs.imguiCheck("Compact Regions", s.m_drawMode == TitleMeshDRAWMODE_COMPACT_REGIONS, valid[TitleMeshDRAWMODE_COMPACT_REGIONS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_COMPACT_REGIONS
 	}
 
-	if s.gs.imguiCheck("Region Connections", s.m_drawMode == DRAWMODE_REGION_CONNECTIONS, valid[DRAWMODE_REGION_CONNECTIONS]) {
-		s.m_drawMode = DRAWMODE_REGION_CONNECTIONS
+	if s.gs.imguiCheck("Region Connections", s.m_drawMode == TitleMeshDRAWMODE_REGION_CONNECTIONS, valid[TitleMeshDRAWMODE_REGION_CONNECTIONS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_REGION_CONNECTIONS
 	}
 
-	if s.gs.imguiCheck("Raw Contours", s.m_drawMode == DRAWMODE_RAW_CONTOURS, valid[DRAWMODE_RAW_CONTOURS]) {
-		s.m_drawMode = DRAWMODE_RAW_CONTOURS
+	if s.gs.imguiCheck("Raw Contours", s.m_drawMode == TitleMeshDRAWMODE_RAW_CONTOURS, valid[TitleMeshDRAWMODE_RAW_CONTOURS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_RAW_CONTOURS
 	}
 
-	if s.gs.imguiCheck("Both Contours", s.m_drawMode == DRAWMODE_BOTH_CONTOURS, valid[DRAWMODE_BOTH_CONTOURS]) {
-		s.m_drawMode = DRAWMODE_BOTH_CONTOURS
+	if s.gs.imguiCheck("Both Contours", s.m_drawMode == TitleMeshDRAWMODE_BOTH_CONTOURS, valid[TitleMeshDRAWMODE_BOTH_CONTOURS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_BOTH_CONTOURS
 	}
 
-	if s.gs.imguiCheck("Contours", s.m_drawMode == DRAWMODE_CONTOURS, valid[DRAWMODE_CONTOURS]) {
-		s.m_drawMode = DRAWMODE_CONTOURS
+	if s.gs.imguiCheck("Contours", s.m_drawMode == TitleMeshDRAWMODE_CONTOURS, valid[TitleMeshDRAWMODE_CONTOURS]) {
+		s.m_drawMode = TitleMeshDRAWMODE_CONTOURS
 	}
 
-	if s.gs.imguiCheck("Poly Mesh", s.m_drawMode == DRAWMODE_POLYMESH, valid[DRAWMODE_POLYMESH]) {
-		s.m_drawMode = DRAWMODE_POLYMESH
+	if s.gs.imguiCheck("Poly Mesh", s.m_drawMode == TitleMeshDRAWMODE_POLYMESH, valid[TitleMeshDRAWMODE_POLYMESH]) {
+		s.m_drawMode = TitleMeshDRAWMODE_POLYMESH
 	}
 
-	if s.gs.imguiCheck("Poly Mesh Detail", s.m_drawMode == DRAWMODE_POLYMESH_DETAIL, valid[DRAWMODE_POLYMESH_DETAIL]) {
-		s.m_drawMode = DRAWMODE_POLYMESH_DETAIL
+	if s.gs.imguiCheck("Poly Mesh Detail", s.m_drawMode == TitleMeshDRAWMODE_POLYMESH_DETAIL, valid[TitleMeshDRAWMODE_POLYMESH_DETAIL]) {
+		s.m_drawMode = TitleMeshDRAWMODE_POLYMESH_DETAIL
 	}
 
 	if unavail > 0 {
@@ -484,14 +483,12 @@ func (s *Sample_TileMesh) buildAllTiles() {
 			s.m_lastBuiltTileBmax[0] = bmin[0] + float64(x+1)*tcs
 			s.m_lastBuiltTileBmax[1] = bmax[1]
 			s.m_lastBuiltTileBmax[2] = bmin[2] + float64(y+1)*tcs
-
-			var dataSize = 0
-			data := s.buildTileMesh(x, y, s.m_lastBuiltTileBmin[:], s.m_lastBuiltTileBmax[:], s.dataSize)
-			if len(data) > 0 {
+			data := s.buildTileMesh(x, y, s.m_lastBuiltTileBmin[:], s.m_lastBuiltTileBmax[:])
+			if data != nil {
 				// Remove any previous data (navmesh owns and deletes the data).
 				s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(x, y, 0))
 				// Let the navmesh own the data.
-				s.m_navMesh.AddTile(data, dataSize, recast.DT_TILE_FREE_DATA, 0, 0)
+				s.m_navMesh.AddTile(data, recast.DT_TILE_FREE_DATA, 0)
 			}
 		}
 	}
@@ -519,7 +516,7 @@ func (s *Sample_TileMesh) removeAllTiles() {
 	}
 
 }
-func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64, dataSize *int) (data []byte) {
+func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data *recast.NavMeshData) {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil || s.m_geom.getChunkyMesh() == nil {
 		log.Printf("buildNavigation: Input mesh is not specified.")
 		return
@@ -763,9 +760,6 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64, dataSi
 		s.m_chf = nil
 		s.m_cset = nil
 	}
-
-	var navData []byte
-	var navDataSize int
 	if m_cfg.MaxVertsPerPoly <= recast.DT_VERTS_PER_POLYGON {
 		if s.m_pmesh.Nverts >= 0xffff {
 			// The vertex indices are ushorts, and cannot point to more than 0xffff vertices.
@@ -821,19 +815,16 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64, dataSi
 		params.Cs = m_cfg.Cs
 		params.Ch = m_cfg.Ch
 		params.BuildBvTree = true
-
-		if !recast.DtCreateNavMeshData(params, navData, &navDataSize) {
+		var ok bool
+		data, ok = recast.DtCreateNavMeshData(params)
+		if !ok {
 			log.Printf("Could not build Detour navmesh.")
 			return
 		}
 	}
-	s.m_tileMemUsage = float64(navDataSize) / 1024.0
-
 	// Show performance stats.
 	log.Printf(">> Polymesh: %d vertices  %d polygons", s.m_pmesh.Nverts, s.m_pmesh.Npolys)
 
 	s.m_tileBuildTime = time.Since(now)
-
-	*dataSize = navDataSize
-	return navData
+	return data
 }
