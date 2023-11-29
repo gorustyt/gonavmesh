@@ -518,7 +518,7 @@ func (s *Sample_TileMesh) removeAllTiles() {
 }
 func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data *recast.NavMeshData) {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil || s.m_geom.getChunkyMesh() == nil {
-		log.Printf("buildNavigation: Input mesh is not specified.")
+		log.Printf("buildNavigation: Input rcMeshLoaderObj is not specified.")
 		return
 	}
 	now := time.Now()
@@ -748,7 +748,7 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 		return
 	}
 
-	// Build detail mesh.
+	// Build detail rcMeshLoaderObj.
 	s.m_dmesh = &recast.RcPolyMeshDetail{}
 	if !recast.RcBuildPolyMeshDetail(s.m_pmesh, s.m_chf, m_cfg.DetailSampleDist, m_cfg.DetailSampleMaxError,
 		s.m_dmesh) {

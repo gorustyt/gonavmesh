@@ -4,8 +4,13 @@ import (
 	"fmt"
 	"github.com/AllenDang/giu"
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 	"gonavamesh/common"
+	"log"
 	"math"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -40,7 +45,7 @@ type layout struct {
 	meshName string
 }
 func newLayout(ui *Gui) *layout {
-	return &layout{
+	l:= &layout{
 		meshesFolder : "Meshes",
 		meshName : "Choose Mesh...",
 		cameraEulers : []float64{45, -45},
@@ -50,13 +55,36 @@ func newLayout(ui *Gui) *layout {
 		lastTick: time.Now(),
 		showTools: true,
 		showMenu: true}
+	l.registerEvent(ui.window)
+	return l
 }
 
-func (l *layout) init() {
-
+func (l *layout)registerEvent(window *glfw.Window) {
+	//文件拖拽事件
+	window.SetDropCallback(func(w *glfw.Window, names []string) {
+		fmt.Println("文件拖拽", names)
+	})
+	//鼠标事件
+	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+		switch action {
+		case glfw.Press:
+		case glfw.Release:
+		}
+	})
+	//鼠标滚轮或者触摸板，鼠标滚轮只有yoff，表示垂直滚动了多少，触摸板有xoff和yoff。
+	window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+		log.Printf("滚动了======%v\n", yoff)
+	})
+	//键盘事件
+	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		switch key {
+		case glfw.Key9:
+			fmt.Println("================")
+		}
+	})
 }
 
-func (l *layout) Build() {
+func (l *layout) Update() {
 	var mouseScroll int
 	 mousePos := []int{0, 0};
 	 origMousePos := []int {0, 0}; // Used to compute mouse movement totals across frames.
@@ -84,7 +112,7 @@ func (l *layout) Build() {
 		var processHitTestShift bool
 
 		dt:=now.Sub(l.lastTick).Seconds()
-		// Hit test mesh.
+		// Hit test rcMeshLoaderObj.
 		if (processHitTest && l.geom!=nil && l.sample!=nil) {
 			var  hitTime float64
 			 hit := l.geom.raycastMesh(rayStart, rayEnd, &hitTime);
@@ -133,53 +161,61 @@ func (l *layout) Build() {
 		}
 
 		// Set the viewport.
-		glViewport(0, 0, l.ui.width, l.uiheight);
-		GLint viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-
+		gl.Viewport(0, 0, int32(l.ui.width), int32(l.ui.height));
+		var  viewport[4]int32
+		gl.GetIntegerv(gl.VIEWPORT, &viewport[0]);
+		viewportInt:=make([]int,4)
+		for i,v:=range viewport{
+			viewportInt[i]=int(v)
+		}
 		// Clear the screen
-		glClearColor(0.3, 0.3, 0.32, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_TEXTURE_2D);
-		glEnable(GL_DEPTH_TEST);
+		gl.ClearColor(0.3, 0.3, 0.32, 1.0);
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.Enable(gl.BLEND);
+		gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		gl.Disable(gl.TEXTURE_2D);
+		gl.Enable(gl.DEPTH_TEST);
 
 		// Compute the projection matrix.
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluPerspective(50.0, float64(l.ui.width)/float64(l.ui.height), 1.0, l.camr);
-		GLdouble projectionMatrix[16];
-		glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
-
+		gl.MatrixLoadIdentityEXT(gl.PATH_PROJECTION_NV)
+		m:=mgl32.Perspective(50.0, float32(l.ui.width)/float32(l.ui.height), 1.0, float32(l.camr))
+		var projectionMatrix[16]float64;
+		for i,v:=range m{
+			projectionMatrix[i]=float64(v)
+		}
+		//gl.GetDoublev(gl.PATH_PROJECTION_MATRIX_NV, &projectionMatrix[0]);
 		// Compute the modelview matrix.
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glRotatef(cameraEulers[0], 1, 0, 0);
-		glRotatef(cameraEulers[1], 0, 1, 0);
-		glTranslatef(-cameraPos[0], -l.cameraPos[1], -l.cameraPos[2]);
-		GLdouble modelviewMatrix[16];
-		glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
+		gl.MatrixLoadIdentityEXT(gl.PATH_MODELVIEW_NV)
+		gl.MatrixRotatefEXT(gl.PATH_MODELVIEW_NV,float32(l.cameraEulers[0]), 1, 0, 0)
+		gl.MatrixRotatefEXT(gl.PATH_MODELVIEW_NV,float32(l.cameraEulers[1]), 0, 1, 0);
+		gl.MatrixTranslatefEXT(gl.PATH_MODELVIEW_NV,-float32(l.cameraPos[0]), -float32(l.cameraPos[1]), -float32(l.cameraPos[2]));
+		var  modelviewMatrix[16]float64;
+		gl.GetDoublev(gl.PATH_MODELVIEW_MATRIX_NV, &modelviewMatrix[0]);
 
 		// Get hit ray position and direction.
-		var  x, y, z float64
-		gluUnProject(mousePos[0], mousePos[1], 0.0, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
-		rayStart[0] = x;
-		rayStart[1] = y;
-		rayStart[2] = z;
-		gluUnProject(mousePos[0], mousePos[1], 1.0, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
-		rayEnd[0] = x;
-		rayEnd[1] = y;
-		rayEnd[2] = z;
+		res,err :=common.UnGluProject([]float64{float64(mousePos[0]), float64(mousePos[1]),0.0},  modelviewMatrix[:], projectionMatrix[:], viewport[:]);
+		if err!=nil{
+			panic(err)
+		}
+		rayStart[0] = res[0];
+		rayStart[1] = res[1];
+		rayStart[2] = res[2];
+		res,err =common.UnGluProject([]float64{float64(mousePos[0]), float64(mousePos[1]), 1.0}, modelviewMatrix[:], projectionMatrix[:], viewport[:]);
+		if err!=nil{
+			panic(err)
+		}
+		rayEnd[0] = res[0];
+		rayEnd[1] = res[1];
+		rayEnd[2] = res[2];
 
 		// Handle keyboard movement.
-		const Uint8* keystate = SDL_GetKeyboardState(NULL);
-		moveFront	= rcClamp(moveFront	+ dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP		]) ? 1 : -1), 0.0f, 1.0f);
-		moveLeft	= rcClamp(moveLeft	+ dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT		]) ? 1 : -1), 0.0f, 1.0f);
-		moveBack	= rcClamp(moveBack	+ dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN		]) ? 1 : -1), 0.0f, 1.0f);
-		moveRight	= rcClamp(moveRight	+ dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT	]) ? 1 : -1), 0.0f, 1.0f);
-		moveUp		= rcClamp(moveUp	+ dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP	]) ? 1 : -1), 0.0f, 1.0f);
-		moveDown	= rcClamp(moveDown	+ dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN	]) ? 1 : -1), 0.0f, 1.0f);
+		 keystate := SDL_GetKeyboardState(NULL);
+		moveFront	= common.Clamp(moveFront	+ dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP		]) ? 1 : -1), 0.0f, 1.0f);
+		moveLeft	= common.Clamp(moveLeft	+ dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT		]) ? 1 : -1), 0.0f, 1.0f);
+		moveBack	= common.Clamp(moveBack	+ dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN		]) ? 1 : -1), 0.0f, 1.0f);
+		moveRight	= common.Clamp(moveRight	+ dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT	]) ? 1 : -1), 0.0f, 1.0f);
+		moveUp		= common.Clamp(moveUp	+ dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP	]) ? 1 : -1), 0.0f, 1.0f);
+		moveDown	= common.Clamp(moveDown	+ dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN	]) ? 1 : -1), 0.0f, 1.0f);
 
 		 keybSpeed := 22.0;
 		if (SDL_GetModState() & KMOD_SHIFT) {
@@ -190,13 +226,13 @@ func (l *layout) Build() {
 		 movey := (moveBack - moveFront) * keybSpeed * dt + scrollZoom * 2.0;
 		scrollZoom = 0;
 
-		cameraPos[0] += movex *modelviewMatrix[0];
-		cameraPos[1] += movex * modelviewMatrix[4];
-		cameraPos[2] += movex * modelviewMatrix[8];
+		l.cameraPos[0] += movex * modelviewMatrix[0];
+		l.cameraPos[1] += movex * modelviewMatrix[4];
+		l.cameraPos[2] += movex * modelviewMatrix[8];
 
-		cameraPos[0] += movey * modelviewMatrix[2];
-		cameraPos[1] += movey * modelviewMatrix[6];
-		cameraPos[2] += movey * modelviewMatrix[10];
+		l.cameraPos[0] += movey * modelviewMatrix[2];
+		l.cameraPos[1] += movey * modelviewMatrix[6];
+		l.cameraPos[2] += movey * modelviewMatrix[10];
 
 		l.cameraPos[1] += (moveUp - moveDown) * keybSpeed * dt;
 
@@ -214,21 +250,22 @@ func (l *layout) Build() {
 		glDisable(GL_FOG);
 
 		// Render GUI
-		glDisable(GL_DEPTH_TEST);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluOrtho2D(0, width, 0, height);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
+		gl.Disable(gl.DEPTH_TEST);
+		gl.MatrixLoadIdentityEXT(gl.PATH_PROJECTION_NV)
+		m=mgl32.Ortho2D(0, float32(l.ui.width), 0, float32(l.ui.height));
+		for i,v:=range m{
+			projectionMatrix[i]=float64(v)
+		}
+		gl.MatrixLoadIdentityEXT(gl.PATH_MODELVIEW_NV)
 
 		l.mouseOverMenu = false;
 		point := giu.GetMousePos()
 		l.ui.gs.beginFrame(point.X, point.Y, giu.IsMouseClicked(giu.MouseButtonLeft), mouseScroll)
 		if (l.sample!=nil) {
-			l.sample.handleRenderOverlay(projectionMatrix, modelviewMatrix, viewport);
+			l.sample.handleRenderOverlay(projectionMatrix[:], modelviewMatrix[:], viewportInt);
 		}
 		if (test!=nil) {
-			if (test.handleRenderOverlay(projectionMatrix, modelviewMatrix, viewport)){
+			if (test.handleRenderOverlay(projectionMatrix[:], modelviewMatrix[:],  viewportInt)){
 			l.mouseOverMenu = true;
 			}
 
@@ -239,10 +276,11 @@ func (l *layout) Build() {
 		l.ShowLog()
 		l.ShowTools()
 		// Marker
-		if (markerPositionSet && gluProject(markerPosition[0], markerPosition[1], markerPosition[2],
-			modelviewMatrix, projectionMatrix, viewport)){
+		res =common.GluProject([]float64{markerPosition[0], markerPosition[1], markerPosition[2]}, modelviewMatrix[:], projectionMatrix[:], viewport[:])
+		if (markerPositionSet &&len(res)>0 ){
+		x,y:=res[0],res[1]
 		// Draw marker circle
-		glLineWidth(5.0);
+		gl.LineWidth(5.0);
 		glColor4ub(240,220,0,196);
 		glBegin(GL_LINE_LOOP);
 		 r := 25.0;
@@ -256,7 +294,7 @@ func (l *layout) Build() {
 		gl.LineWidth(1.0);
 		}
 		l.ui.gs.endFrame()
-		l.ui.render.Build()
+		l.ui.render.Update()
 		gl.Enable(gl.DEPTH_TEST);
 		l.lastTick=now
 	}
@@ -266,7 +304,6 @@ func (l *layout) Build() {
 
 func (l *layout) ShowMenu() {
 	 sampleName := "Choose Sample...";
-	 testCasesFolder := "TestCases";
 	// Help text.
 	if !l.showMenu {
 		return
@@ -324,12 +361,11 @@ func (l *layout) ShowMenu() {
 		l.sample.handleSettings()
 
 		if l.ui.gs.imguiButton("Build") {
-			ctx.resetLog()
-			if !l.ui.sample.handleBuild() {
+			if !l.sample.handleBuild() {
 				l.showLog = true
 				l.logScroll = 0
 			}
-			ctx.dumpLog("Build log %s:", l.meshName)
+			log.Println("Build log %s:", l.meshName)
 
 			// Clear test.
 			l.test = nil
@@ -338,9 +374,9 @@ func (l *layout) ShowMenu() {
 		l.ui.gs.imguiSeparator()
 	}
 
-	if l.ui.sample != nil {
+	if l.sample != nil {
 		l.ui.gs.imguiSeparatorLine()
-		l.ui.sample.handleDebugMode()
+		l.sample.handleDebugMode()
 	}
 
 	l.ui.gs.imguiEndScrollArea()
@@ -375,7 +411,7 @@ func (l *layout) ShowLevel() {
 
 			l.showLog = true;
 			l.logScroll = 0;
-			ctx.dumpLog("Geom load log %s:", l.meshName);
+			log.Println("Geom load log %s:", l.meshName);
 		}
 		if (l.sample!=nil && l.geom!=nil) {
 			l.sample.handleMeshChanged(l.geom);
@@ -388,7 +424,7 @@ func (l *layout) ShowLevel() {
 				bmin = l.geom.getNavMeshBoundsMin();
 				bmax = l.geom.getNavMeshBoundsMax();
 			}
-			// Reset camera and fog to match the mesh bounds.
+			// Reset camera and fog to match the rcMeshLoaderObj bounds.
 			if (bmin!=nil && bmax!=nil) {
 				l.camr = math.Sqrt(common.Sqr(bmax[0]-bmin[0]) +
 					common.Sqr(bmax[1]-bmin[1]) +
@@ -410,6 +446,7 @@ func (l *layout) ShowLevel() {
 
 // Test cases
 func (l *layout) ShowTestCases() {
+	testCasesFolder := "TestCases";
 	 testScroll := 0;
 	if (l.ui.gs.imguiBeginScrollArea("Choose Test To Run", l.ui.width-10-250-10-200, l.ui.height-10-450, 200, 450, &testScroll)){
 		l.mouseOverMenu = true;
@@ -423,10 +460,11 @@ func (l *layout) ShowTestCases() {
 	}
 
 	if (path!="") {
-		l.test = newTestCase()
+		l.test = newTestCase(l.ui.gs)
 		if (l.test!=nil) {
+
 			// Load the test.
-			if (!l.test.load(path)) {
+			if (!l.test.load(filepath.Join(testCasesFolder,path))) {
 				l.test = nil
 			}
 			// Create sample
@@ -461,7 +499,7 @@ func (l *layout) ShowTestCases() {
 				l.sample = nil
 				l.showLog = true;
 				l.logScroll = 0;
-				ctx.dumpLog("Geom load log %s:", l.meshName);
+				log.Println("Geom load log %s:", l.meshName);
 			}
 			if (l.sample!=nil && l.geom!=nil) {
 				l.sample.handleMeshChanged(l.geom);
@@ -472,10 +510,8 @@ func (l *layout) ShowTestCases() {
 				l.sample.handleSettings();
 			}
 
-
-			ctx.resetLog();
 			if (l.sample!=nil && !l.sample.handleBuild()) {
-				ctx.dumpLog("Build log %s:", l.meshName);
+				log.Println("Build log %s:", l.meshName);
 			}
 
 			if (l.geom!=nil || l.sample!=nil) {
@@ -485,7 +521,7 @@ func (l *layout) ShowTestCases() {
 					bmin =l.geom.getNavMeshBoundsMin();
 					bmax = l.geom.getNavMeshBoundsMax();
 				}
-				// Reset camera and fog to match the mesh bounds.
+				// Reset camera and fog to match the rcMeshLoaderObj bounds.
 				if (bmin!=nil && bmax!=nil) {
 					l.camr = math.Sqrt(common.Sqr(bmax[0] - bmin[0]) +
 						common.Sqr(bmax[1] - bmin[1]) +
@@ -528,11 +564,10 @@ func (l *layout) ShowSample(){
 	}
 	if (newSample) {
 		l.sample = newSample;
-		l.sample.setContext(&ctx);
 		if (l.geom!=nil) {
 			l.sample.handleMeshChanged(l.geom);
 		}
-		showSample = false;
+		l.showSample = false;
 	}
 
 	if (l.geom!=nil || l.sample!=nil) {
@@ -541,7 +576,7 @@ func (l *layout) ShowSample(){
 			bmin = l.geom.getNavMeshBoundsMin();
 			bmax = l.geom.getNavMeshBoundsMax();
 		}
-		// Reset camera and fog to match the mesh bounds.
+		// Reset camera and fog to match the rcMeshLoaderObj bounds.
 		if (bmin!=nil && bmax!=nil) {
 			l.camr = math.Sqrt(common.Sqr(bmax[0]-bmin[0]) +
 				common.Sqr(bmax[1]-bmin[1]) +
@@ -585,8 +620,8 @@ func (l *layout) ShowTools() {
 		l.mouseOverMenu = true
 	}
 
-	if l.ui.sample != nil {
-		l.ui.sample.handleTools()
+	if l.sample != nil {
+		l.sample.handleTools()
 	}
 
 	l.ui.gs.imguiEndScrollArea()

@@ -437,9 +437,9 @@ func (s *SampleTempObstacles) handleRender() {
 
 	texScale := 1.0 / (s.m_cellSize * 10.0)
 
-	// Draw mesh
+	// Draw rcMeshLoaderObj
 	if s.m_drawMode != SampleTempObstacleDRAWMODE_NAVMESH_TRANS {
-		// Draw mesh
+		// Draw rcMeshLoaderObj
 		debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
 			s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
 			s.m_agentMaxSlope, texScale)
@@ -768,7 +768,7 @@ func (FastLZCompressor) Decompress(compressed []byte) ([]byte, error) {
 }
 func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConfig, maxTiles int) (datas []*recast.DetourTitleCacheLayerData) {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil || s.m_geom.getChunkyMesh() == nil {
-		log.Printf("buildTile: Input mesh is not specified.")
+		log.Printf("buildTile: Input rcMeshLoaderObj is not specified.")
 		return nil
 	}
 
@@ -928,7 +928,7 @@ func (p *MeshProcess) Process(params *recast.DtNavMeshCreateParams, polyAreas []
 			}
 		}
 
-		// Pass in off-mesh connections.
+		// Pass in off-rcMeshLoaderObj connections.
 		if p.m_geom != nil {
 			params.OffMeshConVerts = p.m_geom.getOffMeshConnectionVerts()
 			params.OffMeshConRad = p.m_geom.getOffMeshConnectionRads()

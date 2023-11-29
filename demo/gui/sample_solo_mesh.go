@@ -257,7 +257,7 @@ func (s *SampleSoloMesh) handleRender() {
 	texScale := 1.0 / (s.m_cellSize * 10.0)
 
 	if s.m_drawMode != SOLOMESH_DRAWMODE_NAVMESH_TRANS {
-		// Draw mesh
+		// Draw rcMeshLoaderObj
 		debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
 			s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
 			s.m_agentMaxSlope, texScale)
@@ -386,7 +386,7 @@ func (s *SampleSoloMesh) handleMeshChanged(geom *InputGeom) {
 
 func (s *SampleSoloMesh) handleBuild() bool {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil {
-		log.Printf("buildNavigation: Input mesh is not specified.")
+		log.Printf("buildNavigation: Input rcMeshLoaderObj is not specified.")
 		return false
 	}
 
@@ -424,7 +424,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	s.m_cfg.DetailSampleMaxError = s.m_cellHeight * s.m_detailSampleMaxError
 	now := time.Now()
 	// Set the area where the navigation will be build.
-	// Here the bounds of the input mesh are used, but the
+	// Here the bounds of the input rcMeshLoaderObj are used, but the
 	// area could be specified by an user defined box, etc.
 	copy(s.m_cfg.Bmin[:], bmin)
 	copy(s.m_cfg.Bmax[:], bmax)
@@ -575,7 +575,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	}
 
 	//
-	// Step 6. Build polygons mesh from contours.
+	// Step 6. Build polygons rcMeshLoaderObj from contours.
 	//
 
 	// Build polygon navmesh from the contours.
@@ -587,12 +587,12 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	}
 
 	//
-	// Step 7. Create detail mesh which allows to access approximate height on each polygon.
+	// Step 7. Create detail rcMeshLoaderObj which allows to access approximate height on each polygon.
 	//
 
 	s.m_dmesh = &recast.RcPolyMeshDetail{}
 	if !recast.RcBuildPolyMeshDetail(s.m_pmesh, s.m_chf, s.m_cfg.DetailSampleDist, s.m_cfg.DetailSampleMaxError, s.m_dmesh) {
-		log.Printf("buildNavigation: Could not build detail mesh.")
+		log.Printf("buildNavigation: Could not build detail rcMeshLoaderObj.")
 		return false
 	}
 
@@ -601,11 +601,11 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		s.m_cset = nil
 	}
 
-	// At this point the navigation mesh data is ready, you can access it from m_pmesh.
+	// At this point the navigation rcMeshLoaderObj data is ready, you can access it from m_pmesh.
 	// See duDebugDrawPolyMesh or dtCreateNavMeshData as examples how to access the data.
 
 	//
-	// (Optional) Step 8. Create Detour data from Recast poly mesh.
+	// (Optional) Step 8. Create Detour data from Recast poly rcMeshLoaderObj.
 	//
 
 	// The GUI may allow more max points per polygon than Detour can handle.

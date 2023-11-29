@@ -42,7 +42,7 @@ func Compare[T int | float64](t *testing.T, real []T, expect string) {
 
 }
 
-func CompareData(t *testing.T, p string, m *mesh) {
+func CompareData(t *testing.T, p string, m *rcMeshLoaderObj) {
 	p = path.Join("./bin/TestLoadData", fmt.Sprintf("%v.txt", p))
 	var m_normals, m_verts, m_tris string
 	f, err := os.Open(p)

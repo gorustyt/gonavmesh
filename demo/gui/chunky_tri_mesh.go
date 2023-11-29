@@ -20,6 +20,10 @@ type rcChunkyTriMesh struct {
 	maxTrisPerChunk int
 }
 
+func newRcChunkyTriMesh() *rcChunkyTriMesh {
+	return &rcChunkyTriMesh{}
+}
+
 type BoundsItem struct {
 	bmin [2]float64
 	bmax [2]float64

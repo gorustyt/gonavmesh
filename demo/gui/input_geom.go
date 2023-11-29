@@ -1,11 +1,16 @@
 package gui
 
 import (
+	"bufio"
 	"fmt"
 	"gonavamesh/common"
 	"gonavamesh/debug_utils"
+	"gonavamesh/recast"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const MAX_CONVEXVOL_PTS = 12
@@ -29,7 +34,7 @@ func newConvexVolume() *ConvexVolume {
 
 type InputGeom struct {
 	m_chunkyMesh       *rcChunkyTriMesh
-	m_mesh             *mesh
+	m_mesh             *rcMeshLoaderObj
 	m_meshBMin         []float64
 	m_meshBMax         []float64
 	m_buildSettings    *BuildSettings
@@ -67,10 +72,131 @@ func newInputGeom() *InputGeom {
 	}
 }
 func (g *InputGeom) loadMesh(path string) bool {
-	panic("impl")
+	if g.m_mesh != nil {
+		g.m_chunkyMesh = nil
+		g.m_mesh = nil
+	}
+	g.m_offMeshConCount = 0
+	g.m_volumeCount = 0
+
+	g.m_mesh = newRcMeshLoaderObj()
+	if g.m_mesh == nil {
+		log.Printf("loadMesh: Out of memory 'm_mesh'.")
+		return false
+	}
+	if err := g.m_mesh.Load(path); err != nil {
+		log.Printf("buildTiledNavigation: Could not load '%s' err:%v", path, err)
+		return false
+	}
+
+	recast.RcCalcBounds(g.m_mesh.getVerts(), g.m_mesh.getVertCount(), g.m_meshBMin, g.m_meshBMax)
+
+	g.m_chunkyMesh = newRcChunkyTriMesh()
+	if !rcCreateChunkyTriMesh(g.m_mesh.getVerts(), g.m_mesh.getTris(), g.m_mesh.getTriCount(), 256, g.m_chunkyMesh) {
+		log.Printf("buildTiledNavigation: Failed to build chunky rcMeshLoaderObj.")
+		return false
+	}
+
+	return true
+}
+func (g *InputGeom) parseRow(ss []string) {
+	switch ss[0] {
+	case "f":
+		// File name.
+		if ss[1] != "" {
+			if !g.loadMesh(ss[1]) {
+				return
+			}
+		}
+	case "c":
+		// Off-mesh connection
+		if g.m_offMeshConCount < MAX_OFFMESH_CONNECTIONS {
+			v := g.m_offMeshConVerts[g.m_offMeshConCount*3*2:]
+			bidir := 0
+			area := 0
+			flags := 0
+			var rad float64
+			_, err := fmt.Sscanf(strings.Join(ss[1:], " "), "%f %f %f  %f %f %f %f %d %d %d",
+				&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags)
+			g.m_offMeshConRads[g.m_offMeshConCount] = rad
+			g.m_offMeshConDirs[g.m_offMeshConCount] = bidir
+			g.m_offMeshConAreas[g.m_offMeshConCount] = area
+			g.m_offMeshConFlags[g.m_offMeshConCount] = flags
+			g.m_offMeshConCount++
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	case "v":
+
+		// Convex volumes
+		if g.m_volumeCount < MAX_VOLUMES {
+			vol := g.m_volumes[g.m_volumeCount]
+			g.m_volumeCount++
+			_, err := fmt.Sscanf(strings.Join(ss[1:], " "), "%d %d %f %f", &vol.nverts, vol.area, vol.hmin, vol.hmax)
+			for i := 0; i < vol.nverts; i++ {
+				_, err = fmt.Sscanf(strings.Join(ss[1:], " "), "%f %f %f", &vol.verts[i*3+0], &vol.verts[i*3+1], &vol.verts[i*3+2])
+			}
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	case "s":
+		// Settings
+		g.m_hasBuildSettings = true
+		_, err := fmt.Sscanf(strings.Join(ss[1:], " "), "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
+			g.m_buildSettings.cellSize,
+			g.m_buildSettings.cellHeight,
+			g.m_buildSettings.agentHeight,
+			g.m_buildSettings.agentRadius,
+			g.m_buildSettings.agentMaxClimb,
+			g.m_buildSettings.agentMaxSlope,
+			g.m_buildSettings.regionMinSize,
+			g.m_buildSettings.regionMergeSize,
+			g.m_buildSettings.edgeMaxLen,
+			g.m_buildSettings.edgeMaxError,
+			g.m_buildSettings.vertsPerPoly,
+			g.m_buildSettings.detailSampleDist,
+			g.m_buildSettings.detailSampleMaxError,
+			g.m_buildSettings.partitionType,
+			g.m_buildSettings.navMeshBMin[0],
+			g.m_buildSettings.navMeshBMin[1],
+			g.m_buildSettings.navMeshBMin[2],
+			g.m_buildSettings.navMeshBMax[0],
+			g.m_buildSettings.navMeshBMax[1],
+			g.m_buildSettings.navMeshBMax[2],
+			g.m_buildSettings.tileSize)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 func (g *InputGeom) loadGeomSet(path string) bool {
-	panic("impl")
+	f, err := os.Open(path)
+	if err != nil {
+		log.Println(err)
+		panic("")
+	}
+	defer f.Close()
+	reader := bufio.NewReader(f)
+	line := ""
+	for {
+		lines, prefix, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println(err)
+			panic("")
+		}
+		if prefix {
+			line += string(lines)
+		} else {
+			g.parseRow(strings.Split(line, " "))
+		}
+	}
+
+	return true
 }
 func (g *InputGeom) load(path string) bool {
 	extension := filepath.Ext(path)
@@ -83,6 +209,7 @@ func (g *InputGeom) load(path string) bool {
 	}
 	return false
 }
+
 func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 	if g.m_mesh == nil {
 		return false
@@ -93,12 +220,12 @@ func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 	fp, err := os.Open(path)
 	defer fp.Close()
 	common.AssertTrue(err == nil)
-	// Store mesh filename.
+	// Store rcMeshLoaderObj filename.
 	_, err = fmt.Fscanln(fp, "f %s", g.m_mesh.getFileName())
 	common.AssertTrue(err == nil)
 	// Store settings if any
 	if settings != nil {
-		fmt.Fscanln(fp,
+		_, err := fmt.Fscanln(fp,
 			"s %f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
 			settings.cellSize,
 			settings.cellHeight,
@@ -121,25 +248,41 @@ func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 			settings.navMeshBMax[1],
 			settings.navMeshBMax[2],
 			settings.tileSize)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
 	}
 
-	// Store off-mesh links.
+	// Store off-rcMeshLoaderObj links.
 	for i := 0; i < g.m_offMeshConCount; i++ {
 		v := g.m_offMeshConVerts[i*3*2:]
 		rad := g.m_offMeshConRads[i]
 		bidir := g.m_offMeshConDirs[i]
 		area := g.m_offMeshConAreas[i]
 		flags := g.m_offMeshConFlags[i]
-		fmt.Fscanln(fp, "c %f %f %f  %f %f %f  %f %d %d %d",
+		_, err := fmt.Fscanln(fp, "c %f %f %f  %f %f %f  %f %d %d %d",
 			v[0], v[1], v[2], v[3], v[4], v[5], rad, bidir, area, flags)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
 	}
 
 	// Convex volumes
 	for i := 0; i < g.m_volumeCount; i++ {
 		vol := g.m_volumes[i]
-		fmt.Fscanln(fp, "v %d %d %f %f", vol.nverts, vol.area, vol.hmin, vol.hmax)
+		_, err := fmt.Fscanln(fp, "v %d %d %f %f", vol.nverts, vol.area, vol.hmin, vol.hmax)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
 		for j := 0; j < vol.nverts; j++ {
-			fmt.Fscanln(fp, "%f %f %f", vol.verts[j*3+0], vol.verts[j*3+1], vol.verts[j*3+2])
+			_, err := fmt.Fscanln(fp, "%f %f %f", vol.verts[j*3+0], vol.verts[j*3+1], vol.verts[j*3+2])
+			if err != nil {
+				log.Println(err)
+				return false
+			}
 		}
 
 	}
@@ -147,8 +290,8 @@ func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 	return true
 }
 
-// / Method to return static mesh data.
-func (g *InputGeom) getMesh() *mesh              { return g.m_mesh }
+// / Method to return static rcMeshLoaderObj data.
+func (g *InputGeom) getMesh() *rcMeshLoaderObj   { return g.m_mesh }
 func (g *InputGeom) getMeshBoundsMin() []float64 { return g.m_meshBMin }
 func (g *InputGeom) getMeshBoundsMax() []float64 { return g.m_meshBMax }
 func (g *InputGeom) getNavMeshBoundsMin() []float64 {
@@ -468,7 +611,7 @@ type BuildSettings struct {
 	detailSampleMaxError float64
 	// Partition type, see SamplePartitionType
 	partitionType int
-	// Bounds of the area to mesh
+	// Bounds of the area to rcMeshLoaderObj
 	navMeshBMin [3]float64
 	navMeshBMax [3]float64
 	// Size of the tiles in voxels

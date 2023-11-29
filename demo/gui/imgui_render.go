@@ -2,6 +2,7 @@ package gui
 
 import (
 	"github.com/AllenDang/giu"
+	"github.com/go-gl/gl/v4.1-core/gl"
 	"image/color"
 	"math"
 )
@@ -17,8 +18,6 @@ type imguiRender struct {
 	tempCoords  []float64
 	tempNormals []float64
 	ftex        uint32
-	pen         *giu.Canvas
-
 	ui *Gui
 }
 
@@ -45,14 +44,12 @@ func (render *imguiRender) init(fontPath string) {
 }
 
 func (render *imguiRender) render(cmds ...*imguiGfxCmd) {
-	render.pen = giu.GetCanvas()
 	s := 1.0 / 8.0
-	//gl.Disable(gl.SCISSOR_TEST)
+	gl.Disable(gl.SCISSOR_TEST)
 	for _, v := range cmds {
 		render.doRender(v, s)
 	}
-	//gl.Enable(gl.SCISSOR_TEST)
-	render.pen = nil
+	gl.Enable(gl.SCISSOR_TEST)
 }
 
 func (render *imguiRender) doRender(cmd *imguiGfxCmd, s float64) {
@@ -91,10 +88,10 @@ func (render *imguiRender) doRender(cmd *imguiGfxCmd, s float64) {
 		render.drawText(float64(cmd.text.x), float64(cmd.text.y), cmd.text.text, cmd.text.align, cmd.col)
 	case IMGUI_GFXCMD_SCISSOR:
 		if cmd.flags > 0 {
-			//gl.Enable(gl.SCISSOR_TEST)
-			//gl.Scissor(int32(cmd.rect.x), int32(cmd.rect.y), int32(cmd.rect.w), int32(cmd.rect.h))
+			gl.Enable(gl.SCISSOR_TEST)
+			gl.Scissor(int32(cmd.rect.x), int32(cmd.rect.y), int32(cmd.rect.w), int32(cmd.rect.h))
 		} else {
-			//gl.Disable(gl.SCISSOR_TEST)
+			gl.Disable(gl.SCISSOR_TEST)
 		}
 	}
 }
@@ -144,17 +141,31 @@ func (render *imguiRender) drawPolygon(coords []float64, numCoords int, r float6
 		j = i
 		i++
 	}
-
+	glBegin(GL_TRIANGLES);
+	glColor4ubv((GLubyte*)&col);
 	i = 0
 	j = numCoords - 1
 	for i < numCoords {
-		render.pen.AddTriangle(imguiPoint(coords[i*2:], render.ui.height), imguiPoint(coords[j*2:], render.ui.height), imguiPoint(render.tempCoords[j*2:], render.ui.height), col, float32(r))
-		render.pen.AddTriangle(imguiPoint(render.tempCoords[j*2:], render.ui.height), imguiPoint(render.tempCoords[i*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
+		glVertex2fv(&coords[i*2]);
+		glVertex2fv(&coords[j*2]);
+		gl.Color4ubv((GLubyte*)&colTrans);
+		glVertex2fv(&g_tempCoords[j*2]);
+
+		glVertex2fv(&g_tempCoords[j*2]);
+		glVertex2fv(&g_tempCoords[i*2]);
+
+		glColor4ubv((GLubyte*)&col);
+		glVertex2fv(&coords[i*2]);
+		//render.pen.AddTriangle(imguiPoint(coords[i*2:], render.ui.height), imguiPoint(coords[j*2:], render.ui.height), imguiPoint(render.tempCoords[j*2:], render.ui.height), col, float32(r))
+		//render.pen.AddTriangle(imguiPoint(render.tempCoords[j*2:], render.ui.height), imguiPoint(render.tempCoords[i*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
 		j = i
 		i++
 	}
 	for i = 2; i < numCoords; i++ {
-		render.pen.AddTriangle(imguiPoint(coords, render.ui.height), imguiPoint(coords[(i-1)*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
+		glVertex2fv(&coords[0]);
+		glVertex2fv(&coords[(i-1)*2]);
+		glVertex2fv(&coords[i*2]);
+		//render.pen.AddTriangle(imguiPoint(coords, render.ui.height), imguiPoint(coords[(i-1)*2:], render.ui.height), imguiPoint(coords[i*2:], render.ui.height), col, float32(r))
 	}
 }
 
@@ -246,16 +257,76 @@ func (render *imguiRender) drawLine(x0, y0, x1, y1, r, fth float64, col color.RG
 
 	render.drawPolygon(verts, 4, fth, col)
 }
+func  getBakedQuad(stbtt_bakedchar *chardata,  pw,  ph,  char_index int , xpos, ypos []float64, q *stbtt_aligned_quad ) {
+stbtt_bakedchar *b = chardata + char_index;
+ round_x := math.Floor(*xpos + b.xoff);
+round_y := math.Floor(*ypos - b.yoff);
 
-func (render *imguiRender) drawText(x, y float64, text string, align giu.AlignmentType, col color.RGBA) {
-	if text == "" {
-		return
-	}
+q.x0 = (float)round_x;
+q.y0 = (float)round_y;
+q.x1 = (float)round_x + b.x1 - b.x0;
+q.y1 = (float)round_y - b.y1 + b.y0;
 
-	render.pen.AddText(imguiPoint([]float64{x, y}, render.ui.height), col, text)
+q.s0 = b.x0 / (float)pw;
+q.t0 = b.y0 / (float)pw;
+q.s1 = b.x1 / (float)ph;
+q.t1 = b.y1 / (float)ph;
+
+*xpos += b.xadvance;
 }
 
-func (render *imguiRender) Build() {
+var  g_tabStops = [4]float64{150, 210, 270, 330};
+
+func (render *imguiRender) drawText(x, y float64, text string, align giu.AlignmentType, col color.RGBA) {
+	if (!g_ftex) {return;}
+	if (!text) {return;}
+
+	if (align == IMGUI_ALIGN_CENTER){
+		x -= getTextLength(g_cdata, text)/2;
+	} else if (align == IMGUI_ALIGN_RIGHT){
+		x -= getTextLength(g_cdata, text);
+	}
+	glColor4ub(col&0xff, (col>>8)&0xff, (col>>16)&0xff, (col>>24)&0xff);
+	glEnable(GL_TEXTURE_2D);
+	// assume orthographic projection with units = screen pixels, origin at top left
+	glBindTexture(GL_TEXTURE_2D, g_ftex);
+	glBegin(GL_TRIANGLES);
+	 ox := x;
+
+	for  (*text){
+		int c = (unsigned char)*text;
+		if (c == '\t') {
+			for  i := 0; i < 4; i++{
+			if (x < g_tabStops[i]+ox) {
+			x = g_tabStops[i]+ox;
+			break;
+			}
+			}
+		} else if (c >= 32 && c < 128) {
+		stbtt_aligned_quad q;
+		getBakedQuad(g_cdata, 512,512, c-32, &x,&y,&q);
+
+		glTexCoord2f(q.s0, q.t0);
+		glVertex2f(q.x0, q.y0);
+		glTexCoord2f(q.s1, q.t1);
+		glVertex2f(q.x1, q.y1);
+		glTexCoord2f(q.s1, q.t0);
+		glVertex2f(q.x1, q.y0);
+
+		glTexCoord2f(q.s0, q.t0);
+		glVertex2f(q.x0, q.y0);
+		glTexCoord2f(q.s0, q.t1);
+		glVertex2f(q.x0, q.y1);
+		glTexCoord2f(q.s1, q.t1);
+		glVertex2f(q.x1, q.y1);
+	}
+		text++
+	}
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+}
+
+func (render *imguiRender) Update() {
 	render.render(render.ui.gs.getRenderCmd()...)
 
 }

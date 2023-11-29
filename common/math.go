@@ -373,7 +373,7 @@ func GetVs3[T IT](verts []T, index int) []T {
 	return verts[index*3 : index*3+3]
 }
 
-func GluProject(obj []float64, projection, modelview []float64, view []int) []float64 {
+func GluProject[T1 int32 | int](obj []float64, projection, modelview []float64, view []T1) []float64 {
 	o := mgl32.Vec3{}
 	for i := range obj {
 		o[i] = float32(obj[i])
@@ -386,6 +386,26 @@ func GluProject(obj []float64, projection, modelview []float64, view []int) []fl
 	for i := range modelview {
 		v[i] = float32(modelview[i])
 	}
-	res := mgl32.Project(o, v, p, view[0], view[1], view[2], view[3])
+	res := mgl32.Project(o, v, p, int(view[0]), int(view[1]), int(view[2]), int(view[3]))
 	return []float64{float64(res[0]), float64(res[1]), float64(res[2])} //TODO
+}
+
+func UnGluProject[T1 int32 | int](obj []float64, projection, modelview []float64, view []T1) ([]float64, error) {
+	o := mgl32.Vec3{}
+	for i := range obj {
+		o[i] = float32(obj[i])
+	}
+	p := mgl32.Mat4{}
+	for i := range projection {
+		p[i] = float32(projection[i])
+	}
+	v := mgl32.Mat4{}
+	for i := range modelview {
+		v[i] = float32(modelview[i])
+	}
+	res, err := mgl32.UnProject(o, v, p, int(view[0]), int(view[1]), int(view[2]), int(view[3]))
+	if err != nil {
+		return []float64{}, err
+	}
+	return []float64{float64(res[0]), float64(res[1]), float64(res[2])}, err
 }

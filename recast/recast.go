@@ -79,7 +79,7 @@ type RcConfig struct {
 // / recognized by some steps in the build process.
 const RC_WALKABLE_AREA = 63
 
-func rcCalcBounds(verts []float64, numVerts int, minBounds []float64, maxBounds []float64) {
+func RcCalcBounds(verts []float64, numVerts int, minBounds []float64, maxBounds []float64) {
 	// Calculate bounding box.
 	copy(minBounds, verts)
 	copy(maxBounds, verts)

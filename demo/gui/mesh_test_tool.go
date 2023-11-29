@@ -499,7 +499,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 		}
 
 		if m.m_pathIterPolyCount != 0 {
-			// Iterate over the path to find smooth path on the detail mesh surface.
+			// Iterate over the path to find smooth path on the detail rcMeshLoaderObj surface.
 			tmp := false
 			m.m_navQuery.ClosestPointOnPoly(m.m_startRef, m.m_spos, m.m_iterPos, &tmp)
 			m.m_navQuery.ClosestPointOnPoly(m.m_pathIterPolys[m.m_pathIterPolyCount-1], m.m_epos, m.m_targetPos, &tmp)
@@ -551,7 +551,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 	delta := make([]float64, 3)
 	common.Vsub(delta, steerPos, m.m_iterPos)
 	length := math.Sqrt(common.Vdot(delta, delta))
-	// If the steer target is end of path or off-mesh link, do not move past the location.
+	// If the steer target is end of path or off-rcMeshLoaderObj link, do not move past the location.
 	if (endOfPath || offMeshConnection) && length < STEP_SIZE {
 		length = 1
 	} else {
@@ -574,7 +574,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 	result[1] = h
 	copy(m.m_iterPos, result)
 
-	// Handle end of path and off-mesh links when close enough.
+	// Handle end of path and off-rcMeshLoaderObj links when close enough.
 	if endOfPath && inRange(m.m_iterPos, steerPos, SLOP, 1.0) {
 		// Reached end of path.
 		copy(m.m_iterPos, m.m_targetPos)
@@ -584,10 +584,10 @@ func (m *NavMeshTesterTool) handleToggle() {
 		}
 		return
 	} else if offMeshConnection && inRange(m.m_iterPos, steerPos, SLOP, 1.0) {
-		// Reached off-mesh connection.
+		// Reached off-rcMeshLoaderObj connection.
 		startPos := make([]float64, 3)
 		endPos := make([]float64, 3)
-		// Advance the path up to and over the off-mesh connection.
+		// Advance the path up to and over the off-rcMeshLoaderObj connection.
 		var prevRef recast.DtPolyRef
 		polyRef := m.m_pathIterPolys[0]
 		npos := 0
@@ -608,13 +608,13 @@ func (m *NavMeshTesterTool) handleToggle() {
 			if m.m_nsmoothPath < MAX_SMOOTH {
 				copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), startPos)
 				m.m_nsmoothPath++
-				// Hack to make the dotted path not visible during off-mesh connection.
+				// Hack to make the dotted path not visible during off-rcMeshLoaderObj connection.
 				if m.m_nsmoothPath&1 != 0 {
 					copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), startPos)
 					m.m_nsmoothPath++
 				}
 			}
-			// Move position at the other side of the off-mesh link.
+			// Move position at the other side of the off-rcMeshLoaderObj link.
 			copy(m.m_iterPos, endPos)
 
 			eh, _ := m.m_navQuery.GetPolyHeight(m.m_pathIterPolys[0], m.m_iterPos)
@@ -917,7 +917,7 @@ func (m *NavMeshTesterTool) recalc() {
 			m.m_nsmoothPath = 0
 
 			if m.m_npolys > 0 {
-				// Iterate over the path to find smooth path on the detail mesh surface.
+				// Iterate over the path to find smooth path on the detail rcMeshLoaderObj surface.
 				polys := make([]recast.DtPolyRef, MAX_POLYS)
 				copy(polys, m.m_polys[:m.m_npolys])
 				npolys := m.m_npolys
@@ -961,7 +961,7 @@ func (m *NavMeshTesterTool) recalc() {
 					var length float64
 					common.Vsub(delta, steerPos, iterPos)
 					length = math.Sqrt(common.Vdot(delta, delta))
-					// If the steer target is end of path or off-mesh link, do not move past the location.
+					// If the steer target is end of path or off-rcMeshLoaderObj link, do not move past the location.
 					if (endOfPath || offMeshConnection) && length < STEP_SIZE {
 						length = 1
 					} else {
@@ -985,7 +985,7 @@ func (m *NavMeshTesterTool) recalc() {
 					result[1] = h
 					copy(iterPos, result)
 
-					// Handle end of path and off-mesh links when close enough.
+					// Handle end of path and off-rcMeshLoaderObj links when close enough.
 					if endOfPath && inRange(iterPos, steerPos, SLOP, 1.0) {
 						// Reached end of path.
 						copy(iterPos, targetPos)
@@ -995,11 +995,11 @@ func (m *NavMeshTesterTool) recalc() {
 						}
 						break
 					} else if offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.0) {
-						// Reached off-mesh connection.
+						// Reached off-rcMeshLoaderObj connection.
 						startPos := make([]float64, 3)
 						endPos := make([]float64, 3)
 
-						// Advance the path up to and over the off-mesh connection.
+						// Advance the path up to and over the off-rcMeshLoaderObj connection.
 						var prevRef recast.DtPolyRef
 						polyRef := polys[0]
 						npos := 0
@@ -1020,13 +1020,13 @@ func (m *NavMeshTesterTool) recalc() {
 							if m.m_nsmoothPath < MAX_SMOOTH {
 								copy(m.m_smoothPath[m.m_nsmoothPath*3:], startPos)
 								m.m_nsmoothPath++
-								// Hack to make the dotted path not visible during off-mesh connection.
+								// Hack to make the dotted path not visible during off-rcMeshLoaderObj connection.
 								if m.m_nsmoothPath&1 > 0 {
 									copy(m.m_smoothPath[m.m_nsmoothPath*3:], startPos)
 									m.m_nsmoothPath++
 								}
 							}
-							// Move position at the other side of the off-mesh link.
+							// Move position at the other side of the off-rcMeshLoaderObj link.
 							copy(iterPos, endPos)
 							eh, _ := m.m_navQuery.GetPolyHeight(polys[0], iterPos)
 							iterPos[1] = eh

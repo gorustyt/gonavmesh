@@ -122,7 +122,7 @@ func newSample(gs *guiState) *Sample {
 
 func (s *Sample) handleSettings() {
 }
-func (s *Sample) handleRenderOverlay(proj, model float64, view int) {
+func (s *Sample) handleRenderOverlay(proj, model []float64, view []int) {
 }
 func (s *Sample) setTool(tool SampleTool) {
 	s.m_tool = tool
@@ -137,7 +137,7 @@ func (s *Sample) handleRender() {
 		return
 	}
 
-	// Draw mesh
+	// Draw rcMeshLoaderObj
 	debug_utils.DuDebugDrawTriMesh(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
 		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(), []int{}, 1.0)
 	// Draw bounds

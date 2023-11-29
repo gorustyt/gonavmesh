@@ -11,7 +11,7 @@ import (
 )
 
 // 负责加载对象数据
-type mesh struct {
+type rcMeshLoaderObj struct {
 	m_filename  string
 	m_scale     float64
 	m_verts     []float64
@@ -21,21 +21,24 @@ type mesh struct {
 	m_triCount  int
 }
 
-func (m *mesh) getVerts() []float64   { return m.m_verts }
-func (m *mesh) getNormals() []float64 { return m.m_normals }
-func (m *mesh) getTris() []int        { return m.m_tris }
-func (m *mesh) getVertCount() int     { return m.m_vertCount }
-func (m *mesh) getTriCount() int      { return m.m_triCount }
-func (m *mesh) getFileName() string   { return m.m_filename }
-func mewMesh() *mesh {
-	return &mesh{m_scale: 1}
+func newRcMeshLoaderObj() *rcMeshLoaderObj {
+	return &rcMeshLoaderObj{}
+}
+func (m *rcMeshLoaderObj) getVerts() []float64   { return m.m_verts }
+func (m *rcMeshLoaderObj) getNormals() []float64 { return m.m_normals }
+func (m *rcMeshLoaderObj) getTris() []int        { return m.m_tris }
+func (m *rcMeshLoaderObj) getVertCount() int     { return m.m_vertCount }
+func (m *rcMeshLoaderObj) getTriCount() int      { return m.m_triCount }
+func (m *rcMeshLoaderObj) getFileName() string   { return m.m_filename }
+func mewMesh() *rcMeshLoaderObj {
+	return &rcMeshLoaderObj{m_scale: 1}
 }
 
-func (m *mesh) Load(p string) {
+func (m *rcMeshLoaderObj) Load(p string) error {
 	f, err := os.Open(p)
 	defer f.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	reader := bufio.NewReader(f)
 	for {
@@ -45,7 +48,7 @@ func (m *mesh) Load(p string) {
 			break
 		}
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if strings.HasSuffix(row, "#") {
 			continue
@@ -53,8 +56,9 @@ func (m *mesh) Load(p string) {
 		m.parseRow(strings.Split(row, " "))
 	}
 	m.m_filename = path.Base(p)
+	return nil
 }
-func (m *mesh) parseVertex(ss []string) {
+func (m *rcMeshLoaderObj) parseVertex(ss []string) {
 	count := 0
 	for count < len(ss) {
 		x, err := strconv.ParseFloat(ss[count], 64)
@@ -76,7 +80,7 @@ func (m *mesh) parseVertex(ss []string) {
 	}
 }
 
-func (m *mesh) parseFace(ss []string) {
+func (m *rcMeshLoaderObj) parseFace(ss []string) {
 	count := 0
 	getV := func(v string) int {
 		vi, err := strconv.Atoi(v)
@@ -107,7 +111,7 @@ func (m *mesh) parseFace(ss []string) {
 		m.addTriangle(a, b, c)
 	}
 }
-func (m *mesh) parseRow(ss []string) {
+func (m *rcMeshLoaderObj) parseRow(ss []string) {
 
 	switch ss[0] {
 	case "v":
@@ -143,12 +147,12 @@ func (m *mesh) parseRow(ss []string) {
 	}
 }
 
-func (m *mesh) addVertex(x, y, z float64) {
+func (m *rcMeshLoaderObj) addVertex(x, y, z float64) {
 	m.m_verts = append(m.m_verts, x*m.m_scale, y*m.m_scale, z*m.m_scale)
 	m.m_vertCount++
 }
 
-func (m *mesh) addTriangle(a, b, c int) {
+func (m *rcMeshLoaderObj) addTriangle(a, b, c int) {
 	m.m_tris = append(m.m_tris, a, b, c)
 	m.m_triCount++
 }
