@@ -127,12 +127,6 @@ func MakeVao(points []float32) uint32 {
 	// 后面的两个函数都是要操作具体的vao的，因此需要先将vao绑定到opengl上。
 	// 解绑：gl.BindVertexArray(0)，opengl中很多的解绑操作都是传入0
 	gl.BindVertexArray(vao)
-
-	// 使vao去引用到gl.ARRAY_BUFFER上面的vbo，这一步完成之后vao就建立了对特定vbo的引用，后面即使gl.ARRAY_BUFFER 的值发生了变化也不影响vao的使用
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
-	// 设置 vertex attribute 的状态enabled，默认是disabled，后面会有具体解释
-	gl.EnableVertexAttribArray(0)
-
 	return vao
 }
 
