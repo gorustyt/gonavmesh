@@ -222,18 +222,35 @@ func main() {
 		gl.UseProgram(prg)
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("lightColor\x00")), 1.0, 1.0, 1.0)
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("objectColor\x00")), 1.0, 0.5, 0.31)
+
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.ambient\x00")), 1.0, 0.5, 0.31)
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.diffuse\x00")), 1.0, 0.5, 0.31)
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.specular\x00")), 0.5, 0.5, 0.5)
+		gl.Uniform1f(gl.GetUniformLocation(prg, gl.Str("material.shininess\x00")), 32)
+
+		lightColor := mgl32.Vec3{}
+		lightColor[0] = float32(math.Sin(glfw.GetTime() * 2.0))
+		lightColor[1] = float32(math.Sin(glfw.GetTime() * 0.7))
+		lightColor[2] = float32(math.Sin(glfw.GetTime() * 1.3))
+
+		diffuseColor := lightColor.Mul(0.5)   // 降低影响
+		ambientColor := diffuseColor.Mul(0.2) // 很低的影响
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("light.ambient\x00")), ambientColor[0], ambientColor[1], ambientColor[2])
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("light.diffuse\x00")), diffuseColor[0], diffuseColor[1], diffuseColor[2])
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("light.specular\x00")), 1.0, 1.0, 1.0)
+
 		lightPos[0] = origin[0] + float32(math.Sin(glfw.GetTime()))
 		lightPos[1] = origin[1] + float32(math.Sin(glfw.GetTime()/2))
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("lightPos\x00")), lightPos[0], lightPos[1], lightPos[2])
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("viewPos\x00")), cameraPos[0], cameraPos[1], cameraPos[2])
 		gl.UniformMatrix4fv(gl.GetUniformLocation(prg, gl.Str("projection\x00")),
 			1, false, &projection[0])
-		modle := mgl32.Translate3D(0, 0, 0.0).Mul4(mgl32.HomogRotate3D(float32(45), mgl32.Vec3{1.0, 0.3, 0.5}.Normalize()))
+		//modle := mgl32.Translate3D(0, 0, 0.0).Mul4(mgl32.HomogRotate3D(float32(45), mgl32.Vec3{1.0, 0.3, 0.5}.Normalize()))
+		model := mgl32.HomogRotate3D(mgl32.DegToRad(45), mgl32.Vec3{0, 1, 1})
 		gl.UniformMatrix4fv(gl.GetUniformLocation(prg, gl.Str("model\x00")),
-			1, false, &modle[0])
+			1, false, &model[0])
 		gl.UniformMatrix4fv(gl.GetUniformLocation(prg, gl.Str("view\x00")),
 			1, false, &view[0])
-
 		gl.BindVertexArray(objVao)
 		gl.DrawArrays(gl.TRIANGLES, 0, 36)
 		gl.BindVertexArray(0)
@@ -263,42 +280,55 @@ layout (location = 1) in vec3 innormal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-out vec3 outnormal;
+out vec3 norm;
 out vec3 FragPos;  
 void main()
 {
 	gl_Position = projection*view*model*vec4(position, 1.0f);
-	outnormal=mat3(transpose(inverse(model))) * normalize(innormal);
+	norm=mat3(transpose(inverse(model))) * normalize(innormal);
 	FragPos = vec3(model * vec4(position, 1.0));
 }
 ` + "\x00"
 var fragmentShader = `
 #version 330 core
-in vec3 outnormal;
+in vec3 norm;
 in vec3 FragPos;
 
 out vec4 FragColor;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+}; 
 
+uniform Material material;
+struct Light {
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+uniform Light light;
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 void main()
 {
-	vec3 lightDir = normalize(lightPos - FragPos);
+	vec3 ambient  = light.ambient * material.ambient;
+ vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+vec3 diffuse  = light.diffuse * (diff * material.diffuse);
 
-	float specularStrength = 0.5;
-	vec3 viewDir = normalize(viewPos - FragPos);
-	vec3 reflectDir = reflect(-lightDir, outnormal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor;
+vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+vec3 specular = light.specular * (spec * material.specular);
 
-	
-	float ambientStrength = 0.1;
-    vec3 ambient = (ambientStrength) * lightColor;
-    float diff=max(dot(lightDir,outnormal),0.0);
-    vec3 diffuse= diff*lightColor;
-    FragColor = vec4((ambient+diffuse) * objectColor, 1.0);
+    vec3 result = ambient + diffuse + specular;
+    FragColor = vec4(result, 1.0);
 }
 ` + "\x00"
 

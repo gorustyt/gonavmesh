@@ -222,6 +222,12 @@ func main() {
 		gl.UseProgram(prg)
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("lightColor\x00")), 1.0, 1.0, 1.0)
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("objectColor\x00")), 1.0, 0.5, 0.31)
+
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.ambient\x00")), 1.0, 0.5, 0.31)
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.diffuse\x00")), 1.0, 0.5, 0.31)
+		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("material.specular\x00")), 0.5, 0.5, 0.5)
+		gl.Uniform1f(gl.GetUniformLocation(prg, gl.Str("material.shininess\x00")), 32)
+
 		lightPos[0] = origin[0] + float32(math.Sin(glfw.GetTime()))
 		lightPos[1] = origin[1] + float32(math.Sin(glfw.GetTime()/2))
 		gl.Uniform3f(gl.GetUniformLocation(prg, gl.Str("lightPos\x00")), lightPos[0], lightPos[1], lightPos[2])
@@ -233,7 +239,6 @@ func main() {
 			1, false, &modle[0])
 		gl.UniformMatrix4fv(gl.GetUniformLocation(prg, gl.Str("view\x00")),
 			1, false, &view[0])
-
 		gl.BindVertexArray(objVao)
 		gl.DrawArrays(gl.TRIANGLES, 0, 36)
 		gl.BindVertexArray(0)
@@ -263,42 +268,51 @@ layout (location = 1) in vec3 innormal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-out vec3 outnormal;
+out vec3 norm;
 out vec3 FragPos;  
 void main()
 {
 	gl_Position = projection*view*model*vec4(position, 1.0f);
-	outnormal=mat3(transpose(inverse(model))) * normalize(innormal);
+	norm=mat3(transpose(inverse(model))) * normalize(innormal);
 	FragPos = vec3(model * vec4(position, 1.0));
 }
 ` + "\x00"
 var fragmentShader = `
 #version 330 core
-in vec3 outnormal;
+in vec3 norm;
 in vec3 FragPos;
 
 out vec4 FragColor;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+}; 
 
+uniform Material material;
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 void main()
 {
-	vec3 lightDir = normalize(lightPos - FragPos);
+	 // 环境光
+    vec3 ambient = lightColor * material.ambient;
 
-	float specularStrength = 0.5;
-	vec3 viewDir = normalize(viewPos - FragPos);
-	vec3 reflectDir = reflect(-lightDir, outnormal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor;
+    // 漫反射
+    vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = lightColor * (diff * material.diffuse);
 
-	
-	float ambientStrength = 0.1;
-    vec3 ambient = (ambientStrength) * lightColor;
-    float diff=max(dot(lightDir,outnormal),0.0);
-    vec3 diffuse= diff*lightColor;
-    FragColor = vec4((ambient+diffuse) * objectColor, 1.0);
+    // 镜面光
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular = lightColor * (spec * material.specular);  
+
+    vec3 result = ambient + diffuse + specular;
+    FragColor = vec4(result, 1.0);
 }
 ` + "\x00"
 
