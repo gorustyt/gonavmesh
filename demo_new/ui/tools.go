@@ -4,34 +4,27 @@ import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/container"
 	"github.com/gorustyt/fyne/v2/widget"
-)
-
-const (
-	TOOL_NAVMESH_TESTER     = "Test Navmesh"
-	TOOL_NAVMESH_PRUNE      = "Prune Navmesh"
-	TOOL_OFFMESH_CONNECTION = "Create Off-Mesh Connections"
-	TOOL_CONVEX_VOLUME      = "Create Convex Volumes"
-	TOOL_CROWD              = "Create Crowds"
-	TOOL_CreateTiles        = "Create Tiles"
+	"gonavamesh/demo_new/config"
 )
 
 type Tools struct {
 	toolsCheckGroup *fyne.Container
 	curContext      *fyne.Container
+	cfg             *config.Config
 }
 
 var (
 	toolsMap map[string]ToolsRender
 )
 
-func InitToolsMap() {
+func InitToolsMap(cfg *config.Config) {
 	toolsMap = map[string]ToolsRender{
-		TOOL_NAVMESH_TESTER:     NewToolsTestNavmesh(),
-		TOOL_NAVMESH_PRUNE:      NewToolsPruneNavmesh(),
-		TOOL_OFFMESH_CONNECTION: NewToolOffMeshConnection(),
-		TOOL_CONVEX_VOLUME:      NewToolsCreateConvexVolumes(),
-		TOOL_CROWD:              NewToolsCrowds(),
-		TOOL_CreateTiles:        NewToolsCreateTitles(),
+		config.TOOL_NAVMESH_TESTER:     NewToolsTestNavmesh(cfg),
+		config.TOOL_NAVMESH_PRUNE:      NewToolsPruneNavmesh(cfg),
+		config.TOOL_OFFMESH_CONNECTION: NewToolOffMeshConnection(cfg),
+		config.TOOL_CONVEX_VOLUME:      NewToolsCreateConvexVolumes(cfg),
+		config.TOOL_CROWD:              NewToolsCrowds(cfg),
+		config.TOOL_CreateTiles:        NewToolsCreateTitles(cfg),
 	}
 }
 
@@ -39,22 +32,23 @@ type ToolsRender interface {
 	GetRenderObjs() []fyne.CanvasObject
 }
 
-func NewTools() *Tools {
-	t := &Tools{curContext: container.NewVBox()}
+func NewTools(cfg *config.Config) *Tools {
+	t := &Tools{curContext: container.NewVBox(), cfg: cfg}
 	group := widget.NewRadioGroup([]string{
-		TOOL_NAVMESH_TESTER,
-		TOOL_NAVMESH_PRUNE,
-		TOOL_CreateTiles,
-		TOOL_OFFMESH_CONNECTION,
-		TOOL_CONVEX_VOLUME,
-		TOOL_CROWD}, func(c string) {
+		config.TOOL_NAVMESH_TESTER,
+		config.TOOL_NAVMESH_PRUNE,
+		config.TOOL_CreateTiles,
+		config.TOOL_OFFMESH_CONNECTION,
+		config.TOOL_CONVEX_VOLUME,
+		config.TOOL_CROWD}, func(c string) {
 		v := toolsMap[c]
 		if v == nil {
 			return
 		}
+		cfg.ToolsConfig.Uid = c
 		t.changeContext(v.GetRenderObjs()...)
 	})
-	group.Selected = TOOL_NAVMESH_TESTER
+	group.Selected = config.TOOL_NAVMESH_TESTER
 	t.changeContext(toolsMap[group.Selected].GetRenderObjs()...)
 	t.toolsCheckGroup = container.NewVBox(
 		widget.NewLabel("Tools"),

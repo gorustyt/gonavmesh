@@ -4,13 +4,14 @@ import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/container"
 	"github.com/gorustyt/fyne/v2/widget"
+	"gonavamesh/demo_new/config"
 )
 
 type ToolsCreateTitles struct {
 	c *fyne.Container
 }
 
-func NewToolsCreateTitles() *ToolsCreateTitles {
+func NewToolsCreateTitles(cfg *config.Config) *ToolsCreateTitles {
 	t := &ToolsCreateTitles{}
 	b1 := widget.NewButton("Create All", func() {
 

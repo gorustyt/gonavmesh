@@ -11,7 +11,7 @@ type ToolsTestNavmesh struct {
 	c *fyne.Container
 }
 
-func NewToolsTestNavmesh() *ToolsTestNavmesh {
+func NewToolsTestNavmesh(cfg *config.Config) *ToolsTestNavmesh {
 	t := &ToolsTestNavmesh{}
 	checkGroup1 := widget.NewCheckGroup([]string{
 		config.DESC_SAMPLE_POLYFLAGS_WALK,
@@ -19,7 +19,7 @@ func NewToolsTestNavmesh() *ToolsTestNavmesh {
 		config.DESC_SAMPLE_POLYFLAGS_DOOR,
 		config.DESC_SAMPLE_POLYFLAGS_JUMP,
 	}, func(strings []string) {
-
+		cfg.ToolsConfig.IncludeFlags = strings
 	})
 	checkGroup2 := widget.NewCheckGroup([]string{
 		config.DESC_SAMPLE_POLYFLAGS_WALK,
@@ -27,34 +27,26 @@ func NewToolsTestNavmesh() *ToolsTestNavmesh {
 		config.DESC_SAMPLE_POLYFLAGS_DOOR,
 		config.DESC_SAMPLE_POLYFLAGS_JUMP,
 	}, func(strings []string) {
-
+		cfg.ToolsConfig.ExcludeFlags = strings
 	})
-	b1 := widget.NewButton("Set Random Start", func() {
-
-	})
-	b2 := widget.NewButton("Set Random End", func() {
-
-	})
-	b3 := widget.NewButton("Make Random Points", func() {
-
-	})
-	b4 := widget.NewButton("Make Random Points Around", func() {
-
-	})
+	b1 := widget.NewButton("Set Random Start", cfg.ToolsConfig.OnSetRandomStartClick)
+	b2 := widget.NewButton("Set Random End", cfg.ToolsConfig.OnSetRandomEndClick)
+	b3 := widget.NewButton("Make Random Points", cfg.ToolsConfig.OnMakeRandomPointsClick)
+	b4 := widget.NewButton("Make Random Points Around", cfg.ToolsConfig.OnMakeRandomPointsAroundClick)
 
 	group1 := widget.NewRadioGroup([]string{
 		config.DT_STRAIGHTPATH_NONE_CROSSINGS,
 		config.DT_STRAIGHTPATH_AREA_CROSSINGS,
 		config.DT_STRAIGHTPATH_ALL_CROSSINGS,
 	}, func(v string) {
-
+		cfg.ToolsConfig.PathfindStraight = v
 	})
 	c1 := container.NewVBox(widget.NewLabel("Vertices at crossings"), group1, widget.NewSeparator())
 	c1.Hide()
 	group1.Selected = config.DT_STRAIGHTPATH_NONE_CROSSINGS
 	group := widget.NewRadioGroup([]string{
 		config.Desc_TOOLMODE_PATHFIND_FOLLOW,
-		config.Desc_OOLMODE_PATHFIND_STRAIGHT,
+		config.Desc_TOOLMODE_PATHFIND_STRAIGHT,
 		config.Desc_TOOLMODE_PATHFIND_SLICED,
 		config.Desc_TOOLMODE_RAYCAST,
 		config.Desc_TOOLMODE_DISTANCE_TO_WALL,
@@ -62,7 +54,8 @@ func NewToolsTestNavmesh() *ToolsTestNavmesh {
 		config.Desc_TOOLMODE_FIND_POLYS_IN_SHAPE,
 		config.Desc_TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD,
 	}, func(s string) {
-		if s == config.Desc_OOLMODE_PATHFIND_STRAIGHT {
+		cfg.ToolsConfig.ToolModel = s
+		if s == config.Desc_TOOLMODE_PATHFIND_STRAIGHT {
 			c1.Show()
 		} else {
 			c1.Hide()
