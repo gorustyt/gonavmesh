@@ -1,4 +1,4 @@
-package ui
+package config
 
 import "github.com/gorustyt/fyne/v2"
 

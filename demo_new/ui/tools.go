@@ -12,6 +12,7 @@ const (
 	TOOL_OFFMESH_CONNECTION = "Create Off-Mesh Connections"
 	TOOL_CONVEX_VOLUME      = "Create Convex Volumes"
 	TOOL_CROWD              = "Create Crowds"
+	TOOL_CreateTiles        = "Create Tiles"
 )
 
 type Tools struct {
@@ -30,6 +31,7 @@ func InitToolsMap() {
 		TOOL_OFFMESH_CONNECTION: NewToolOffMeshConnection(),
 		TOOL_CONVEX_VOLUME:      NewToolsCreateConvexVolumes(),
 		TOOL_CROWD:              NewToolsCrowds(),
+		TOOL_CreateTiles:        NewToolsCreateTitles(),
 	}
 }
 
@@ -38,23 +40,27 @@ type ToolsRender interface {
 }
 
 func NewTools() *Tools {
-	t := &Tools{}
+	t := &Tools{curContext: container.NewVBox()}
 	group := widget.NewRadioGroup([]string{
 		TOOL_NAVMESH_TESTER,
 		TOOL_NAVMESH_PRUNE,
+		TOOL_CreateTiles,
 		TOOL_OFFMESH_CONNECTION,
 		TOOL_CONVEX_VOLUME,
 		TOOL_CROWD}, func(c string) {
 		v := toolsMap[c]
+		if v == nil {
+			return
+		}
 		t.changeContext(v.GetRenderObjs()...)
 	})
+	group.Selected = TOOL_NAVMESH_TESTER
+	t.changeContext(toolsMap[group.Selected].GetRenderObjs()...)
 	t.toolsCheckGroup = container.NewVBox(
 		widget.NewLabel("Tools"),
 		group,
 		widget.NewSeparator(),
 	)
-	t.toolsCheckGroup.Resize(fyne.Size{Width: 300, Height: 1080})
-	t.curContext = container.NewVBox()
 
 	return t
 
@@ -71,5 +77,7 @@ func (t *Tools) changeContext(cs ...fyne.CanvasObject) {
 }
 
 func (t *Tools) GetRenderObj() fyne.CanvasObject {
-	return container.NewVBox(t.toolsCheckGroup, t.curContext)
+	s := container.NewVScroll(t.curContext)
+	s.SetMinSize(fyne.NewSize(200, 600))
+	return container.NewVBox(t.toolsCheckGroup, s)
 }

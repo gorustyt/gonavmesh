@@ -24,5 +24,5 @@ func NewProps() *Props {
 	return p
 }
 func (p *Props) GetRenderObj() fyne.CanvasObject {
-	return container.NewScroll(p.c)
+	return p.c
 }
