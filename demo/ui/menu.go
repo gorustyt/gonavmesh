@@ -3,8 +3,8 @@ package ui
 import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/container"
-	"gonavamesh/demo_new/config"
-	"gonavamesh/demo_new/mesh"
+	"gonavamesh/demo/config"
+	"gonavamesh/demo/mesh"
 )
 
 func GetMenu() fyne.CanvasObject {

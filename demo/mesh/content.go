@@ -2,7 +2,7 @@ package mesh
 
 import (
 	"github.com/gorustyt/fyne/v2"
-	"gonavamesh/demo_new/config"
+	"gonavamesh/demo/config"
 )
 
 type Content struct {
