@@ -10,21 +10,26 @@ import (
 type Tools struct {
 	toolsCheckGroup *fyne.Container
 	curContext      *fyne.Container
-	cfg             *config.Config
+	ctx             *Context
+
+	toolGroup *widget.RadioGroup
 }
 
 var (
 	toolsMap map[string]ToolsRender
 )
 
-func InitToolsMap(cfg *config.Config) {
+func InitToolsMap(ctx *Context) {
 	toolsMap = map[string]ToolsRender{
-		config.TOOL_NAVMESH_TESTER:     NewToolsTestNavmesh(cfg),
-		config.TOOL_NAVMESH_PRUNE:      NewToolsPruneNavmesh(cfg),
-		config.TOOL_OFFMESH_CONNECTION: NewToolOffMeshConnection(cfg),
-		config.TOOL_CONVEX_VOLUME:      NewToolsCreateConvexVolumes(cfg),
-		config.TOOL_CROWD:              NewToolsCrowds(cfg),
-		config.TOOL_CreateTiles:        NewToolsCreateTitles(cfg),
+		config.TOOL_NAVMESH_TESTER:      NewToolsTestNavmesh(ctx),
+		config.TOOL_NAVMESH_PRUNE:       NewToolsPruneNavmesh(ctx),
+		config.TOOL_OFFMESH_CONNECTION:  NewToolOffMeshConnection(ctx),
+		config.TOOL_OFFMESH_Links:       NewToolOffMeshConnection(ctx),
+		config.TOOL_CONVEX_VOLUME:       NewToolsCreateConvexVolumes(ctx),
+		config.TOOL_CROWD:               NewToolsCrowds(ctx),
+		config.TOOL_CreateTiles:         NewToolsCreateTitles(ctx),
+		config.TOOL_HighlightTileCache:  NewToolsHighlightTileCache(ctx),
+		config.TOOL_CreateTempObstacles: NewToolsToolsCreateTempObstacles(ctx),
 	}
 }
 
@@ -32,30 +37,23 @@ type ToolsRender interface {
 	GetRenderObjs() []fyne.CanvasObject
 }
 
-func NewTools(cfg *config.Config) *Tools {
-	t := &Tools{curContext: container.NewVBox(), cfg: cfg}
-	group := widget.NewRadioGroup([]string{
-		config.TOOL_NAVMESH_TESTER,
-		config.TOOL_NAVMESH_PRUNE,
-		config.TOOL_CreateTiles,
-		config.TOOL_OFFMESH_CONNECTION,
-		config.TOOL_CONVEX_VOLUME,
-		config.TOOL_CROWD}, func(c string) {
+func NewTools(ctx *Context) *Tools {
+	t := &Tools{curContext: container.NewVBox(), ctx: ctx}
+	ctx.AppendSampleChange(t)
+	t.toolGroup = widget.NewRadioGroup([]string{}, func(c string) {
 		v := toolsMap[c]
 		if v == nil {
 			return
 		}
-		cfg.ToolsConfig.Uid = c
+		ctx.Config().ToolsConfig.Uid = c
 		t.changeContext(v.GetRenderObjs()...)
 	})
-	group.Selected = config.TOOL_NAVMESH_TESTER
-	t.changeContext(toolsMap[group.Selected].GetRenderObjs()...)
+
 	t.toolsCheckGroup = container.NewVBox(
 		widget.NewLabel("Tools"),
-		group,
+		t.toolGroup,
 		widget.NewSeparator(),
 	)
-
 	return t
 
 }
@@ -74,4 +72,44 @@ func (t *Tools) GetRenderObj() fyne.CanvasObject {
 	s := container.NewVScroll(t.curContext)
 	s.SetMinSize(fyne.NewSize(200, 600))
 	return container.NewVBox(t.toolsCheckGroup, s)
+}
+
+func (t *Tools) setToolsGroup(sample string) {
+	switch sample {
+	case config.SampleSoloMesh:
+		t.toolGroup.Selected = config.TOOL_NAVMESH_TESTER
+		t.toolGroup.Options = []string{
+			config.TOOL_NAVMESH_TESTER,
+			config.TOOL_NAVMESH_PRUNE,
+
+			config.TOOL_OFFMESH_CONNECTION,
+			config.TOOL_CONVEX_VOLUME,
+			config.TOOL_CROWD,
+		}
+	case config.SampleTileMesh:
+		t.toolGroup.Selected = config.TOOL_CreateTiles
+		t.toolGroup.Options = []string{
+			config.TOOL_NAVMESH_TESTER,
+			config.TOOL_NAVMESH_PRUNE,
+			config.TOOL_CreateTiles,
+			config.TOOL_OFFMESH_Links,
+			config.TOOL_CONVEX_VOLUME,
+			config.TOOL_CROWD,
+		}
+	case config.SampleTempObstacles:
+		t.toolGroup.Selected = config.TOOL_CreateTempObstacles
+		t.toolGroup.Options = []string{
+			config.TOOL_NAVMESH_TESTER,
+			config.TOOL_HighlightTileCache,
+			config.TOOL_CreateTempObstacles,
+			config.TOOL_OFFMESH_Links,
+			config.TOOL_CONVEX_VOLUME,
+			config.TOOL_CROWD,
+		}
+	}
+	t.toolGroup.Refresh()
+	t.changeContext(toolsMap[t.toolGroup.Selected].GetRenderObjs()...)
+}
+func (t *Tools) SampleChange(sample string) {
+	t.setToolsGroup(sample)
 }

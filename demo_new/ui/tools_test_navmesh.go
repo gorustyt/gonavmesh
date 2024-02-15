@@ -11,8 +11,9 @@ type ToolsTestNavmesh struct {
 	c *fyne.Container
 }
 
-func NewToolsTestNavmesh(cfg *config.Config) *ToolsTestNavmesh {
+func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 	t := &ToolsTestNavmesh{}
+	cfg := ctx.Config()
 	checkGroup1 := widget.NewCheckGroup([]string{
 		config.DESC_SAMPLE_POLYFLAGS_WALK,
 		config.DESC_SAMPLE_POLYFLAGS_SWIM,

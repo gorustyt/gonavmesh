@@ -4,22 +4,17 @@ import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/container"
 	"github.com/gorustyt/fyne/v2/widget"
-	"gonavamesh/demo_new/config"
 )
 
 type ToolsCreateTitles struct {
 	c *fyne.Container
 }
 
-func NewToolsCreateTitles(cfg *config.Config) *ToolsCreateTitles {
+func NewToolsCreateTitles(ctx *Context) *ToolsCreateTitles {
 	t := &ToolsCreateTitles{}
-	b1 := widget.NewButton("Create All", func() {
-
-	})
+	b1 := widget.NewButton("Create All", ctx.Config().ToolsConfig.OnCreateTilesCreateAllClick)
 	b1.Importance = widget.SuccessImportance
-	b2 := widget.NewButton("Remove All", func() {
-
-	})
+	b2 := widget.NewButton("Remove All", ctx.Config().ToolsConfig.OnCreateTilesRemoveAllClick)
 	b2.Importance = widget.DangerImportance
 	t.c = container.NewVBox(
 		widget.NewLabel("Create Tiles"),

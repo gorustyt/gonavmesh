@@ -12,7 +12,8 @@ type ToolsCreateConvexVolumes struct {
 	c *fyne.Container
 }
 
-func NewToolsCreateConvexVolumes(cfg *config.Config) *ToolsCreateConvexVolumes {
+func NewToolsCreateConvexVolumes(ctx *Context) *ToolsCreateConvexVolumes {
+	cfg := ctx.Config()
 	button := widget.NewButton("Clear Shape", cfg.ToolsConfig.OnClearShapeClick)
 	s1 := widget.NewSliderWithData(0.1, 20.0, binding.BindFloat(&cfg.ToolsConfig.BoxHeight))
 	s1.Step = 0.1

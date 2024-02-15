@@ -12,7 +12,8 @@ type ToolsCrowds struct {
 	c *fyne.Container
 }
 
-func NewToolsCrowds(cfg *config.Config) *ToolsCrowds {
+func NewToolsCrowds(ctx *Context) *ToolsCrowds {
+	cfg := ctx.Config()
 	c := &ToolsCrowds{}
 	group := widget.NewRadioGroup([]string{
 		config.DescCrowdTool_TOOLMODE_CREATE,

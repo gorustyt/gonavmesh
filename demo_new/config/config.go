@@ -65,6 +65,7 @@ type ToolsConfig struct {
 type PropsConfig struct {
 	ShowLogOrShowTool string
 	SampleType        string
+	InputMeshPath     string
 
 	VertLabelData binding.String
 
@@ -92,7 +93,7 @@ type PropsConfig struct {
 	TileSize         float64
 	KeepInterResults []string
 	OnSaveClick      func()
-	OnLockClick      func()
+	OnLoadClick      func()
 	BuildTimeLabel   binding.String
 	OnBuildClick     func()
 	DrawMode         string

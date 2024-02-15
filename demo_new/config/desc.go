@@ -115,8 +115,11 @@ const (
 	DrawContours          = "Contours"
 	DrawPolyMesh          = "Poly Mesh"
 	DrawPolyMeshDetail    = "Poly Mesh Detail"
+	DrawPortals           = "Navmesh Portals"
+	DrawCacheBounds       = "Cache Bounds"
 
 	KeepItermediateResults = "Keep Itermediate Results"
+	KeepBuildAllTiles      = "Build All Tiles"
 )
 
 const (
@@ -140,6 +143,7 @@ const (
 	TOOL_NAVMESH_TESTER      = "Test Navmesh"
 	TOOL_NAVMESH_PRUNE       = "Prune Navmesh"
 	TOOL_OFFMESH_CONNECTION  = "Create Off-Mesh Connections"
+	TOOL_OFFMESH_Links       = "Create Off-Mesh Links"
 	TOOL_CONVEX_VOLUME       = "Create Convex Volumes"
 	TOOL_CROWD               = "Create Crowds"
 	TOOL_CreateTiles         = "Create Tiles"
@@ -151,4 +155,10 @@ const (
 	SampleSoloMesh      = "Solo Mesh"
 	SampleTileMesh      = "Tile Mesh"
 	SampleTempObstacles = "Temp Obstacles"
+)
+const (
+	HighLightTitleCacheDrawAreas = "Draw Areas"
+	HighLightTitleDrawRegions    = "Draw Regions"
+	HighLightTitleDrawContours   = "Draw Contours"
+	HighLightTitleDrawMesh       = "Draw Mesh"
 )

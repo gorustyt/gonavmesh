@@ -10,13 +10,13 @@ type ToolOffMeshConnection struct {
 	c fyne.CanvasObject
 }
 
-func NewToolOffMeshConnection(cfg *config.Config) *ToolOffMeshConnection {
+func NewToolOffMeshConnection(ctx *Context) *ToolOffMeshConnection {
 	return &ToolOffMeshConnection{
 		c: widget.NewRadioGroup([]string{
 			config.OneWay,
 			config.Bidirectional,
 		}, func(s string) {
-			cfg.ToolsConfig.Bidir = s
+			ctx.Config().ToolsConfig.Bidir = s
 		}),
 	}
 }
