@@ -12,7 +12,12 @@ type Config struct {
 
 func NewConfig() *Config {
 	c := &Config{
-		ToolsConfig: &ToolsConfig{},
+		ToolsConfig: &ToolsConfig{
+			ObstacleAvoidanceType: 3,
+			SeparationWeight:      2,
+			BoxHeight:             6,
+			BoxDescent:            1,
+		},
 		PropsConfig: &PropsConfig{
 			VertLabelData:                    binding.NewString(),
 			BuildTimeLabel:                   binding.NewString(),
@@ -24,6 +29,26 @@ func NewConfig() *Config {
 			TitleCacheMemoryLabel:            binding.NewString(),
 			TitleCacheNavmeshBuildTimeLabel:  binding.NewString(),
 			TitleCacheBuildPeakMemUsageLabel: binding.NewString(),
+
+			RasterizationCellSize:   0.3,
+			RasterizationCellHeight: 0.2,
+
+			AgentHeight:   2,
+			AgentRadius:   0.6,
+			AgentMaxClimb: 0.9,
+			AgentMaxSlope: 45,
+
+			RegionMinRegionSize:    8,
+			RegionMergedRegionSize: 20,
+
+			PolygonizationMaxEdgeLength: 12,
+			PolygonizationMaxEdgeError:  1.3,
+			PolygonizationVertsPerPoly:  6.,
+
+			DetailMeshSampleDistance:       6,
+			DetailMeshSampleMaxSampleError: 1,
+
+			TileSize: 48,
 		},
 	}
 	c.PropsConfig.SetVertLabelData(0, 0)
@@ -79,9 +104,9 @@ type ToolsConfig struct {
 }
 
 type PropsConfig struct {
-	ShowLogOrShowTool string
-	SampleType        string
-	InputMeshPath     string
+	ShowLogAndShowTool []string
+	SampleType         string
+	InputMeshPath      string
 
 	VertLabelData binding.String
 

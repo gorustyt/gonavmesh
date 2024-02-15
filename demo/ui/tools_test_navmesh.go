@@ -22,6 +22,12 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 	}, func(strings []string) {
 		cfg.ToolsConfig.IncludeFlags = strings
 	})
+	checkGroup1.Selected = []string{
+		config.DESC_SAMPLE_POLYFLAGS_WALK,
+		config.DESC_SAMPLE_POLYFLAGS_SWIM,
+		config.DESC_SAMPLE_POLYFLAGS_DOOR,
+		config.DESC_SAMPLE_POLYFLAGS_JUMP,
+	}
 	checkGroup2 := widget.NewCheckGroup([]string{
 		config.DESC_SAMPLE_POLYFLAGS_WALK,
 		config.DESC_SAMPLE_POLYFLAGS_SWIM,

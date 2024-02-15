@@ -27,6 +27,7 @@ func NewToolsHighlightTileCache(ctx *Context) *ToolsHighlightTileCache {
 	}, func(s string) {
 		ctx.Config().ToolsConfig.HighlightDrawType = s
 	})
+	b.Selected = config.HighLightTitleCacheDrawAreas
 	c.c = container.NewVBox(
 		widget.NewLabel("Highlight Tile Cache"),
 		widget.NewLabel("Click LMB to highlight a tile."),

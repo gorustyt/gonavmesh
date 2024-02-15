@@ -32,6 +32,7 @@ func NewToolsCreateConvexVolumes(ctx *Context) *ToolsCreateConvexVolumes {
 	}, func(s string) {
 		cfg.ToolsConfig.AreaType = s
 	})
+	group.Selected = config.SAMPLE_POLYAREA_GRASS
 	c := &ToolsCreateConvexVolumes{}
 	c.c = container.NewVBox(
 		widget.NewLabel("Shape Height"),

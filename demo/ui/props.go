@@ -19,14 +19,17 @@ type Props struct {
 func NewProps(ctx *Context) *Props {
 	p := &Props{ctx: ctx}
 	ctx.AppendSampleChange(p)
+	g := widget.NewCheckGroup([]string{
+		config.ShowLog,
+		config.ShowTools,
+	}, func(s []string) {
+		ctx.Config().PropsConfig.ShowLogAndShowTool = s
+	})
+	g.Selected = []string{config.ShowTools}
 	p.c = container.NewVBox(
-		widget.NewRadioGroup([]string{
-			config.ShowLog,
-			config.ShowTools,
-		}, func(s string) {
-			ctx.Config().PropsConfig.ShowLogOrShowTool = s
-		}),
+		g,
 	)
+
 	p.c.Add(widget.NewSeparator())
 	for _, v := range p.GetSample() {
 		p.c.Add(v)
@@ -179,28 +182,36 @@ func (p *Props) GetRegion() (res []fyne.CanvasObject) {
 }
 
 func (p *Props) GetPartitioning() (res []fyne.CanvasObject) {
+	g := widget.NewRadioGroup([]string{
+		config.DescSAMPLE_PARTITION_WATERSHED,
+		config.DescSAMPLE_PARTITION_MONOTONE,
+		config.DescSAMPLE_PARTITION_LAYERS,
+	}, func(s string) {
+		p.ctx.Config().PropsConfig.Partitioning = s
+	})
+	g.Selected = config.DescSAMPLE_PARTITION_WATERSHED
 	return []fyne.CanvasObject{
 		widget.NewLabel("Partitioning"),
-		widget.NewRadioGroup([]string{
-			config.DescSAMPLE_PARTITION_WATERSHED,
-			config.DescSAMPLE_PARTITION_MONOTONE,
-			config.DescSAMPLE_PARTITION_LAYERS,
-		}, func(s string) {
-			p.ctx.Config().PropsConfig.Partitioning = s
-		}),
+		g,
 	}
 }
 
 func (p *Props) GetFiltering() (res []fyne.CanvasObject) {
+	g := widget.NewCheckGroup([]string{
+		config.FilteringLowHangingObstacles,
+		config.FilteringLedgeSpans,
+		config.FilteringWalkableLowHeightSpans,
+	}, func(s []string) {
+		p.ctx.Config().PropsConfig.Filtering = s
+	})
+	g.Selected = []string{
+		config.FilteringLowHangingObstacles,
+		config.FilteringLedgeSpans,
+		config.FilteringWalkableLowHeightSpans,
+	}
 	return []fyne.CanvasObject{
 		widget.NewLabel("Filtering"),
-		widget.NewCheckGroup([]string{
-			config.FilteringLowHangingObstacles,
-			config.FilteringLedgeSpans,
-			config.FilteringWalkableLowHeightSpans,
-		}, func(s []string) {
-			p.ctx.Config().PropsConfig.Filtering = s
-		}),
+		g,
 	}
 }
 
