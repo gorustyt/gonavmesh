@@ -20,7 +20,6 @@ func NewProps(ctx *Context) *Props {
 	p := &Props{ctx: ctx}
 	ctx.AppendSampleChange(p)
 	p.c = container.NewVBox(
-		widget.NewLabel("prop"),
 		widget.NewRadioGroup([]string{
 			config.ShowLog,
 			config.ShowTools,
@@ -63,7 +62,6 @@ func NewProps(ctx *Context) *Props {
 	for _, v := range p.GetItermediateResults() {
 		p.c.Add(v)
 	}
-
 	p.c.Add(widget.NewSeparator())
 	for _, v := range p.GetDraw() {
 		p.c.Add(v)
@@ -101,8 +99,8 @@ func (p *Props) GetSample() (res []fyne.CanvasObject) {
 }
 func (p *Props) GetRenderObj() fyne.CanvasObject {
 	s := container.NewVScroll(p.c)
-	s.SetMinSize(fyne.NewSize(100, 900))
-	return s
+	s.SetMinSize(fyne.NewSize(100, 780))
+	return container.NewVBox(widget.NewLabel("Properties"), s)
 }
 
 func (p *Props) GetRasterization() (res []fyne.CanvasObject) {
@@ -274,6 +272,48 @@ func (p *Props) setItermediateGroup(sample string) {
 	p.itermediateGroup.Refresh()
 }
 
+func (p *Props) GetTileCache() (res []fyne.CanvasObject) {
+	vs := []*widget.Label{
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TitleCacheLayersLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TitleCacheLayerPerTileLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TitleCacheMemoryLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TitleCacheNavmeshBuildTimeLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TitleCacheBuildPeakMemUsageLabel),
+	}
+
+	res = append(res, widget.NewLabel("Tile Cache"))
+	for _, v := range vs {
+		v.Alignment = fyne.TextAlignTrailing
+		v.TextStyle.Monospace = true
+		v.TextStyle.Italic = true
+		res = append(res, v)
+	}
+	res = append(res, widget.NewSeparator())
+	return res
+}
+func (p *Props) GetTiling() (res []fyne.CanvasObject) {
+	s := widget.NewSliderWithData(16.0, 1024.0, binding.BindFloat(&p.ctx.Config().PropsConfig.TileSize))
+	s.Step = 16
+	vs := []*widget.Label{
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TileSizeLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TileSizeMaxTitlesLabel),
+		widget.NewLabelWithData(p.ctx.Config().PropsConfig.TileSizeMaxPolysLabel),
+	}
+	res = []fyne.CanvasObject{
+		widget.NewLabel("Tiling"),
+		widget.NewLabel("TileSize"),
+		s,
+		widget.NewSeparator(),
+	}
+	for _, v := range vs {
+		v.Alignment = fyne.TextAlignTrailing
+		v.TextStyle.Monospace = true
+		res = append(res, v)
+	}
+	res = append(res, widget.NewSeparator())
+	return res
+}
+
 func (p *Props) GetItermediateResults() (res []fyne.CanvasObject) {
 	b1 := widget.NewButton("Save", p.ctx.Config().PropsConfig.OnSaveClick)
 	b1.Importance = widget.SuccessImportance
@@ -283,13 +323,23 @@ func (p *Props) GetItermediateResults() (res []fyne.CanvasObject) {
 	p.itermediateGroup = widget.NewCheckGroup([]string{}, func(strings []string) {
 		p.ctx.Config().PropsConfig.KeepInterResults = strings
 	})
-	return []fyne.CanvasObject{
-		p.itermediateGroup,
+	res = append(res, p.itermediateGroup)
+	res = append(res, widget.NewSeparator())
+	for _, v := range p.GetTiling() {
+		res = append(res, v)
+		p.ctx.AppendShow(config.SampleTileMesh, v)
+		p.ctx.AppendShow(config.SampleTempObstacles, v)
+	}
+	for _, v := range p.GetTileCache() {
+		res = append(res, v)
+		p.ctx.AppendShow(config.SampleTempObstacles, v)
+	}
+	return append(res, []fyne.CanvasObject{
 		b1,
 		b2,
 		widget.NewSeparator(),
 		b3,
-	}
+	}...)
 }
 
 func (p *Props) setDraw(sample string) {

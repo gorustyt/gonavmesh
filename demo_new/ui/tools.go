@@ -70,7 +70,7 @@ func (t *Tools) changeContext(cs ...fyne.CanvasObject) {
 
 func (t *Tools) GetRenderObj() fyne.CanvasObject {
 	s := container.NewVScroll(t.curContext)
-	s.SetMinSize(fyne.NewSize(200, 600))
+	s.SetMinSize(fyne.NewSize(100, 600))
 	return container.NewVBox(t.toolsCheckGroup, s)
 }
 

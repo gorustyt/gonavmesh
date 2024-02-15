@@ -23,10 +23,10 @@ type SampleChange interface {
 type Context struct {
 	root fyne.CanvasObject
 
-	Sample  string
-	Changes []fyne.CanvasObject
-	Show    map[string][]fyne.CanvasObject
-	cfg     *config.Config
+	Sample      string
+	Shows       []fyne.CanvasObject
+	ShowChanges map[string][]fyne.CanvasObject
+	cfg         *config.Config
 
 	SampleChanges []SampleChange
 	afterInit     []func()
@@ -34,9 +34,14 @@ type Context struct {
 
 func NewContext(c *config.Config) *Context {
 	return &Context{
-		Show: map[string][]fyne.CanvasObject{},
-		cfg:  c,
+		ShowChanges: map[string][]fyne.CanvasObject{},
+		cfg:         c,
 	}
+}
+
+func (s *Context) AppendShow(sample string, shows ...fyne.CanvasObject) {
+	s.ShowChanges[sample] = append(s.ShowChanges[sample], shows...)
+	s.Shows = append(s.Shows, shows...)
 }
 func (s *Context) AppendAfterInit(ss ...func()) {
 	s.afterInit = append(s.afterInit, ss...)
@@ -50,10 +55,10 @@ func (s *Context) OnSampleChange(sample string) {
 	for _, v := range s.SampleChanges {
 		v.SampleChange(sample)
 	}
-	for _, v := range s.Changes {
+	for _, v := range s.Shows {
 		v.Hide()
 	}
-	for _, v := range s.Show[sample] {
+	for _, v := range s.ShowChanges[sample] {
 		v.Show()
 	}
 }
