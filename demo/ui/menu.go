@@ -3,17 +3,18 @@ package ui
 import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/container"
-	"gonavamesh/demo/config"
-	"gonavamesh/demo/mesh"
+	"github.com/gorustyt/gonavmesh/demo/config"
+	"github.com/gorustyt/gonavmesh/demo/mesh"
 )
 
-func GetMenu() fyne.CanvasObject {
+func SetUi(a fyne.App, w fyne.Window) {
 	c := mesh.NewContent()
 	ctx := NewContext(c.GetConfig())
 	InitToolsMap(ctx)
 	root := container.NewBorder(nil, nil, NewTools(ctx).GetRenderObj(), NewProps(ctx).GetRenderObj(), c)
 	ctx.AfterInit()
-	return root
+	SetMainMenu(a, w, ctx)
+	w.SetContent(root)
 }
 
 type SampleChange interface {

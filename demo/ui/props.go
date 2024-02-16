@@ -5,7 +5,7 @@ import (
 	"github.com/gorustyt/fyne/v2/container"
 	"github.com/gorustyt/fyne/v2/data/binding"
 	"github.com/gorustyt/fyne/v2/widget"
-	"gonavamesh/demo/config"
+	"github.com/gorustyt/gonavmesh/demo/config"
 )
 
 type Props struct {
@@ -326,11 +326,6 @@ func (p *Props) GetTiling() (res []fyne.CanvasObject) {
 }
 
 func (p *Props) GetItermediateResults() (res []fyne.CanvasObject) {
-	b1 := widget.NewButton("Save", p.ctx.Config().PropsConfig.OnSaveClick)
-	b1.Importance = widget.SuccessImportance
-	b2 := widget.NewButton("Load", p.ctx.Config().PropsConfig.OnLoadClick)
-	b3 := widget.NewButton("Build", p.ctx.Config().PropsConfig.OnBuildClick)
-	b3.Importance = widget.HighImportance
 	p.itermediateGroup = widget.NewCheckGroup([]string{}, func(strings []string) {
 		p.ctx.Config().PropsConfig.KeepInterResults = strings
 	})
@@ -346,10 +341,7 @@ func (p *Props) GetItermediateResults() (res []fyne.CanvasObject) {
 		p.ctx.AppendShow(config.SampleTempObstacles, v)
 	}
 	return append(res, []fyne.CanvasObject{
-		b1,
-		b2,
 		widget.NewSeparator(),
-		b3,
 	}...)
 }
 

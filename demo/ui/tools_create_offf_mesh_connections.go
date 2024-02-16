@@ -3,7 +3,7 @@ package ui
 import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/widget"
-	"gonavamesh/demo/config"
+	"github.com/gorustyt/gonavmesh/demo/config"
 )
 
 type ToolOffMeshConnection struct {
