@@ -47,9 +47,9 @@ func NewToolsCrowds(ctx *Context) *ToolsCrowds {
 	optionsContainer := container.NewVBox(
 		widget.NewLabel("Options"), g,
 		widget.NewLabel("Avoidance Quality"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Separation Weight"),
-		s2,
+		PackSlider(s2),
 	)
 	selectDebugDraw := widget.NewCheckGroup([]string{
 		config.ExpandSelectedDebugDrawShowCorners,

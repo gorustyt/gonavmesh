@@ -120,9 +120,9 @@ func (p *Props) GetRasterization() (res []fyne.CanvasObject) {
 	return []fyne.CanvasObject{
 		widget.NewLabel("Rasterization"),
 		widget.NewLabel("Cell Size"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Cell Height"),
-		s2,
+		PackSlider(s2),
 	}
 }
 func (p *Props) GetAgent() (res []fyne.CanvasObject) {
@@ -151,13 +151,13 @@ func (p *Props) GetAgent() (res []fyne.CanvasObject) {
 	}
 	return []fyne.CanvasObject{
 		widget.NewLabel("Height"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Radius"),
-		s2,
+		PackSlider(s2),
 		widget.NewLabel("Max Climb"),
-		s3,
+		PackSlider(s3),
 		widget.NewLabel("Max Slope"),
-		s4,
+		PackSlider(s4),
 	}
 }
 
@@ -175,9 +175,9 @@ func (p *Props) GetRegion() (res []fyne.CanvasObject) {
 	return []fyne.CanvasObject{
 		widget.NewLabel("Region"),
 		widget.NewLabel("Min Region Size"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Merged Region Size"),
-		s2,
+		PackSlider(s2),
 	}
 }
 
@@ -238,11 +238,11 @@ func (p *Props) GetPolygonization() (res []fyne.CanvasObject) {
 	return []fyne.CanvasObject{
 		widget.NewLabel("Polygonization"),
 		widget.NewLabel("Max Edge Length"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Max Edge Error"),
-		s2,
+		PackSlider(s2),
 		widget.NewLabel("Verts Per Poly"),
-		s3,
+		PackSlider(s3),
 	}
 }
 
@@ -262,9 +262,9 @@ func (p *Props) GetDetailMesh() (res []fyne.CanvasObject) {
 	return []fyne.CanvasObject{
 		widget.NewLabel("Detail Mesh"),
 		widget.NewLabel("Sample Distance"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Max Sample Error"),
-		s2,
+		PackSlider(s2),
 	}
 }
 func (p *Props) setItermediateGroup(sample string) {
@@ -313,7 +313,7 @@ func (p *Props) GetTiling() (res []fyne.CanvasObject) {
 	res = []fyne.CanvasObject{
 		widget.NewLabel("Tiling"),
 		widget.NewLabel("TileSize"),
-		s,
+		PackSlider(s),
 		widget.NewSeparator(),
 	}
 	for _, v := range vs {

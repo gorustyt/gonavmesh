@@ -36,11 +36,11 @@ func NewToolsCreateConvexVolumes(ctx *Context) *ToolsCreateConvexVolumes {
 	c := &ToolsCreateConvexVolumes{}
 	c.c = container.NewVBox(
 		widget.NewLabel("Shape Height"),
-		s1,
+		PackSlider(s1),
 		widget.NewLabel("Shape Descent"),
-		s2,
+		PackSlider(s2),
 		widget.NewLabel("Poly Offset"),
-		s3,
+		PackSlider(s3),
 		widget.NewSeparator(),
 		widget.NewLabel("Area Type"),
 		group,
