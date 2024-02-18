@@ -1,7 +1,7 @@
 package recast
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 	"log"
 	"math"
 )
@@ -13,7 +13,7 @@ import (
 // / @param[in]	bMin	Min axis extents of bounding box B
 // / @param[in]	bMax	Max axis extents of bounding box B
 // / @returns true if the two bounding boxes overlap.  False otherwise.
-func overlapBounds(aMin, aMax, bMin, bMax []float64) bool {
+func overlapBounds(aMin, aMax, bMin, bMax []float32) bool {
 	return aMin[0] <= bMax[0] && aMax[0] >= bMin[0] &&
 		aMin[1] <= bMax[1] && aMax[1] >= bMin[1] &&
 		aMin[2] <= bMax[2] && aMax[2] >= bMin[2]
@@ -35,18 +35,18 @@ func overlapBounds(aMin, aMax, bMin, bMax []float64) bool {
 // / @param[in] 	inverseCellHeight	1 / cellHeight
 // / @param[in] 	flagMergeThreshold	The threshold in which area flags will be merged
 // / @returns true if the operation completes successfully.  false if there was an error adding spans to the heightfield.
-func rasterizeTri(v0, v1, v2 []float64,
-	areaID int, heightfield *RcHeightfield,
-	heightfieldBBMin, heightfieldBBMax []float64,
-	cellSize, inverseCellSize, inverseCellHeight float64,
-	flagMergeThreshold int) bool {
+func rasterizeTri(v0, v1, v2 []float32,
+	areaID uint8, heightfield *RcHeightfield,
+	heightfieldBBMin, heightfieldBBMax []float32,
+	cellSize, inverseCellSize, inverseCellHeight float32,
+	flagMergeThreshold int32) bool {
 	// Calculate the bounding box of the triangle.
-	triBBMin := make([]float64, 3)
+	triBBMin := make([]float32, 3)
 	copy(triBBMin, v0)
 	common.Vmin(triBBMin, v1)
 	common.Vmin(triBBMin, v2)
 
-	triBBMax := make([]float64, 3)
+	triBBMax := make([]float32, 3)
 	copy(triBBMax, v0)
 	common.Vmax(triBBMax, v1)
 	common.Vmax(triBBMax, v2)
@@ -61,15 +61,15 @@ func rasterizeTri(v0, v1, v2 []float64,
 	by := heightfieldBBMax[1] - heightfieldBBMin[1]
 
 	// Calculate the footprint of the triangle on the grid's z-axis
-	z0 := int((triBBMin[2] - heightfieldBBMin[2]) * inverseCellSize)
-	z1 := int((triBBMax[2] - heightfieldBBMin[2]) * inverseCellSize)
+	z0 := int32((triBBMin[2] - heightfieldBBMin[2]) * inverseCellSize)
+	z1 := int32((triBBMax[2] - heightfieldBBMin[2]) * inverseCellSize)
 
 	// use -1 rather than 0 to cut the polygon properly at the start of the tile
 	z0 = common.Clamp(z0, -1, h-1)
 	z1 = common.Clamp(z1, 0, h-1)
 
 	// Clip the triangle into all grid cells it touches.
-	buf := make([]float64, 7*3*4)
+	buf := make([]float32, 7*3*4)
 	in := buf
 	inRow := buf[7*3:]
 	p1 := inRow[7*3:]
@@ -78,12 +78,12 @@ func rasterizeTri(v0, v1, v2 []float64,
 	copy(in[0:], v0)
 	copy(in[1*3:], v1)
 	copy(in[2*3:], v2)
-	var nvRow int
-	nvIn := 3
+	var nvRow int32
+	nvIn := int32(3)
 
 	for z := z0; z <= z1; z++ {
 		// Clip polygon to row. Store the remaining polygon as well
-		cellZ := heightfieldBBMin[2] + float64(z)*cellSize
+		cellZ := heightfieldBBMin[2] + float32(z)*cellSize
 		dividePoly(in, nvIn, inRow, &nvRow, p1, &nvIn, cellZ+cellSize, RC_AXIS_Z)
 		in, p1 = p1, in
 
@@ -97,7 +97,7 @@ func rasterizeTri(v0, v1, v2 []float64,
 		// find X-axis bounds of the row
 		minX := inRow[0]
 		maxX := inRow[0]
-		for vert := 1; vert < nvRow; vert++ {
+		for vert := int32(1); vert < nvRow; vert++ {
 			if minX > inRow[vert*3] {
 				minX = inRow[vert*3]
 			}
@@ -105,20 +105,20 @@ func rasterizeTri(v0, v1, v2 []float64,
 				maxX = inRow[vert*3]
 			}
 		}
-		x0 := int((minX - heightfieldBBMin[0]) * inverseCellSize)
-		x1 := int((maxX - heightfieldBBMin[0]) * inverseCellSize)
+		x0 := int32((minX - heightfieldBBMin[0]) * inverseCellSize)
+		x1 := int32((maxX - heightfieldBBMin[0]) * inverseCellSize)
 		if x1 < 0 || x0 >= w {
 			continue
 		}
 		x0 = common.Clamp(x0, -1, w-1)
 		x1 = common.Clamp(x1, 0, w-1)
 
-		var nv int
+		var nv int32
 		nv2 := nvRow
 
 		for x := x0; x <= x1; x++ {
 			// Clip polygon to column. store the remaining polygon as well
-			cx := heightfieldBBMin[0] + float64(x)*cellSize
+			cx := heightfieldBBMin[0] + float32(x)*cellSize
 			dividePoly(inRow, nv2, p1, &nv, p2, &nv2, cx+cellSize, RC_AXIS_X)
 			inRow, p2 = p2, inRow
 
@@ -132,7 +132,7 @@ func rasterizeTri(v0, v1, v2 []float64,
 			// Calculate min and max of the span.
 			spanMin := p1[1]
 			spanMax := p1[1]
-			for vert := 1; vert < nv; vert++ {
+			for vert := int32(1); vert < nv; vert++ {
 				spanMin = common.Min(spanMin, p1[vert*3+1])
 				spanMax = common.Max(spanMax, p1[vert*3+1])
 			}
@@ -156,8 +156,8 @@ func rasterizeTri(v0, v1, v2 []float64,
 			}
 
 			// Snap the span to the heightfield height grid.
-			spanMinCellIndex := common.Clamp(int(math.Floor(spanMin*inverseCellHeight)), 0, RC_SPAN_MAX_HEIGHT)
-			spanMaxCellIndex := common.Clamp(int(math.Ceil(spanMax*inverseCellHeight)), spanMinCellIndex+1, RC_SPAN_MAX_HEIGHT)
+			spanMinCellIndex := common.Clamp(uint16(math.Floor(float64(spanMin*inverseCellHeight))), 0, RC_SPAN_MAX_HEIGHT)
+			spanMaxCellIndex := common.Clamp(uint16(math.Ceil(float64(spanMax*inverseCellHeight))), spanMinCellIndex+1, RC_SPAN_MAX_HEIGHT)
 
 			if !addSpan(heightfield, x, z, spanMinCellIndex, spanMaxCellIndex, areaID, flagMergeThreshold) {
 				return false
@@ -167,16 +167,16 @@ func rasterizeTri(v0, v1, v2 []float64,
 
 	return true
 }
-func RcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int, numTris int,
-	heightfield *RcHeightfield, flagMergeThreshold int) bool {
+func RcRasterizeTriangles(verts []float32, nv int32, tris []int32, triAreaIDs []uint8, numTris int32,
+	heightfield *RcHeightfield, flagMergeThreshold int32) bool {
 
 	// Rasterize the triangles.
 	inverseCellSize := 1.0 / heightfield.Cs
 	inverseCellHeight := 1.0 / heightfield.Ch
-	for triIndex := 0; triIndex < numTris; triIndex++ {
-		v0 := rcGetVert(verts, tris[triIndex*3+0])
-		v1 := rcGetVert(verts, tris[triIndex*3+1])
-		v2 := rcGetVert(verts, tris[triIndex*3+2])
+	for triIndex := int32(0); triIndex < numTris; triIndex++ {
+		v0 := common.GetVert3(verts, tris[triIndex*3+0])
+		v1 := common.GetVert3(verts, tris[triIndex*3+1])
+		v2 := common.GetVert3(verts, tris[triIndex*3+2])
 		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.Bmin[:], heightfield.Bmax[:], heightfield.Cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			return false
 		}
@@ -185,15 +185,15 @@ func RcRasterizeTriangles(verts []float64, nv int, tris []int, triAreaIDs []int,
 	return true
 }
 
-func RcRasterizeTriangles1(verts []float64, triAreaIDs []int, numTris int,
-	heightfield *RcHeightfield, flagMergeThreshold int) bool {
+func RcRasterizeTriangles1(verts []float32, triAreaIDs []uint8, numTris int,
+	heightfield *RcHeightfield, flagMergeThreshold int32) bool {
 	// Rasterize the triangles.
 	inverseCellSize := 1.0 / heightfield.Cs
 	inverseCellHeight := 1.0 / heightfield.Ch
 	for triIndex := 0; triIndex < numTris; triIndex++ {
-		v0 := rcGetVert(verts, triIndex*3+0)
-		v1 := rcGetVert(verts, triIndex*3+1)
-		v2 := rcGetVert(verts, triIndex*3+2)
+		v0 := common.GetVert3(verts, triIndex*3+0)
+		v1 := common.GetVert3(verts, triIndex*3+1)
+		v2 := common.GetVert3(verts, triIndex*3+2)
 		if !rasterizeTri(v0, v1, v2, triAreaIDs[triIndex], heightfield, heightfield.Bmin[:], heightfield.Bmax[:], heightfield.Cs, inverseCellSize, inverseCellHeight, flagMergeThreshold) {
 			log.Printf("rcRasterizeTriangles: Out of memory.")
 			return false
@@ -222,21 +222,21 @@ const (
 // / @param[out]	outVerts2Count	The number of resulting polygon 2 vertices
 // / @param[in]	axisOffset		THe offset along the specified axis
 // / @param[in]	axis			The separating axis
-func dividePoly(inVerts []float64, inVertsCount int,
-	outVerts1 []float64, outVerts1Count *int,
-	outVerts2 []float64, outVerts2Count *int,
-	axisOffset float64, axis rcAxis) {
-	dtAssertTrue(inVertsCount <= 12)
+func dividePoly(inVerts []float32, inVertsCount int32,
+	outVerts1 []float32, outVerts1Count *int32,
+	outVerts2 []float32, outVerts2Count *int32,
+	axisOffset float32, axis rcAxis) {
+	common.AssertTrue(inVertsCount <= 12)
 
 	// How far positive or negative away from the separating axis is each vertex.
-	inVertAxisDelta := make([]float64, 12)
-	for inVert := 0; inVert < inVertsCount; inVert++ {
-		inVertAxisDelta[inVert] = axisOffset - inVerts[inVert*3+int(axis)]
+	inVertAxisDelta := make([]float32, 12)
+	for inVert := int32(0); inVert < inVertsCount; inVert++ {
+		inVertAxisDelta[inVert] = axisOffset - inVerts[inVert*3+int32(axis)]
 	}
 
-	poly1Vert := 0
-	poly2Vert := 0
-	inVertA := 0
+	poly1Vert := int32(0)
+	poly2Vert := int32(0)
+	inVertA := int32(0)
 	inVertB := inVertsCount - 1
 	for inVertA < inVertsCount {
 		// If the two vertices are on the same side of the separating axis
@@ -248,7 +248,7 @@ func dividePoly(inVerts []float64, inVertsCount int,
 			outVerts1[poly1Vert*3+1] = inVerts[inVertB*3+1] + (inVerts[inVertA*3+1]-inVerts[inVertB*3+1])*s
 			outVerts1[poly1Vert*3+2] = inVerts[inVertB*3+2] + (inVerts[inVertA*3+2]-inVerts[inVertB*3+2])*s
 
-			copy(rcGetVert(outVerts2, poly2Vert), rcGetVert(outVerts1, poly1Vert))
+			copy(common.GetVert3(outVerts2, poly2Vert), common.GetVert3(outVerts1, poly1Vert))
 			poly1Vert++
 			poly2Vert++
 
@@ -256,16 +256,16 @@ func dividePoly(inVerts []float64, inVertsCount int,
 			// since these were already added above
 			if inVertAxisDelta[inVertA] > 0 {
 
-				copy(rcGetVert(outVerts1, poly1Vert), rcGetVert(inVerts, inVertA))
+				copy(common.GetVert3(outVerts1, poly1Vert), common.GetVert3(inVerts, inVertA))
 				poly1Vert++
 			} else if inVertAxisDelta[inVertA] < 0 {
-				copy(rcGetVert(outVerts1, poly2Vert), rcGetVert(inVerts, inVertA))
+				copy(common.GetVert3(outVerts1, poly2Vert), common.GetVert3(inVerts, inVertA))
 				poly2Vert++
 			}
 		} else {
 			// add the inVertA point to the right polygon. Addition is done even for points on the dividing line
 			if inVertAxisDelta[inVertA] >= 0 {
-				copy(rcGetVert(outVerts1, poly1Vert), rcGetVert(inVerts, inVertA))
+				copy(common.GetVert3(outVerts1, poly1Vert), common.GetVert3(inVerts, inVertA))
 				poly1Vert++
 				if inVertAxisDelta[inVertA] != 0 {
 					inVertB = inVertA
@@ -274,7 +274,7 @@ func dividePoly(inVerts []float64, inVertsCount int,
 				}
 			}
 
-			copy(rcGetVert(outVerts2, poly2Vert), rcGetVert(inVerts, inVertA))
+			copy(common.GetVert3(outVerts2, poly2Vert), common.GetVert3(inVerts, inVertA))
 			poly2Vert++
 		}
 		inVertB = inVertA
@@ -296,16 +296,16 @@ func dividePoly(inVerts []float64, inVertsCount int,
 // / @param[in]	areaID				The new span's area type ID
 // / @param[in]	flagMergeThreshold	How close two spans maximum extents need to be to merge area type IDs
 func addSpan(heightfield *RcHeightfield,
-	x, z int,
-	min, max, areaID int, flagMergeThreshold int) bool {
+	x, z int32,
+	min, max uint16, areaID uint8, flagMergeThreshold int32) bool {
 	// Create the new span.
 	newSpan := allocSpan(heightfield)
 	if newSpan == nil {
 		return false
 	}
-	newSpan.Smin = min
-	newSpan.Smax = max
-	newSpan.Area = areaID
+	newSpan.Smin = uint32(min)
+	newSpan.Smax = uint32(max)
+	newSpan.Area = uint32(areaID)
 	newSpan.Next = nil
 
 	columnIndex := x + z*heightfield.Width
@@ -333,7 +333,7 @@ func addSpan(heightfield *RcHeightfield,
 			}
 
 			// Merge flags.
-			if common.Abs(newSpan.Smax-currentSpan.Smax) <= flagMergeThreshold {
+			if common.Abs(float64(newSpan.Smax-currentSpan.Smax)) <= float64(flagMergeThreshold) {
 				// Higher area ID numbers indicate higher resolution priority.
 				newSpan.Area = common.Max(newSpan.Area, currentSpan.Area)
 			}
@@ -415,7 +415,7 @@ func allocSpan(heightfield *RcHeightfield) *RcSpan {
 }
 
 func rcAddSpan(heightfield *RcHeightfield,
-	x, z int, spanMin int, spanMax, areaID, flagMergeThreshold int) bool {
+	x, z int32, spanMin, spanMax uint16, areaID uint8, flagMergeThreshold int32) bool {
 
 	if !addSpan(heightfield, x, z, spanMin, spanMax, areaID, flagMergeThreshold) {
 		return false
@@ -425,8 +425,8 @@ func rcAddSpan(heightfield *RcHeightfield,
 }
 
 func rcRasterizeTriangle(
-	v0, v1, v2 []float64,
-	areaID int, heightfield *RcHeightfield, flagMergeThreshold int) bool {
+	v0, v1, v2 []float32,
+	areaID uint8, heightfield *RcHeightfield, flagMergeThreshold int32) bool {
 
 	// Rasterize the single triangle.
 	inverseCellSize := 1.0 / heightfield.Cs

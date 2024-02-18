@@ -42,7 +42,17 @@ func NewContext(c *config.Config) *Context {
 
 func (s *Context) AppendShow(sample string, shows ...fyne.CanvasObject) {
 	s.ShowChanges[sample] = append(s.ShowChanges[sample], shows...)
-	s.Shows = append(s.Shows, shows...)
+	var newShows []fyne.CanvasObject
+	for _, v := range shows {
+		for _, v1 := range s.Shows {
+			if v == v1 {
+				continue
+			} else {
+				newShows = append(newShows, v)
+			}
+		}
+	}
+	s.Shows = append(s.Shows, newShows...)
 }
 func (s *Context) AppendAfterInit(ss ...func()) {
 	s.afterInit = append(s.afterInit, ss...)

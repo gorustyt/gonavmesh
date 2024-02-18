@@ -9,6 +9,7 @@ import (
 	"github.com/gorustyt/fyne/v2/widget"
 	"log"
 	"net/url"
+	"path/filepath"
 )
 
 func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
@@ -24,7 +25,17 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 			}
 			ctx.Config().PropsConfig.OnLoadClick()
 		}, w)
-		fd.SetFilter(storage.NewExtensionFileFilter([]string{".txt"}))
+		fd.SetFilter(storage.NewExtensionFileFilter([]string{".obj"}))
+		p, err := filepath.Abs("./demo/objs/Meshes")
+		if err != nil {
+			panic(err)
+		}
+		testData := storage.NewFileURI(p)
+		dir, err := storage.ListerForURI(testData)
+		if err != nil {
+			panic(err)
+		}
+		fd.SetLocation(dir)
 		fd.Show()
 	})
 	saveItem := fyne.NewMenuItem("Save", func() {
@@ -40,7 +51,8 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 
 			ctx.Config().PropsConfig.OnSaveClick()
 		}, w)
-		fd.SetFilter(storage.NewExtensionFileFilter([]string{".txt"}))
+		fd.SetFilter(storage.NewExtensionFileFilter([]string{".obj"}))
+		fd.SetFileName("xx.obj")
 		fd.Show()
 	})
 	label := widget.NewLabel("setting theme")

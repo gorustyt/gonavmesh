@@ -31,9 +31,9 @@ func TestSqr(t *testing.T) {
 }
 
 func TestVcross(t *testing.T) {
-	v1 := []float64{3, -3, 1}
-	v2 := []float64{4, 9, 2}
-	result := make([]float64, 3)
+	v1 := []float32{3, -3, 1}
+	v2 := []float32{4, 9, 2}
+	result := make([]float32, 3)
 	rcVcross(result, v1, v2)
 	if result[0] != -15 {
 		t.Errorf("Computes cross product")
@@ -44,8 +44,8 @@ func TestVcross(t *testing.T) {
 	if result[2] != 39 {
 		t.Errorf("Computes cross product")
 	}
-	result = make([]float64, 3)
-	v1 = []float64{3, -3, 1}
+	result = make([]float32, 3)
+	v1 = []float32{3, -3, 1}
 	rcVcross(result, v1, v1)
 	if result[0] != 0 {
 		t.Errorf("Cross product with itself is zero")
@@ -59,30 +59,30 @@ func TestVcross(t *testing.T) {
 }
 
 func TestVdot(t *testing.T) {
-	v1 := []float64{1, 0, 0}
+	v1 := []float32{1, 0, 0}
 	result := rcVdot(v1, v1)
 	if result != 1 {
 		t.Errorf("Dot normalized vector with itself")
 	}
 
-	v1 = []float64{1, 2, 3}
-	v2 := []float64{0, 0, 0}
+	v1 = []float32{1, 2, 3}
+	v2 := []float32{0, 0, 0}
 	result = rcVdot(v1, v2)
 	if result != 0 {
 		t.Errorf("Dot zero vector with anything is zero")
 	}
 }
 func TestVdist(t *testing.T) {
-	v1 := []float64{3, 1, 3}
-	v2 := []float64{1, 3, 1}
+	v1 := []float32{3, 1, 3}
+	v2 := []float32{1, 3, 1}
 	result := rcVdist(v1, v2)
 	value, _ := strconv.ParseFloat(fmt.Sprintf("%.4f", result), 64)
 	if value != 3.4641 {
 		t.Errorf("distance between two vectors")
 	}
 
-	v1 = []float64{3, 1, 3}
-	v2 = []float64{0, 0, 0}
+	v1 = []float32{3, 1, 3}
+	v2 = []float32{0, 0, 0}
 	result = rcVdist(v1, v2)
 	magnitude := rcSqrt(rcSqr(v1[0]) + rcSqr(v1[1]) + rcSqr(v1[2]))
 	if result != magnitude {
@@ -90,15 +90,15 @@ func TestVdist(t *testing.T) {
 	}
 }
 func TestVdistSqr(t *testing.T) {
-	v1 := []float64{3, 1, 3}
-	v2 := []float64{1, 3, 1}
+	v1 := []float32{3, 1, 3}
+	v2 := []float32{1, 3, 1}
 	result := rcVdistSqr(v1, v2)
 	if result != 12 {
 		t.Errorf("squared distance between two vectors")
 	}
 
-	v1 = []float64{3, 1, 3}
-	v2 = []float64{0, 0, 0}
+	v1 = []float32{3, 1, 3}
+	v2 = []float32{0, 0, 0}
 	result = rcVdistSqr(v1, v2)
 	magnitude := rcSqr(v1[0]) + rcSqr(v1[1]) + rcSqr(v1[2])
 	if result != magnitude {
@@ -108,7 +108,7 @@ func TestVdistSqr(t *testing.T) {
 }
 
 func TestVnormalize(t *testing.T) {
-	v := []float64{3, 3, 3}
+	v := []float32{3, 3, 3}
 	rcVnormalize(v)
 	if v[0] != rcSqrt(1.0/3.0) {
 		t.Errorf("normalizing reduces magnitude to 1")
@@ -126,9 +126,9 @@ func TestVnormalize(t *testing.T) {
 }
 
 func TestCalcBounds(t *testing.T) {
-	verts := []float64{1, 2, 3}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	verts := []float32{1, 2, 3}
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 1, bmin, bmax)
 
 	if bmin[0] != verts[0] {
@@ -151,10 +151,10 @@ func TestCalcBounds(t *testing.T) {
 		t.Errorf("bounds of one vector")
 	}
 
-	verts = []float64{1, 2, 3,
+	verts = []float32{1, 2, 3,
 		0, 2, 5}
-	bmin = make([]float64, 3)
-	bmax = make([]float64, 3)
+	bmin = make([]float32, 3)
+	bmax = make([]float32, 3)
 	rcCalcBounds(verts, 2, bmin, bmax)
 
 	if bmin[0] != 0 {
@@ -178,10 +178,10 @@ func TestCalcBounds(t *testing.T) {
 	}
 }
 func TestCalcGridSize(t *testing.T) {
-	verts := []float64{1, 2, 3,
+	verts := []float32{1, 2, 3,
 		0, 2, 6}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 2, bmin, bmax)
 	cellSize := 1.5
 
@@ -199,10 +199,10 @@ func TestCalcGridSize(t *testing.T) {
 }
 
 func TestCreateHeightfield(t *testing.T) {
-	verts := []float64{1, 2, 3,
+	verts := []float32{1, 2, 3,
 		0, 2, 6}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 2, bmin, bmax)
 	cellSize := 1.5
 	cellHeight := 2.0
@@ -240,13 +240,13 @@ func TestMarkWalkableTriangles(t *testing.T) {
 	nt := 1
 	nv := 3
 	var (
-		verts          []float64
+		verts          []float32
 		walkable_tri   []int
 		unwalkable_tri []int
 		areas          []int
 	)
 	reset := func() {
-		verts = []float64{
+		verts = []float32{
 			0, 0, 0,
 			1, 0, 0,
 			0, 0, -1,
@@ -284,13 +284,13 @@ func TestClearUnwalkableTriangles(t *testing.T) {
 	nt := 1
 	nv := 3
 	var (
-		verts          []float64
+		verts          []float32
 		walkable_tri   []int
 		unwalkable_tri []int
 		areas          []int
 	)
 	reset := func() {
-		verts = []float64{
+		verts = []float32{
 			0, 0, 0,
 			1, 0, 0,
 			0, 0, -1,
@@ -319,11 +319,11 @@ func TestClearUnwalkableTriangles(t *testing.T) {
 
 func TestAddSpan(t *testing.T) {
 	var (
-		verts        []float64
-		bmin         []float64
-		bmax         []float64
-		cellSize     float64
-		cellHeight   float64
+		verts        []float32
+		bmin         []float32
+		bmax         []float32
+		cellSize     float32
+		cellHeight   float32
 		width        int
 		height       int
 		hf           RcHeightfield
@@ -335,12 +335,12 @@ func TestAddSpan(t *testing.T) {
 		flagMergeThr int
 	)
 	reset := func() {
-		verts = []float64{
+		verts = []float32{
 			1, 2, 3,
 			0, 2, 6,
 		}
-		bmin = make([]float64, 3)
-		bmax = make([]float64, 3)
+		bmin = make([]float32, 3)
+		bmax = make([]float32, 3)
 		rcCalcBounds(verts, 2, bmin, bmax)
 
 		cellSize = 1.5
@@ -478,13 +478,13 @@ func TestAddSpan(t *testing.T) {
 	}
 }
 func TestRasterizeTriangle(t *testing.T) {
-	verts := []float64{
+	verts := []float32{
 		0, 0, 0,
 		1, 0, 0,
 		0, 0, -1,
 	}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 3, bmin, bmax)
 
 	cellSize := .5
@@ -532,8 +532,8 @@ func TestRasterizeTriangle1(t *testing.T) {
 	cellHeight := 1.0
 	width := 10
 	height := 10
-	bmin := []float64{0, 0, 0}
-	bmax := []float64{10, 10, 10}
+	bmin := []float32{0, 0, 0}
+	bmax := []float32{10, 10, 10}
 	var heightfield RcHeightfield
 	assertTrue(t, rcCreateHeightfield(&heightfield, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangle overlapping bb but non-overlapping triangle")
 
@@ -541,7 +541,7 @@ func TestRasterizeTriangle1(t *testing.T) {
 	area := 42
 	flagMergeThr := 1
 	verts :=
-		[]float64{
+		[]float32{
 			-10.0, 5.5, -10.0,
 			-10.0, 5.5, 3,
 			3.0, 5.5, -10.0,
@@ -559,7 +559,7 @@ func TestRasterizeTriangle1(t *testing.T) {
 
 func TestRasterizeTriangle2(t *testing.T) {
 
-	verts := []float64{
+	verts := []float32{
 		5, 0, 0.005,
 		5, 0, -0.005,
 		-5, 0, 0.005,
@@ -568,8 +568,8 @@ func TestRasterizeTriangle2(t *testing.T) {
 		5, 0, -0.005,
 		-5, 0, -0.005,
 	}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 3, bmin, bmax)
 
 	cellSize := 1.0
@@ -587,7 +587,7 @@ func TestRasterizeTriangle2(t *testing.T) {
 	flagMergeThr := 1
 	assertTrue(t, rcRasterizeTriangles1(verts, areas, 2, &solid, flagMergeThr), "Skinny triangle along x axis")
 
-	verts = []float64{
+	verts = []float32{
 		0.005, 0, 5,
 		-0.005, 0, 5,
 		0.005, 0, -5,
@@ -596,8 +596,8 @@ func TestRasterizeTriangle2(t *testing.T) {
 		-0.005, 0, 5,
 		-0.005, 0, -5,
 	}
-	bmin = make([]float64, 3)
-	bmax = make([]float64, 3)
+	bmin = make([]float32, 3)
+	bmax = make([]float32, 3)
 	rcCalcBounds(verts, 3, bmin, bmax)
 
 	cellSize = 1.0
@@ -619,7 +619,7 @@ func TestRasterizeTriangle2(t *testing.T) {
 
 func TestRasterizeTriangles1(t *testing.T) {
 
-	verts := []float64{
+	verts := []float32{
 		0, 0, 0,
 		1, 0, 0,
 		0, 0, -1,
@@ -633,8 +633,8 @@ func TestRasterizeTriangles1(t *testing.T) {
 		1,
 		2,
 	}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 4, bmin, bmax)
 
 	cellSize := .5
@@ -693,7 +693,7 @@ func TestRasterizeTriangles1(t *testing.T) {
 
 func TestRasterizeTriangles2(t *testing.T) {
 
-	verts := []float64{
+	verts := []float32{
 		0, 0, 0,
 		1, 0, 0,
 		0, 0, -1,
@@ -703,8 +703,8 @@ func TestRasterizeTriangles2(t *testing.T) {
 		1,
 		2,
 	}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 4, bmin, bmax)
 
 	cellSize := .5
@@ -767,7 +767,7 @@ func TestRasterizeTriangles2(t *testing.T) {
 }
 func TestRasterizeTriangles3(t *testing.T) {
 
-	verts := []float64{
+	verts := []float32{
 		0, 0, 0,
 		1, 0, 0,
 		0, 0, -1,
@@ -777,8 +777,8 @@ func TestRasterizeTriangles3(t *testing.T) {
 		1,
 		2,
 	}
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	rcCalcBounds(verts, 4, bmin, bmax)
 
 	cellSize := .5
@@ -793,7 +793,7 @@ func TestRasterizeTriangles3(t *testing.T) {
 	assertTrue(t, rcCreateHeightfield(&solid, width, height, bmin, bmax, cellSize, cellHeight), "rcRasterizeTriangles")
 
 	flagMergeThr := 1
-	vertsList := []float64{
+	vertsList := []float32{
 		0, 0, 0,
 		1, 0, 0,
 		0, 0, -1,

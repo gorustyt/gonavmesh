@@ -1,7 +1,8 @@
-package recast
+package detour_crowd
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
+	"github.com/gorustyt/gonavmesh/detour"
 	"math"
 	"reflect"
 )
@@ -36,7 +37,7 @@ const DT_CROWD_MAX_QUERY_FILTER_TYPE = 16
 // / @see DtCrowdAgent::neis, DtCrowd
 type DtCrowdNeighbour struct {
 	Idx  int     ///< The index of the neighbor in the crowd.
-	Dist float64 ///< The distance between the current agent and the neighbor.
+	Dist float32 ///< The distance between the current agent and the neighbor.
 }
 
 /// The type of navigation mesh polygon the agent is currently traversing.
@@ -51,18 +52,18 @@ const (
 // / Configuration parameters for a crowd agent.
 // / @ingroup crowd
 type DtCrowdAgentParams struct {
-	Radius          float64 ///< Agent radius. [Limit: >= 0]
-	Height          float64 ///< Agent height. [Limit: > 0]
-	MaxAcceleration float64 ///< Maximum allowed acceleration. [Limit: >= 0]
-	MaxSpeed        float64 ///< Maximum allowed speed. [Limit: >= 0]
+	Radius          float32 ///< Agent radius. [Limit: >= 0]
+	Height          float32 ///< Agent height. [Limit: > 0]
+	MaxAcceleration float32 ///< Maximum allowed acceleration. [Limit: >= 0]
+	MaxSpeed        float32 ///< Maximum allowed speed. [Limit: >= 0]
 
 	/// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
-	CollisionQueryRange float64
+	CollisionQueryRange float32
 
-	PathOptimizationRange float64 ///< The path visibility optimization range. [Limit: > 0]
+	PathOptimizationRange float32 ///< The path visibility optimization range. [Limit: > 0]
 
 	/// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
-	SeparationWeight float64
+	SeparationWeight float32
 
 	/// Flags that impact steering behavior. (See: #UpdateFlags)
 	UpdateFlags int
@@ -95,7 +96,7 @@ type DtCrowdAgent struct {
 	Active bool
 
 	/// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
-	State int
+	State uint8
 
 	/// True if the agent has valid path (targetState == DT_CROWDAGENT_TARGET_VALID) and the path does not lead to the requested position, else false.
 	Partial bool
@@ -107,51 +108,51 @@ type DtCrowdAgent struct {
 	Boundary *dtLocalBoundary
 
 	/// Time since the agent's path corridor was optimized.
-	TopologyOptTime float64
+	TopologyOptTime float32
 
 	/// The known neighbors of the agent.
 	Neis [DT_CROWDAGENT_MAX_NEIGHBOURS]*DtCrowdNeighbour
 
 	/// The number of neighbors.
-	Nneis int
+	Nneis int32
 
 	/// The desired speed.
-	desiredSpeed float64
+	desiredSpeed float32
 
-	Npos [3]float64 ///< The current agent position. [(x, y, z)]
-	Disp [3]float64 ///< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
-	Dvel [3]float64 ///< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
-	Nvel [3]float64 ///< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
-	Vel  [3]float64 ///< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
+	Npos [3]float32 ///< The current agent position. [(x, y, z)]
+	Disp [3]float32 ///< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
+	Dvel [3]float32 ///< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
+	Nvel [3]float32 ///< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
+	Vel  [3]float32 ///< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
 
 	/// The agent's configuration parameters.
 	Params *DtCrowdAgentParams
 
 	/// The local path corridor corners for the agent. (Staight path.) [(x, y, z) * #ncorners]
-	CornerVerts [DT_CROWDAGENT_MAX_CORNERS * 3]float64
+	CornerVerts [DT_CROWDAGENT_MAX_CORNERS * 3]float32
 
 	/// The local path corridor corner flags. (See: #dtStraightPathFlags) [(flags) * #ncorners]
-	CornerFlags [DT_CROWDAGENT_MAX_CORNERS]int
+	CornerFlags [DT_CROWDAGENT_MAX_CORNERS]int32
 
 	/// The reference id of the polygon being entered at the corner. [(polyRef) * #ncorners]
-	CornerPolys [DT_CROWDAGENT_MAX_CORNERS]DtPolyRef
+	CornerPolys [DT_CROWDAGENT_MAX_CORNERS]detour.DtPolyRef
 
 	/// The number of corners.
-	Ncorners int
+	Ncorners int32
 
-	TargetState      int            ///< State of the movement request.
-	TargetRef        DtPolyRef      ///< Target polyref of the movement request.
-	TargetPos        [3]float64     ///< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
-	TargetPathqRef   DtPathQueueRef ///< Path finder ref.
-	TargetReplan     bool           ///< Flag indicating that the current path is being replanned.
-	TargetReplanTime float64        /// <Time since the agent's target was replanned.
+	TargetState      uint8            ///< State of the movement request.
+	TargetRef        detour.DtPolyRef ///< Target polyref of the movement request.
+	TargetPos        [3]float32       ///< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
+	TargetPathqRef   DtPathQueueRef   ///< Path finder ref.
+	TargetReplan     bool             ///< Flag indicating that the current path is being replanned.
+	TargetReplanTime float32          /// <Time since the agent's target was replanned.
 }
 
 type DtCrowdAgentAnimation struct {
 	Active                    bool
-	InitPos, StartPos, EndPos [3]float64
-	PolyRef                   DtPolyRef
-	T, Tmax                   float64
+	InitPos, StartPos, EndPos [3]float32
+	PolyRef                   detour.DtPolyRef
+	T, Tmax                   float32
 }
 
 const (
@@ -163,15 +164,15 @@ const (
 )
 
 type DtCrowdAgentDebugInfo struct {
-	Idx              int
-	OptStart, OptEnd [3]float64
+	Idx              int32
+	OptStart, OptEnd [3]float32
 	Vod              *DtObstacleAvoidanceDebugData
 }
 
 // / Provides local steering behaviors for a group of agents.
 // / @ingroup crowd
 type DtCrowd struct {
-	m_maxAgents    int
+	m_maxAgents    int32
 	m_agents       []*DtCrowdAgent
 	m_activeAgents []*DtCrowdAgent
 	m_agentAnims   []*DtCrowdAgentAnimation
@@ -183,27 +184,27 @@ type DtCrowd struct {
 
 	m_grid *DtProximityGrid
 
-	m_pathResult    []DtPolyRef
-	m_maxPathResult int
+	m_pathResult    []detour.DtPolyRef
+	m_maxPathResult int32
 
-	m_agentPlacementHalfExtents []float64
+	m_agentPlacementHalfExtents []float32
 
-	m_filters []*DtQueryFilter
+	m_filters []*detour.DtQueryFilter
 
-	m_maxAgentRadius float64
+	m_maxAgentRadius float32
 
-	m_velocitySampleCount int
+	m_velocitySampleCount int32
 
-	m_navquery NavMeshQuery
+	m_navquery detour.NavMeshQuery
 }
 
 // / @par
 // /
 // / May be called more than once to purge and re-initialize the crowd.
-func NewDtCrowd(maxAgents int, maxAgentRadius float64, nav IDtNavMesh) *DtCrowd {
+func NewDtCrowd(maxAgents int32, maxAgentRadius float32, nav detour.IDtNavMesh) *DtCrowd {
 	d := &DtCrowd{
-		m_filters:                   make([]*DtQueryFilter, DT_CROWD_MAX_QUERY_FILTER_TYPE),
-		m_agentPlacementHalfExtents: make([]float64, 3),
+		m_filters:                   make([]*detour.DtQueryFilter, DT_CROWD_MAX_QUERY_FILTER_TYPE),
+		m_agentPlacementHalfExtents: make([]float32, 3),
 		m_obstacleQueryParams:       make([]*DtObstacleAvoidanceParams, DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS),
 	}
 	d.purge()
@@ -214,7 +215,7 @@ func NewDtCrowd(maxAgents int, maxAgentRadius float64, nav IDtNavMesh) *DtCrowd 
 	// Larger than agent radius because it is also used for agent recovery.
 	common.Vset(d.m_agentPlacementHalfExtents[:], d.m_maxAgentRadius*2.0, d.m_maxAgentRadius*1.5, d.m_maxAgentRadius*2.0)
 
-	d.m_grid = newDtProximityGrid(d.m_maxAgents*4, maxAgentRadius*3)
+	d.m_grid = newDtProximityGrid(int32(d.m_maxAgents)*4, maxAgentRadius*3)
 	d.m_obstacleQuery = &dtObstacleAvoidanceQuery{}
 	if !d.m_obstacleQuery.init(6, 8) {
 		return nil
@@ -237,9 +238,9 @@ func NewDtCrowd(maxAgents int, maxAgentRadius float64, nav IDtNavMesh) *DtCrowd 
 
 	// Allocate temp buffer for merging paths.
 	d.m_maxPathResult = 256
-	d.m_pathResult = make([]DtPolyRef, d.m_maxPathResult)
+	d.m_pathResult = make([]detour.DtPolyRef, d.m_maxPathResult)
 
-	if !d.m_pathq.init(d.m_maxPathResult, MAX_PATHQUEUE_NODES, nav) {
+	if !d.m_pathq.init(int(d.m_maxPathResult), MAX_PATHQUEUE_NODES, nav) {
 		return nil
 	}
 
@@ -249,25 +250,25 @@ func NewDtCrowd(maxAgents int, maxAgentRadius float64, nav IDtNavMesh) *DtCrowd 
 
 	d.m_agentAnims = make([]*DtCrowdAgentAnimation, d.m_maxAgents)
 
-	for i := 0; i < d.m_maxAgents; i++ {
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		d.m_agents[i] = &DtCrowdAgent{}
 		d.m_agents[i].Active = false
 		d.m_agents[i].Corridor = newDtPathCorridor(d.m_maxPathResult)
 
 	}
 
-	for i := 0; i < d.m_maxAgents; i++ {
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		d.m_agentAnims[i].Active = false
 	}
 
 	// The navquery is mostly used for local searches, no need for large node pool.
-	d.m_navquery = NewDtNavMeshQuery(nav, MAX_COMMON_NODES)
+	d.m_navquery = detour.NewDtNavMeshQuery(nav, MAX_COMMON_NODES)
 	return d
 }
 
 // / Gets the filter used by the crowd.
 // / @return The filter used by the crowd.
-func (d *DtCrowd) GetFilter(i int) *DtQueryFilter {
+func (d *DtCrowd) GetFilter(i int) *detour.DtQueryFilter {
 	if i >= 0 && i < DT_CROWD_MAX_QUERY_FILTER_TYPE {
 		return d.m_filters[i]
 	}
@@ -276,7 +277,7 @@ func (d *DtCrowd) GetFilter(i int) *DtQueryFilter {
 
 // / Gets the filter used by the crowd.
 // / @return The filter used by the crowd.
-func (d *DtCrowd) GetEditableFilter(i int) *DtQueryFilter {
+func (d *DtCrowd) GetEditableFilter(i int) *detour.DtQueryFilter {
 	if i >= 0 && i < DT_CROWD_MAX_QUERY_FILTER_TYPE {
 		return d.m_filters[i]
 	}
@@ -285,15 +286,15 @@ func (d *DtCrowd) GetEditableFilter(i int) *DtQueryFilter {
 
 // / Gets the search halfExtents [(x, y, z)] used by the crowd for query operations.
 // / @return The search halfExtents used by the crowd. [(x, y, z)]
-func (d *DtCrowd) GetQueryHalfExtents() []float64 { return d.m_agentPlacementHalfExtents }
+func (d *DtCrowd) GetQueryHalfExtents() []float32 { return d.m_agentPlacementHalfExtents }
 
 // / Same as getQueryHalfExtents. Left to maintain backwards compatibility.
 // / @return The search halfExtents used by the crowd. [(x, y, z)]
-func (d *DtCrowd) GetQueryExtents() []float64 { return d.m_agentPlacementHalfExtents }
+func (d *DtCrowd) GetQueryExtents() []float32 { return d.m_agentPlacementHalfExtents }
 
 // / Gets the velocity sample count.
 // / @return The velocity sample count.
-func (d *DtCrowd) GetVelocitySampleCount() int { return d.m_velocitySampleCount }
+func (d *DtCrowd) GetVelocitySampleCount() int { return int(d.m_velocitySampleCount) }
 
 // / Gets the crowd's proximity grid.
 // / @return The crowd's proximity grid.
@@ -304,7 +305,7 @@ func (d *DtCrowd) GetGrid() *DtProximityGrid { return d.m_grid }
 func (d *DtCrowd) GetPathQueue() *DtPathQueue { return d.m_pathq }
 
 // / Gets the query object used by the crowd.
-func (d *DtCrowd) GetNavMeshQuery() NavMeshQuery { return d.m_navquery }
+func (d *DtCrowd) GetNavMeshQuery() detour.NavMeshQuery { return d.m_navquery }
 func (d *DtCrowd) GetAgentIndex(agent *DtCrowdAgent) int {
 	for i, v := range d.m_agents {
 		if reflect.DeepEqual(v, agent) {
@@ -320,14 +321,14 @@ const MAX_PATHQUEUE_NODES = 4096
 
 const MAX_COMMON_NODES = 512
 
-func tween(t, t0, t1 float64) float64 {
+func tween(t, t0, t1 float32) float32 {
 	return common.Clamp((t-t0)/(t1-t0), 0.0, 1.0)
 }
 
-func integrate(ag *DtCrowdAgent, dt float64) {
+func integrate(ag *DtCrowdAgent, dt float32) {
 	// Fake dynamic constraint.
 	maxDelta := ag.Params.MaxAcceleration * dt
-	dv := make([]float64, 3)
+	dv := make([]float32, 3)
 	common.Vsub(dv, ag.Nvel[:], ag.Vel[:])
 	ds := common.Vlen(dv)
 	if ds > maxDelta {
@@ -344,17 +345,17 @@ func integrate(ag *DtCrowdAgent, dt float64) {
 
 }
 
-func overOffmeshConnection(ag *DtCrowdAgent, radius float64) bool {
+func overOffmeshConnection(ag *DtCrowdAgent, radius float32) bool {
 	if ag.Ncorners == 0 {
 		return false
 	}
 
 	offMeshConnection := false
-	if ag.CornerFlags[ag.Ncorners-1]&DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0 {
+	if ag.CornerFlags[ag.Ncorners-1]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0 {
 		offMeshConnection = true
 	}
 	if offMeshConnection {
-		distSq := common.Vdist2DSqr(ag.Npos[:], rcGetVert(ag.CornerVerts[:], ag.Ncorners-1))
+		distSq := common.Vdist2DSqr(ag.Npos[:], common.GetVert3(ag.CornerVerts[:], ag.Ncorners-1))
 		if distSq < radius*radius {
 			return true
 		}
@@ -364,23 +365,23 @@ func overOffmeshConnection(ag *DtCrowdAgent, radius float64) bool {
 	return false
 }
 
-func getDistanceToGoal(ag *DtCrowdAgent, rangef float64) float64 {
+func getDistanceToGoal(ag *DtCrowdAgent, rangef float32) float32 {
 	if ag.Ncorners == 0 {
 		return rangef
 	}
 
 	endOfPath := false
-	if ag.CornerFlags[ag.Ncorners-1]&DT_STRAIGHTPATH_END > 0 {
+	if ag.CornerFlags[ag.Ncorners-1]&detour.DT_STRAIGHTPATH_END > 0 {
 		endOfPath = true
 	}
 	if endOfPath {
-		return common.Min(common.Vdist2D(ag.Npos[:], rcGetVert(ag.CornerVerts[:], ag.Ncorners-1)), rangef)
+		return common.Min(common.Vdist2D(ag.Npos[:], common.GetVert3(ag.CornerVerts[:], ag.Ncorners-1)), rangef)
 	}
 
 	return rangef
 }
 
-func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float64) {
+func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float32) {
 	if ag.Ncorners == 0 {
 		common.Vset(dir, 0, 0, 0)
 		return
@@ -388,10 +389,10 @@ func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float64) {
 
 	ip0 := 0
 	ip1 := common.Min(1, ag.Ncorners-1)
-	p0 := rcGetVert(ag.CornerVerts[:], ip0)
-	p1 := rcGetVert(ag.CornerVerts[:], ip1)
-	dir0 := make([]float64, 3)
-	dir1 := make([]float64, 3)
+	p0 := common.GetVert3(ag.CornerVerts[:], ip0)
+	p1 := common.GetVert3(ag.CornerVerts[:], ip1)
+	dir0 := make([]float32, 3)
+	dir1 := make([]float32, 3)
 	common.Vsub(dir0, p0, ag.Npos[:])
 	common.Vsub(dir1, p1, ag.Npos[:])
 	dir0[1] = 0
@@ -410,7 +411,7 @@ func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float64) {
 	common.Vnormalize(dir)
 }
 
-func calcStraightSteerDirection(ag *DtCrowdAgent, dir []float64) {
+func calcStraightSteerDirection(ag *DtCrowdAgent, dir []float32) {
 	if ag.Ncorners == 0 {
 		common.Vset(dir, 0, 0, 0)
 		return
@@ -420,7 +421,7 @@ func calcStraightSteerDirection(ag *DtCrowdAgent, dir []float64) {
 	common.Vnormalize(dir)
 }
 
-func addNeighbour(idx int, dist float64,
+func addNeighbour(idx int, dist float32,
 	neis []*DtCrowdNeighbour, nneis int, maxNeis int) int {
 	// Insert neighbour based on the distance.
 	var nei *DtCrowdNeighbour
@@ -457,7 +458,7 @@ func addNeighbour(idx int, dist float64,
 	return common.Min(nneis+1, maxNeis)
 }
 
-func getNeighbours(pos []float64, height float64, rangef float64,
+func getNeighbours(pos []float32, height float32, rangef float32,
 	skip *DtCrowdAgent, result []*DtCrowdNeighbour, maxResult int,
 	agents []*DtCrowdAgent, nagents int, grid *DtProximityGrid) int {
 	n := 0
@@ -476,9 +477,9 @@ func getNeighbours(pos []float64, height float64, rangef float64,
 		}
 
 		// Check for overlap.
-		diff := make([]float64, 3)
+		diff := make([]float32, 3)
 		common.Vsub(diff, pos, ag.Npos[:])
-		if math.Abs(diff[1]) >= (height+ag.Params.Height)/2.0 {
+		if math.Abs(float64(diff[1])) >= float64(height+ag.Params.Height)/2.0 {
 			continue
 		}
 
@@ -602,14 +603,14 @@ func (d *DtCrowd) GetObstacleAvoidanceParams(idx int) *DtObstacleAvoidanceParams
 }
 
 func (d *DtCrowd) GetAgentCount() int {
-	return d.m_maxAgents
+	return int(d.m_maxAgents)
 }
 
 // / @par
 // /
 // / Agents in the pool may not be in use.  Check #DtCrowdAgent.active before using the returned object.
 func (d *DtCrowd) GetAgent(idx int) *DtCrowdAgent {
-	if idx < 0 || idx >= d.m_maxAgents {
+	if idx < 0 || idx >= int(d.m_maxAgents) {
 		return nil
 	}
 
@@ -619,7 +620,7 @@ func (d *DtCrowd) GetAgent(idx int) *DtCrowdAgent {
 // /
 // / Agents in the pool may not be in use.  Check #DtCrowdAgent.active before using the returned object.
 func (d *DtCrowd) getEditableAgent(idx int) *DtCrowdAgent {
-	if idx < 0 || idx >= d.m_maxAgents {
+	if idx < 0 || idx >= int(d.m_maxAgents) {
 		return nil
 	}
 
@@ -627,7 +628,7 @@ func (d *DtCrowd) getEditableAgent(idx int) *DtCrowdAgent {
 }
 
 func (d *DtCrowd) UpdateAgentParameters(idx int, params *DtCrowdAgentParams) {
-	if idx < 0 || idx >= d.m_maxAgents {
+	if idx < 0 || idx >= int(d.m_maxAgents) {
 		return
 	}
 	d.m_agents[idx].Params = params
@@ -637,10 +638,10 @@ func (d *DtCrowd) UpdateAgentParameters(idx int, params *DtCrowdAgentParams) {
 // / @par
 // /
 // / The agent's position will be constrained to the surface of the navigation mesh.
-func (d *DtCrowd) AddAgent(pos []float64, params *DtCrowdAgentParams) int {
+func (d *DtCrowd) AddAgent(pos []float32, params *DtCrowdAgentParams) int {
 	// Find empty slot.
-	idx := -1
-	for i := 0; i < d.m_maxAgents; i++ {
+	idx := int32(-1)
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		if !d.m_agents[i].Active {
 			idx = i
 			break
@@ -652,11 +653,11 @@ func (d *DtCrowd) AddAgent(pos []float64, params *DtCrowdAgentParams) int {
 
 	ag := d.m_agents[idx]
 
-	d.UpdateAgentParameters(idx, params)
+	d.UpdateAgentParameters(int(idx), params)
 
 	// Find nearest position on navmesh and place the agent there.
-	nearest := make([]float64, 3)
-	var ref DtPolyRef
+	nearest := make([]float32, 3)
+	var ref detour.DtPolyRef
 	copy(nearest, pos)
 	ref, status := d.m_navquery.FindNearestPoly(pos, d.m_agentPlacementHalfExtents[:], d.m_filters[ag.Params.QueryFilterType], nearest)
 	if status.DtStatusFailed() {
@@ -689,7 +690,7 @@ func (d *DtCrowd) AddAgent(pos []float64, params *DtCrowdAgentParams) int {
 
 	ag.Active = true
 
-	return idx
+	return int(idx)
 }
 
 // / @par
@@ -697,13 +698,13 @@ func (d *DtCrowd) AddAgent(pos []float64, params *DtCrowdAgentParams) int {
 // / The agent is deactivated and will no longer be processed.  Its #DtCrowdAgent object
 // / is not removed from the pool.  It is marked as inactive so that it is available for reuse.
 func (d *DtCrowd) RemoveAgent(idx int) {
-	if idx >= 0 && idx < d.m_maxAgents {
+	if idx >= 0 && idx < int(d.m_maxAgents) {
 		d.m_agents[idx].Active = false
 	}
 }
 
-func (d *DtCrowd) requestMoveTargetReplan(idx int, ref DtPolyRef, pos []float64) bool {
-	if idx < 0 || idx >= d.m_maxAgents {
+func (d *DtCrowd) requestMoveTargetReplan(idx int, ref detour.DtPolyRef, pos []float32) bool {
+	if idx < 0 || idx >= int(d.m_maxAgents) {
 		return false
 	}
 
@@ -730,8 +731,8 @@ func (d *DtCrowd) requestMoveTargetReplan(idx int, ref DtPolyRef, pos []float64)
 // / The position will be constrained to the surface of the navigation mesh.
 // /
 // / The request will be processed during the next #update().
-func (d *DtCrowd) RequestMoveTarget(idx int, ref DtPolyRef, pos []float64) bool {
-	if idx < 0 || idx >= d.m_maxAgents {
+func (d *DtCrowd) RequestMoveTarget(idx int, ref detour.DtPolyRef, pos []float32) bool {
+	if idx < 0 || int32(idx) >= d.m_maxAgents {
 		return false
 	}
 
@@ -755,8 +756,8 @@ func (d *DtCrowd) RequestMoveTarget(idx int, ref DtPolyRef, pos []float64) bool 
 	return true
 }
 
-func (d *DtCrowd) RequestMoveVelocity(idx int, vel []float64) bool {
-	if idx < 0 || idx >= d.m_maxAgents {
+func (d *DtCrowd) RequestMoveVelocity(idx int, vel []float32) bool {
+	if idx < 0 || int32(idx) >= d.m_maxAgents {
 		return false
 	}
 
@@ -773,7 +774,7 @@ func (d *DtCrowd) RequestMoveVelocity(idx int, vel []float64) bool {
 }
 
 func (d *DtCrowd) resetMoveTarget(idx int) bool {
-	if idx < 0 || idx >= d.m_maxAgents {
+	if idx < 0 || int32(idx) >= d.m_maxAgents {
 		return false
 	}
 
@@ -792,7 +793,7 @@ func (d *DtCrowd) resetMoveTarget(idx int) bool {
 
 func (d *DtCrowd) getActiveAgents(agents []*DtCrowdAgent, maxAgents int) int {
 	n := 0
-	for i := 0; i < d.m_maxAgents; i++ {
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		if !d.m_agents[i].Active {
 			continue
 		}
@@ -804,13 +805,13 @@ func (d *DtCrowd) getActiveAgents(agents []*DtCrowdAgent, maxAgents int) int {
 	return n
 }
 
-func (d *DtCrowd) updateMoveRequest(dt float64) {
+func (d *DtCrowd) updateMoveRequest(dt float32) {
 	PATH_MAX_AGENTS := 8
 	queue := make([]*DtCrowdAgent, PATH_MAX_AGENTS)
 	nqueue := 0
 
 	// Fire off new requests.
-	for i := 0; i < d.m_maxAgents; i++ {
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		ag := d.m_agents[i]
 		if !ag.Active {
 			continue
@@ -829,22 +830,22 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 			npath := ag.Corridor.GetPathCount()
 
 			MAX_RES := 32
-			reqPos := make([]float64, 3)
-			reqPath := make([]DtPolyRef, MAX_RES) // The path to the request location
-			reqPathCount := 0
+			reqPos := make([]float32, 3)
+			reqPath := make([]detour.DtPolyRef, MAX_RES) // The path to the request location
+			reqPathCount := int32(0)
 
 			// Quick search towards the goal.
 			MAX_ITER := 20
 			d.m_navquery.InitSlicedFindPath(path[0], ag.TargetRef, ag.Npos[:], ag.TargetPos[:], d.m_filters[ag.Params.QueryFilterType], 0)
-			var status DtStatus
-			d.m_navquery.UpdateSlicedFindPath(MAX_ITER)
+			var status detour.DtStatus
+			d.m_navquery.UpdateSlicedFindPath(int32(MAX_ITER))
 
 			if ag.TargetReplan { // && npath > 10)
 				// Try to use existing steady path during replan if possible.
-				reqPathCount, status = d.m_navquery.FinalizeSlicedFindPathPartial(path, npath, reqPath, MAX_RES)
+				reqPathCount, status = d.m_navquery.FinalizeSlicedFindPathPartial(path, int32(npath), reqPath, int32(MAX_RES))
 			} else {
 				// Try to move towards target when goal changes.
-				reqPathCount, status = d.m_navquery.FinalizeSlicedFindPath(reqPath, MAX_RES)
+				reqPathCount, status = d.m_navquery.FinalizeSlicedFindPath(reqPath, int32(MAX_RES))
 			}
 
 			if !status.DtStatusFailed() && reqPathCount > 0 {
@@ -871,7 +872,7 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 				reqPathCount = 1
 			}
 
-			ag.Corridor.setCorridor(reqPos, reqPath, reqPathCount)
+			ag.Corridor.setCorridor(reqPos, reqPath, int(reqPathCount))
 			ag.Boundary.reset()
 			ag.Partial = false
 
@@ -903,10 +904,10 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 	// Update requests.
 	d.m_pathq.update(MAX_ITERS_PER_UPDATE)
 
-	var status DtStatus
+	var status detour.DtStatus
 
 	// Process path results.
-	for i := 0; i < d.m_maxAgents; i++ {
+	for i := int32(0); i < d.m_maxAgents; i++ {
 		ag := d.m_agents[i]
 		if !ag.Active {
 			continue
@@ -933,18 +934,18 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 				path := ag.Corridor.GetPath()
 				npath := ag.Corridor.GetPathCount()
 				// Apply results.
-				targetPos := make([]float64, 3)
+				targetPos := make([]float32, 3)
 				copy(targetPos, ag.TargetPos[:])
 
 				res := d.m_pathResult
 				valid := true
-				nres := 0
-				status = d.m_pathq.getPathResult(ag.TargetPathqRef, res, &nres, d.m_maxPathResult)
+				nres := int32(0)
+				status = d.m_pathq.getPathResult(ag.TargetPathqRef, res, &nres, int32(d.m_maxPathResult))
 				if status.DtStatusFailed() || nres == 0 {
 					valid = false
 				}
 
-				if status.DtStatusDetail(DT_PARTIAL_RESULT) {
+				if status.DtStatusDetail(detour.DT_PARTIAL_RESULT) {
 					ag.Partial = true
 				} else {
 					ag.Partial = false
@@ -966,17 +967,17 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 					// Put the old path infront of the old path.
 					if npath > 1 {
 						// Make space for the old path.
-						if (npath-1)+nres > d.m_maxPathResult {
-							nres = d.m_maxPathResult - (npath - 1)
+						if int32(npath-1)+int32(nres) > d.m_maxPathResult {
+							nres = d.m_maxPathResult - (int32(npath) - 1)
 						}
 
 						copy(res[:npath-1], res[:nres])
 						// Copy old path in the beginning.
 						copy(res, path[:npath-1])
-						nres += npath - 1
+						nres += int32(npath - 1)
 
 						// Remove trackbacks
-						for j := 0; j < nres; j++ {
+						for j := int32(0); j < nres; j++ {
 							if j-1 >= 0 && j+1 < nres {
 								if res[j-1] == res[j+1] {
 									copy(res[j-1:], res[j+1:j+1+nres-(j+1)])
@@ -991,8 +992,8 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 					// Check for partial path.
 					if res[nres-1] != ag.TargetRef {
 						// Partial path, constrain target position inside the last polygon.
-						var status DtStatus
-						nearest := make([]float64, 3)
+						var status detour.DtStatus
+						nearest := make([]float32, 3)
 						var tmp bool
 						status = d.m_navquery.ClosestPointOnPoly(res[nres-1], targetPos, nearest, &tmp)
 						if status.DtStatusSucceed() {
@@ -1006,7 +1007,7 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 
 				if valid {
 					// Set current corridor.
-					ag.Corridor.setCorridor(targetPos, res, nres)
+					ag.Corridor.setCorridor(targetPos, res, int(nres))
 					// Force to update boundary.
 					ag.Boundary.reset()
 					ag.TargetState = DT_CROWDAGENT_TARGET_VALID
@@ -1022,7 +1023,7 @@ func (d *DtCrowd) updateMoveRequest(dt float64) {
 
 }
 
-func (d *DtCrowd) updateTopologyOptimization(agents []*DtCrowdAgent, nagents int, dt float64) {
+func (d *DtCrowd) updateTopologyOptimization(agents []*DtCrowdAgent, nagents int, dt float32) {
 	if nagents == 0 {
 		return
 	}
@@ -1047,7 +1048,7 @@ func (d *DtCrowd) updateTopologyOptimization(agents []*DtCrowdAgent, nagents int
 		}
 
 		ag.TopologyOptTime += dt
-		if ag.TopologyOptTime >= OPT_TIME_THR {
+		if float64(ag.TopologyOptTime) >= OPT_TIME_THR {
 			nqueue = addToOptQueue(ag, queue[:], nqueue, OPT_MAX_AGENTS)
 		}
 
@@ -1061,7 +1062,7 @@ func (d *DtCrowd) updateTopologyOptimization(agents []*DtCrowdAgent, nagents int
 
 }
 
-func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt float64) {
+func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt float32) {
 	const CHECK_LOOKAHEAD = 10
 	const TARGET_REPLAN_DELAY = 1.0 // seconds
 
@@ -1078,13 +1079,13 @@ func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt floa
 
 		// First check that the current location is valid.
 		idx := d.GetAgentIndex(ag)
-		agentPos := make([]float64, 3)
+		agentPos := make([]float32, 3)
 		agentRef := ag.Corridor.getFirstPoly()
 		copy(agentPos, ag.Npos[:])
 		if !d.m_navquery.IsValidPolyRef(agentRef, d.m_filters[ag.Params.QueryFilterType]) {
 			// Current location is not valid, try to reposition.
 			// TODO: this can snap agents, how to handle that?
-			nearest := make([]float64, 3)
+			nearest := make([]float32, 3)
 			copy(nearest, agentPos)
 			agentRef = 0
 			agentRef, _ = d.m_navquery.FindNearestPoly(ag.Npos[:], d.m_agentPlacementHalfExtents[:], d.m_filters[ag.Params.QueryFilterType], nearest)
@@ -1118,7 +1119,7 @@ func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt floa
 		if ag.TargetState != DT_CROWDAGENT_TARGET_NONE && ag.TargetState != DT_CROWDAGENT_TARGET_FAILED {
 			if !d.m_navquery.IsValidPolyRef(ag.TargetRef, d.m_filters[ag.Params.QueryFilterType]) {
 				// Current target is not valid, try to reposition.
-				nearest := make([]float64, 3)
+				nearest := make([]float32, 3)
 				copy(nearest, ag.TargetPos[:])
 				ag.TargetRef = 0
 				ag.TargetRef, _ = d.m_navquery.FindNearestPoly(ag.TargetPos[:], d.m_agentPlacementHalfExtents[:], d.m_filters[ag.Params.QueryFilterType], nearest)
@@ -1158,16 +1159,16 @@ func (d *DtCrowd) checkPathValidity(agents []*DtCrowdAgent, nagents int, dt floa
 	}
 }
 
-func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
+func (d *DtCrowd) Update(dt float32, debug *DtCrowdAgentDebugInfo) {
 	d.m_velocitySampleCount = 0
 
 	debugIdx := -1
 	if debug != nil {
-		debugIdx = debug.Idx
+		debugIdx = int(debug.Idx)
 	}
 
 	agents := d.m_activeAgents
-	nagents := d.getActiveAgents(agents, d.m_maxAgents)
+	nagents := d.getActiveAgents(agents, int(d.m_maxAgents))
 
 	// Check that all agents still have valid paths.
 	d.checkPathValidity(agents, nagents, dt)
@@ -1204,10 +1205,10 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 				d.m_navquery, d.m_filters[ag.Params.QueryFilterType])
 		}
 		// Query neighbour agents
-		ag.Nneis = getNeighbours(ag.Npos[:], ag.Params.Height, ag.Params.CollisionQueryRange,
+		ag.Nneis = int32(getNeighbours(ag.Npos[:], ag.Params.Height, ag.Params.CollisionQueryRange,
 			ag, ag.Neis[:], DT_CROWDAGENT_MAX_NEIGHBOURS,
-			agents, nagents, d.m_grid)
-		for j := 0; j < ag.Nneis; j++ {
+			agents, nagents, d.m_grid))
+		for j := int32(0); j < ag.Nneis; j++ {
 			ag.Neis[j].Idx = d.GetAgentIndex(agents[ag.Neis[j].Idx])
 		}
 
@@ -1232,7 +1233,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 		// Check to see if the corner after the next corner is directly visible,
 		// and short cut to there.
 		if (ag.Params.UpdateFlags&DT_CROWD_OPTIMIZE_VIS > 0) && ag.Ncorners > 0 {
-			target := rcGetVert(ag.CornerVerts[:], common.Min(1, ag.Ncorners-1))
+			target := common.GetVert3(ag.CornerVerts[:], common.Min(1, ag.Ncorners-1))
 			ag.Corridor.optimizePathVisibility(target, ag.Params.PathOptimizationRange, d.m_navquery, d.m_filters[ag.Params.QueryFilterType])
 
 			// Copy data for debug purposes.
@@ -1270,7 +1271,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			anim := d.m_agentAnims[idx]
 
 			// Adjust the path over the off-mesh connection.
-			refs := make([]DtPolyRef, 2)
+			refs := make([]detour.DtPolyRef, 2)
 			if ag.Corridor.moveOverOffmeshConnection(ag.CornerPolys[ag.Ncorners-1], refs,
 				anim.StartPos[:], anim.EndPos[:], d.m_navquery) {
 				copy(anim.InitPos[:], ag.Npos[:])
@@ -1301,7 +1302,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			continue
 		}
 
-		dvel := []float64{0, 0, 0}
+		dvel := []float32{0, 0, 0}
 
 		if ag.TargetState == DT_CROWDAGENT_TARGET_VELOCITY {
 			copy(dvel, ag.TargetPos[:])
@@ -1329,12 +1330,12 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			invSeparationDist := 1.0 / separationDist
 			separationWeight := ag.Params.SeparationWeight
 
-			w := float64(0)
-			disp := []float64{0, 0, 0}
+			w := float32(0)
+			disp := []float32{0, 0, 0}
 
-			for j := 0; j < ag.Nneis; j++ {
+			for j := int32(0); j < ag.Nneis; j++ {
 				nei := d.m_agents[ag.Neis[j].Idx]
-				diff := make([]float64, 3)
+				diff := make([]float32, 3)
 				common.Vsub(diff, ag.Npos[:], nei.Npos[:])
 				diff[1] = 0
 
@@ -1347,10 +1348,10 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 					continue
 				}
 
-				dist := math.Sqrt(distSqr)
-				weight := separationWeight * (1.0 - common.Sqr(dist*invSeparationDist))
+				dist := math.Sqrt(float64(distSqr))
+				weight := float64(separationWeight) * (1.0 - common.Sqr(dist*float64(invSeparationDist)))
 
-				common.Vmad(disp, disp, diff, weight/dist)
+				common.Vmad(disp, disp, diff, float32(weight/dist))
 				w += 1.0
 			}
 
@@ -1383,7 +1384,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 			d.m_obstacleQuery.reset()
 
 			// Add neighbours as obstacles.
-			for j := 0; j < ag.Nneis; j++ {
+			for j := int32(0); j < ag.Nneis; j++ {
 				nei := d.m_agents[ag.Neis[j].Idx]
 				d.m_obstacleQuery.addCircle(nei.Npos[:], nei.Params.Radius, nei.Vel[:], nei.Dvel[:])
 			}
@@ -1405,7 +1406,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 
 			// Sample new safe velocity.
 			adaptive := true
-			ns := 0
+			ns := int32(0)
 
 			params := d.m_obstacleQueryParams[ag.Params.ObstacleAvoidanceType]
 
@@ -1447,12 +1448,12 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 
 			common.Vset(ag.Disp[:], 0, 0, 0)
 
-			w := float64(0)
+			w := float32(0)
 
-			for j := 0; j < ag.Nneis; j++ {
+			for j := int32(0); j < ag.Nneis; j++ {
 				nei := d.m_agents[ag.Neis[j].Idx]
 				idx1 := d.GetAgentIndex(nei)
-				diff := make([]float64, 3)
+				diff := make([]float32, 3)
 				common.Vsub(diff, ag.Npos[:], nei.Npos[:])
 				diff[1] = 0
 
@@ -1461,7 +1462,7 @@ func (d *DtCrowd) Update(dt float64, debug *DtCrowdAgentDebugInfo) {
 					continue
 				}
 
-				dist = math.Sqrt(dist)
+				dist = float32(math.Sqrt(float64(dist)))
 				pen := (ag.Params.Radius + nei.Params.Radius) - dist
 				if dist < 0.0001 {
 					// Agents on top of each other, try to choose diverging separation directions.

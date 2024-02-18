@@ -1,4 +1,4 @@
-package recast
+package detour_tile_cache
 
 type DetourTitleCacheData struct {
 }

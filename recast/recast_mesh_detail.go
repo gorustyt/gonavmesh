@@ -1,7 +1,7 @@
 package recast
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 	"math"
 )
 
@@ -18,182 +18,15 @@ const (
 const RC_MULTIPLE_REGS = 0
 
 type rcHeightPatch struct {
-	data                      []int
-	xmin, ymin, width, height int
+	data                      []uint16
+	xmin, ymin, width, height int32
 }
 
-func vdot2(a, b []float64) float64 {
-	return a[0]*b[0] + a[2]*b[2]
-}
-
-func vdistSq2(p, q []float64) float64 {
-	dx := q[0] - p[0]
-	dy := q[2] - p[2]
-	return dx*dx + dy*dy
-}
-
-func vdist2(p, q []float64) float64 {
-	return math.Sqrt(vdistSq2(p, q))
-}
-
-func circumCircle(p1, p2, p3, c []float64, r *float64) bool {
-	EPS := 1e-6
-	// Calculate the circle relative to p1, to avoid some precision issues.
-	v1 := []float64{0, 0, 0}
-	v2 := make([]float64, 3)
-	v3 := make([]float64, 3)
-	common.Vsub(v2, p2, p1)
-	common.Vsub(v3, p3, p1)
-
-	cp := vcross2(v1, v2, v3)
-	if math.Abs(cp) > EPS {
-		v1Sq := vdot2(v1, v1)
-		v2Sq := vdot2(v2, v2)
-		v3Sq := vdot2(v3, v3)
-		c[0] = (v1Sq*(v2[2]-v3[2]) + v2Sq*(v3[2]-v1[2]) + v3Sq*(v1[2]-v2[2])) / (2 * cp)
-		c[1] = 0
-		c[2] = (v1Sq*(v3[0]-v2[0]) + v2Sq*(v1[0]-v3[0]) + v3Sq*(v2[0]-v1[0])) / (2 * cp)
-		*r = vdist2(c, v1)
-		common.Vadd(c, c, p1)
-		return true
-	}
-
-	copy(c, p1)
-	*r = 0
-	return false
-}
-
-func vcross2(p1, p2, p3 []float64) float64 {
-	u1 := p2[0] - p1[0]
-	v1 := p2[2] - p1[2]
-	u2 := p3[0] - p1[0]
-	v2 := p3[2] - p1[2]
-	return u1*v2 - v1*u2
-}
-
-func distPtTri(p, a, b, c []float64) float64 {
-	v0 := make([]float64, 3)
-	v1 := make([]float64, 3)
-	v2 := make([]float64, 3)
-	common.Vsub(v0, c, a)
-	common.Vsub(v1, b, a)
-	common.Vsub(v2, p, a)
-
-	dot00 := vdot2(v0, v0)
-	dot01 := vdot2(v0, v1)
-	dot02 := vdot2(v0, v2)
-	dot11 := vdot2(v1, v1)
-	dot12 := vdot2(v1, v2)
-
-	// Compute barycentric coordinates
-	invDenom := 1.0 / (dot00*dot11 - dot01*dot01)
-	u := (dot11*dot02 - dot01*dot12) * invDenom
-	v := (dot00*dot12 - dot01*dot02) * invDenom
-
-	// If point lies inside the triangle, return interpolated y-coord.
-	EPS := 1e-4
-	if u >= -EPS && v >= -EPS && (u+v) <= 1+EPS {
-		y := a[1] + v0[1]*u + v1[1]*v
-		return math.Abs(y - p[1])
-	}
-	return math.MaxFloat64
-}
-
-func distancePtSeg(pt, p, q []float64) float64 {
-	pqx := q[0] - p[0]
-	pqy := q[1] - p[1]
-	pqz := q[2] - p[2]
-	dx := pt[0] - p[0]
-	dy := pt[1] - p[1]
-	dz := pt[2] - p[2]
-	d := pqx*pqx + pqy*pqy + pqz*pqz
-	t := pqx*dx + pqy*dy + pqz*dz
-	if d > 0 {
-		t /= d
-	}
-
-	if t < 0 {
-		t = 0
-	} else if t > 1 {
-		t = 1
-	}
-
-	dx = p[0] + t*pqx - pt[0]
-	dy = p[1] + t*pqy - pt[1]
-	dz = p[2] + t*pqz - pt[2]
-
-	return dx*dx + dy*dy + dz*dz
-}
-
-func distancePtSeg2d(pt, p, q []float64) float64 {
-	pqx := q[0] - p[0]
-	pqz := q[2] - p[2]
-	dx := pt[0] - p[0]
-	dz := pt[2] - p[2]
-	d := pqx*pqx + pqz*pqz
-	t := pqx*dx + pqz*dz
-	if d > 0 {
-		t /= d
-	}
-
-	if t < 0 {
-		t = 0
-	} else if t > 1 {
-		t = 1
-	}
-
-	dx = p[0] + t*pqx - pt[0]
-	dz = p[2] + t*pqz - pt[2]
-
-	return dx*dx + dz*dz
-}
-
-func distToTriMesh(p, verts []float64, nverts int, tris []int, ntris int) float64 {
-	dmin := math.MaxFloat64
-	for i := 0; i < ntris; i++ {
-		va := rcGetVert(verts, tris[i*4+0])
-		vb := rcGetVert(verts, tris[i*4+1])
-		vc := rcGetVert(verts, tris[i*4+2])
-		d := distPtTri(p, va, vb, vc)
-		if d < dmin {
-			dmin = d
-		}
-	}
-	if dmin == math.MaxFloat64 {
-		return -1
-	}
-	return dmin
-}
-
-func distToPoly(nvert int, verts []float64, p []float64) float64 {
-
-	dmin := math.MaxFloat64
-	var i, j int
-	i = 0
-	j = nvert - 1
-	c := false
-	for i < nvert {
-		vi := rcGetVert(verts, i)
-		vj := rcGetVert(verts, j)
-		if ((vi[2] > p[2]) != (vj[2] > p[2])) &&
-			(p[0] < (vj[0]-vi[0])*(p[2]-vi[2])/(vj[2]-vi[2])+vi[0]) {
-			c = !c
-		}
-
-		dmin = common.Min(dmin, distancePtSeg2d(p, vj, vi))
-		j = i
-		i++
-	}
-	if c {
-		return -dmin
-	}
-	return dmin
-}
 func getHeight(fx, fy, fz,
-	cs, ics, ch float64,
-	radius int, hp *rcHeightPatch) int {
-	ix := int(math.Floor(fx*ics + 0.01))
-	iz := int(math.Floor(fz*ics + 0.01))
+	cs, ics, ch float32,
+	radius int32, hp *rcHeightPatch) uint16 {
+	ix := int32(math.Floor(float64(fx*ics) + 0.01))
+	iz := int32(math.Floor(float64(fz*ics) + 0.01))
 	ix = common.Clamp(ix-hp.xmin, 0, hp.width-1)
 	iz = common.Clamp(iz-hp.ymin, 0, hp.height-1)
 	h := hp.data[ix+iz*hp.width]
@@ -201,25 +34,25 @@ func getHeight(fx, fy, fz,
 		// Special case when data might be bad.
 		// Walk adjacent cells in a spiral up to 'radius', and look
 		// for a pixel which has a valid height.
-		x := 1
-		z := 0
-		dx := 1
-		dz := 0
+		x := int32(1)
+		z := int32(0)
+		dx := int32(1)
+		dz := int32(0)
 		maxSize := radius*2 + 1
 		maxIter := maxSize*maxSize - 1
 
-		nextRingIterStart := 8
-		nextRingIters := 16
+		nextRingIterStart := int32(8)
+		nextRingIters := int32(16)
 
-		dmin := math.MaxFloat64
-		for i := 0; i < maxIter; i++ {
+		dmin := float32(math.MaxFloat32)
+		for i := int32(0); i < maxIter; i++ {
 			nx := ix + x
 			nz := iz + z
 
 			if nx >= 0 && nz >= 0 && nx < hp.width && nz < hp.height {
 				nh := hp.data[nx+nz*hp.width]
 				if nh != RC_UNSET_HEIGHT {
-					d := math.Abs(float64(nh)*ch - fy)
+					d := float32(math.Abs(float64(nh)*float64(ch) - float64(fy)))
 					if d < dmin {
 						h = nh
 						dmin = d
@@ -270,9 +103,9 @@ const (
 	EV_HULL  = -2
 )
 
-func findEdge(edges []int, nedges int, s, t int) int {
-	for i := 0; i < nedges; i++ {
-		e := rcGetVert4(edges, i)
+func findEdge(edges []int32, nedges int32, s, t int32) int32 {
+	for i := int32(0); i < nedges; i++ {
+		e := common.GetVert4(edges, i)
 		if (e[0] == s && e[1] == t) || (e[0] == t && e[1] == s) {
 			return i
 		}
@@ -281,7 +114,7 @@ func findEdge(edges []int, nedges int, s, t int) int {
 	return EV_UNDEF
 }
 
-func addEdge(edges []int, nedges *int, maxEdges int, s, t, l, r int) int {
+func addEdge(edges []int32, nedges *int32, maxEdges int32, s, t, l, r int32) int32 {
 	if *nedges >= maxEdges {
 		return EV_UNDEF
 	}
@@ -289,7 +122,7 @@ func addEdge(edges []int, nedges *int, maxEdges int, s, t, l, r int) int {
 	// Add edge if not already in the triangulation.
 	e := findEdge(edges, *nedges, s, t)
 	if e == EV_UNDEF {
-		edge := rcGetVert4(edges, *nedges)
+		edge := common.GetVert4(edges, *nedges)
 		edge[0] = s
 		edge[1] = t
 		edge[2] = l
@@ -302,7 +135,7 @@ func addEdge(edges []int, nedges *int, maxEdges int, s, t, l, r int) int {
 	}
 }
 
-func updateLeftFace(e []int, s, t, f int) {
+func updateLeftFace(e []int32, s, t, f int32) {
 	if e[0] == s && e[1] == t && e[2] == EV_UNDEF {
 		e[2] = f
 	} else if e[1] == s && e[0] == t && e[3] == EV_UNDEF {
@@ -311,11 +144,11 @@ func updateLeftFace(e []int, s, t, f int) {
 
 }
 
-func overlapSegSeg2d(a, b, c, d []float64) int {
-	a1 := vcross2(a, b, d)
-	a2 := vcross2(a, b, c)
+func overlapSegSeg2d(a, b, c, d []float32) int32 {
+	a1 := common.Vcross2(a, b, d)
+	a2 := common.Vcross2(a, b, c)
 	if a1*a2 < 0.0 {
-		a3 := vcross2(c, d, a)
+		a3 := common.Vcross2(c, d, a)
 		a4 := a3 + a2 - a1
 		if a3*a4 < 0.0 {
 			return 1
@@ -325,8 +158,8 @@ func overlapSegSeg2d(a, b, c, d []float64) int {
 	return 0
 }
 
-func overlapEdges(pts []float64, edges []int, nedges, s1, t1 int) bool {
-	for i := 0; i < nedges; i++ {
+func overlapEdges(pts []float32, edges []int32, nedges, s1, t1 int32) bool {
+	for i := int32(0); i < nedges; i++ {
 		s0 := edges[i*4+0]
 		t0 := edges[i*4+1]
 		// Same or connected edges do not overlap.
@@ -334,7 +167,7 @@ func overlapEdges(pts []float64, edges []int, nedges, s1, t1 int) bool {
 			continue
 		}
 
-		if overlapSegSeg2d(rcGetVert(pts, s0), rcGetVert(pts, t0), rcGetVert(pts, s1), rcGetVert(pts, t1)) != 0 {
+		if overlapSegSeg2d(common.GetVert3(pts, s0), common.GetVert3(pts, t0), common.GetVert3(pts, s1), common.GetVert3(pts, t1)) != 0 {
 			return true
 		}
 
@@ -342,13 +175,13 @@ func overlapEdges(pts []float64, edges []int, nedges, s1, t1 int) bool {
 	return false
 }
 
-func completeFacet(pts []float64, npts int, edges []int, nedges *int, maxEdges int, nfaces *int, e int) {
-	EPS := 1e-5
+func completeFacet(pts []float32, npts int32, edges []int32, nedges *int32, maxEdges int32, nfaces *int32, e int32) {
+	EPS := float32(1e-5)
 
-	edge := rcGetVert4(edges, e)
+	edge := common.GetVert4(edges, e)
 
 	// Cache s and t.
-	var s, t int
+	var s, t int32
 	if edge[2] == EV_UNDEF {
 		s = edge[0]
 		t = edge[1]
@@ -362,28 +195,28 @@ func completeFacet(pts []float64, npts int, edges []int, nedges *int, maxEdges i
 
 	// Find best point on left of edge.
 	pt := npts
-	c := []float64{0, 0, 0}
-	r := float64(-1)
-	for u := 0; u < npts; u++ {
+	c := []float32{0, 0, 0}
+	r := float32(-1)
+	for u := int32(0); u < npts; u++ {
 		if u == s || u == t {
 			continue
 		}
-		if vcross2(rcGetVert(pts, s), rcGetVert(pts, t), rcGetVert(pts, u)) > EPS {
+		if common.Vcross2(common.GetVert3(pts, s), common.GetVert3(pts, t), common.GetVert3(pts, u)) > EPS {
 			if r < 0 {
 				// The circle is not updated yet, do it now.
 				pt = u
-				circumCircle(rcGetVert(pts, s), rcGetVert(pts, t), rcGetVert(pts, u), c, &r)
+				common.CircumCircle(common.GetVert3(pts, s), common.GetVert3(pts, t), common.GetVert3(pts, u), c, &r)
 				continue
 			}
-			d := vdist2(c, rcGetVert(pts, u))
-			tol := 0.001
+			d := common.Vdist2(c, common.GetVert3(pts, u))
+			tol := float32(0.001)
 			if d > r*(1+tol) {
 				// Outside current circumcircle, skip.
 				continue
 			} else if d < r*(1-tol) {
 				// Inside safe circumcircle, update circle.
 				pt = u
-				circumCircle(rcGetVert(pts, s), rcGetVert(pts, t), rcGetVert(pts, u), c, &r)
+				common.CircumCircle(common.GetVert3(pts, s), common.GetVert3(pts, t), common.GetVert3(pts, u), c, &r)
 			} else {
 				// Inside epsilon circum circle, do extra tests to make sure the edge is valid.
 				// s-u and t-u cannot overlap with s-pt nor t-pt if they exists.
@@ -397,7 +230,7 @@ func completeFacet(pts []float64, npts int, edges []int, nedges *int, maxEdges i
 
 				// Edge is valid.
 				pt = u
-				circumCircle(rcGetVert(pts, s), rcGetVert(pts, t), rcGetVert(pts, u), c, &r)
+				common.CircumCircle(common.GetVert3(pts, s), common.GetVert3(pts, t), common.GetVert3(pts, u), c, &r)
 			}
 		}
 	}
@@ -405,14 +238,14 @@ func completeFacet(pts []float64, npts int, edges []int, nedges *int, maxEdges i
 	// Add new triangle or update edge info if s-t is on hull.
 	if pt < npts {
 		// Update face information of edge being completed.
-		updateLeftFace(rcGetVert4(edges, e), s, t, *nfaces)
+		updateLeftFace(common.GetVert4(edges, e), s, t, *nfaces)
 
 		// Add new edge or update face info of old edge.
 		e = findEdge(edges, *nedges, pt, s)
 		if e == EV_UNDEF {
 			addEdge(edges, nedges, maxEdges, pt, s, *nfaces, EV_UNDEF)
 		} else {
-			updateLeftFace(rcGetVert4(edges, e), pt, s, *nfaces)
+			updateLeftFace(common.GetVert4(edges, e), pt, s, *nfaces)
 		}
 
 		// Add new edge or update face info of old edge.
@@ -420,23 +253,23 @@ func completeFacet(pts []float64, npts int, edges []int, nedges *int, maxEdges i
 		if e == EV_UNDEF {
 			addEdge(edges, nedges, maxEdges, t, pt, *nfaces, EV_UNDEF)
 		} else {
-			updateLeftFace(rcGetVert4(edges, e), t, pt, *nfaces)
+			updateLeftFace(common.GetVert4(edges, e), t, pt, *nfaces)
 		}
 		*nfaces++
 	} else {
-		updateLeftFace(rcGetVert4(edges, e), s, t, EV_HULL)
+		updateLeftFace(common.GetVert4(edges, e), s, t, EV_HULL)
 	}
 }
 
-func delaunayHull(npts int, pts []float64,
-	nhull int, hull []int,
-	tris Stack[int], edges Stack[int]) {
-	nfaces := 0
-	nedges := 0
+func delaunayHull(npts int32, pts []float32,
+	nhull int32, hull []int32,
+	tris Stack[int32], edges Stack[int32]) {
+	nfaces := int32(0)
+	nedges := int32(0)
 	maxEdges := npts * 10
-	edges.Resize(maxEdges * 4)
+	edges.Resize(int(maxEdges * 4))
 
-	i := 0
+	i := int32(0)
 	j := nhull - 1
 	for i < nhull {
 		addEdge(edges.Data(), &nedges, maxEdges, hull[j], hull[i], EV_HULL, EV_UNDEF)
@@ -444,13 +277,13 @@ func delaunayHull(npts int, pts []float64,
 		i++
 	}
 
-	currentEdge := 0
+	currentEdge := int32(0)
 	for currentEdge < nedges {
-		if edges.Index(currentEdge*4+2) == EV_UNDEF {
+		if edges.Index(int(currentEdge*4+2)) == EV_UNDEF {
 			completeFacet(pts, npts, edges.Data(), &nedges, maxEdges, &nfaces, currentEdge)
 		}
 
-		if edges.Index(currentEdge*4+3) == EV_UNDEF {
+		if edges.Index(int(currentEdge*4+3)) == EV_UNDEF {
 			completeFacet(pts, npts, edges.Data(), &nedges, maxEdges, &nfaces, currentEdge)
 		}
 
@@ -458,16 +291,16 @@ func delaunayHull(npts int, pts []float64,
 	}
 
 	// Create tris
-	tris.Resize(nfaces * 4)
-	for i := 0; i < nfaces*4; i++ {
+	tris.Resize(int(nfaces * 4))
+	for i := 0; i < int(nfaces*4); i++ {
 		tris.SetByIndex(i, -1)
 	}
 
-	for i := 0; i < nedges; i++ {
-		e := rcGetVert4(edges.Data(), i)
+	for i := 0; i < int(nedges); i++ {
+		e := common.GetVert4(edges.Data(), i)
 		if e[3] >= 0 {
 			// Left face
-			t := rcGetVert4(tris.Slice(0, tris.Len()), e[3])
+			t := common.GetVert4(tris.Slice(0, tris.Len()), e[3])
 			if t[0] == -1 {
 				t[0] = e[0]
 				t[1] = e[1]
@@ -480,7 +313,7 @@ func delaunayHull(npts int, pts []float64,
 		}
 		if e[2] >= 0 {
 			// Right
-			t := rcGetVert4(tris.Data(), e[2])
+			t := common.GetVert4(tris.Data(), e[2])
 			if t[0] == -1 {
 				t[0] = e[1]
 				t[1] = e[0]
@@ -494,7 +327,7 @@ func delaunayHull(npts int, pts []float64,
 	}
 
 	for i := 0; i < tris.Len()/4; i++ {
-		t := rcGetVert4(tris.Data(), i)
+		t := common.GetVert4(tris.Data(), i)
 		if t[0] == -1 || t[1] == -1 || t[2] == -1 {
 			t[0] = tris.Index(tris.Len() - 4)
 			t[1] = tris.Index(tris.Len() - 3)
@@ -507,42 +340,42 @@ func delaunayHull(npts int, pts []float64,
 }
 
 // Calculate minimum extend of the polygon.
-func polyMinExtent(verts []float64, nverts int) float64 {
-	minDist := math.MaxFloat64
-	for i := 0; i < nverts; i++ {
+func polyMinExtent(verts []float32, nverts int32) float32 {
+	minDist := float32(math.MaxFloat32)
+	for i := int32(0); i < nverts; i++ {
 		ni := (i + 1) % nverts
-		p1 := rcGetVert(verts, i)
-		p2 := rcGetVert(verts, ni)
-		maxEdgeDist := float64(0)
-		for j := 0; j < nverts; j++ {
+		p1 := common.GetVert3(verts, i)
+		p2 := common.GetVert3(verts, ni)
+		maxEdgeDist := float32(0)
+		for j := int32(0); j < nverts; j++ {
 			if j == i || j == ni {
 				continue
 			}
-			d := distancePtSeg2d(rcGetVert(verts, j), p1, p2)
+			d := common.DistancePtSeg2d(common.GetVert3(verts, j), p1, p2)
 			maxEdgeDist = common.Max(maxEdgeDist, d)
 		}
 		minDist = common.Min(minDist, maxEdgeDist)
 	}
-	return common.Sqrt(minDist)
+	return float32(common.Sqrt(float64(minDist)))
 }
-func triangulateHull(nverts int, verts []float64, nhull int, hull []int, nin int, tris Stack[int]) {
-	start := 0
-	left := 1
+func triangulateHull(nverts int32, verts []float32, nhull int32, hull []int32, nin int32, tris Stack[int32]) {
+	start := int32(0)
+	left := int32(1)
 	right := nhull - 1
 
 	// Start from an ear with shortest perimeter.
 	// This tends to favor well formed triangles as starting point.
-	dmin := math.MaxFloat64
-	for i := 0; i < nhull; i++ {
+	dmin := float32(math.MaxFloat32)
+	for i := int32(0); i < nhull; i++ {
 		if hull[i] >= nin {
 			continue
 		} // Ears are triangles with original vertices as middle vertex while others are actually line segments on edges
-		pi := prev(i, nhull)
-		ni := next(i, nhull)
-		pv := rcGetVert(verts, hull[pi])
-		cv := rcGetVert(verts, hull[i])
-		nv := rcGetVert(verts, hull[ni])
-		d := vdist2(pv, cv) + vdist2(cv, nv) + vdist2(nv, pv)
+		pi := common.Prev(i, nhull)
+		ni := common.Next(i, nhull)
+		pv := common.GetVert3(verts, hull[pi])
+		cv := common.GetVert3(verts, hull[i])
+		nv := common.GetVert3(verts, hull[ni])
+		d := common.Vdist2(pv, cv) + common.Vdist2(cv, nv) + common.Vdist2(nv, pv)
 		if d < dmin {
 			start = i
 			left = ni
@@ -561,17 +394,17 @@ func triangulateHull(nverts int, verts []float64, nhull int, hull []int, nin int
 	// depending on which triangle has shorter perimeter.
 	// This heuristic was chose empirically, since it seems
 	// handle tessellated straight edges well.
-	for next(left, nhull) != right {
+	for common.Next(left, nhull) != right {
 		// Check to see if se should advance left or right.
-		nleft := next(left, nhull)
-		nright := prev(right, nhull)
+		nleft := common.Next(left, nhull)
+		nright := common.Prev(right, nhull)
 
-		cvleft := rcGetVert(verts, hull[left])
-		nvleft := rcGetVert(verts, hull[nleft])
-		cvright := rcGetVert(verts, hull[right])
-		nvright := rcGetVert(verts, hull[nright])
-		dleft := vdist2(cvleft, nvleft) + vdist2(nvleft, cvright)
-		dright := vdist2(cvright, nvright) + vdist2(cvleft, nvright)
+		cvleft := common.GetVert3(verts, hull[left])
+		nvleft := common.GetVert3(verts, hull[nleft])
+		cvright := common.GetVert3(verts, hull[right])
+		nvright := common.GetVert3(verts, hull[nright])
+		dleft := common.Vdist2(cvleft, nvleft) + common.Vdist2(nvleft, cvright)
+		dright := common.Vdist2(cvright, nvright) + common.Vdist2(cvleft, nvright)
 
 		if dleft < dright {
 			tris.Push(hull[left])
@@ -589,30 +422,30 @@ func triangulateHull(nverts int, verts []float64, nhull int, hull []int, nin int
 	}
 }
 
-func getJitterX(i int) float64 {
-	return (float64((i*0x8da6b343)&0xffff) / 65535.0 * 2.0) - 1.0
+func getJitterX(i int) float32 {
+	return (float32((i*0x8da6b343)&0xffff) / 65535.0 * 2.0) - 1.0
 }
 
-func getJitterY(i int) float64 {
-	return (float64((i*0xd8163841)&0xffff) / 65535.0 * 2.0) - 1.0
+func getJitterY(i int) float32 {
+	return (float32((i*0xd8163841)&0xffff) / 65535.0 * 2.0) - 1.0
 }
 
-func buildPolyDetail(in []float64, nin int,
-	sampleDist, sampleMaxError float64,
-	heightSearchRadius int, chf *RcCompactHeightfield,
-	hp *rcHeightPatch, verts []float64, nverts *int,
-	tris, edges, samples Stack[int]) bool {
-	MAX_VERTS := 127
-	MAX_TRIS := 255 // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
-	MAX_VERTS_PER_EDGE := 32
-	edge := make([]float64, (MAX_VERTS_PER_EDGE+1)*3)
-	hull := make([]int, MAX_VERTS)
-	nhull := 0
+func buildPolyDetail(in []float32, nin int32,
+	sampleDist, sampleMaxError float32,
+	heightSearchRadius int32, chf *RcCompactHeightfield,
+	hp *rcHeightPatch, verts []float32, nverts *int32,
+	tris, edges, samples Stack[int32]) bool {
+	MAX_VERTS := int32(127)
+	MAX_TRIS := int32(255) // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
+	MAX_VERTS_PER_EDGE := int32(32)
+	edge := make([]float32, (MAX_VERTS_PER_EDGE+1)*3)
+	hull := make([]int32, MAX_VERTS)
+	nhull := int32(0)
 
 	*nverts = nin
 
-	for i := 0; i < nin; i++ {
-		copy(rcGetVert(verts, i), rcGetVert(in, i))
+	for i := int32(0); i < nin; i++ {
+		copy(common.GetVert3(verts, i), common.GetVert3(in, i))
 	}
 
 	edges.Clear()
@@ -628,15 +461,15 @@ func buildPolyDetail(in []float64, nin int,
 	// This is done in separate pass in order to ensure
 	// seamless height values across the ply boundaries.
 	if sampleDist > 0 {
-		i := 0
+		i := int32(0)
 		j := nin - 1
 		for i < nin {
-			vj := rcGetVert(in, j)
-			vi := rcGetVert(in, i)
+			vj := common.GetVert3(in, j)
+			vi := common.GetVert3(in, i)
 			swapped := false
 			// Make sure the segments are always handled in same order
 			// using lexological sort or else there will be seams.
-			if math.Floor(vj[0]-vi[0]) < 1e-6 {
+			if math.Floor(float64(vj[0]-vi[0])) < 1e-6 {
 				if vj[2] > vi[2] {
 					vj, vi = vi, vj
 					swapped = true
@@ -651,8 +484,8 @@ func buildPolyDetail(in []float64, nin int,
 			dx := vi[0] - vj[0]
 			dy := vi[1] - vj[1]
 			dz := vi[2] - vj[2]
-			d := math.Sqrt(dx*dx + dz*dz)
-			nn := int(1 + math.Floor(d/sampleDist))
+			d := math.Sqrt(float64(dx*dx + dz*dz))
+			nn := int32(1 + math.Floor(d/float64(sampleDist)))
 			if nn >= MAX_VERTS_PER_EDGE {
 				nn = MAX_VERTS_PER_EDGE - 1
 			}
@@ -660,29 +493,29 @@ func buildPolyDetail(in []float64, nin int,
 				nn = MAX_VERTS - 1 - *nverts
 			}
 
-			for k := 0; k <= nn; k++ {
-				u := float64(k) / float64(nn)
-				pos := rcGetVert(edge, k)
+			for k := int32(0); k <= nn; k++ {
+				u := float32(k) / float32(nn)
+				pos := common.GetVert3(edge, k)
 				pos[0] = vj[0] + dx*u
 				pos[1] = vj[1] + dy*u
 				pos[2] = vj[2] + dz*u
-				pos[1] = float64(getHeight(pos[0], pos[1], pos[2], cs, ics, chf.Ch, heightSearchRadius, hp)) * chf.Ch
+				pos[1] = float32(getHeight(pos[0], pos[1], pos[2], cs, ics, chf.Ch, heightSearchRadius, hp)) * chf.Ch
 			}
 			// Simplify samples.
-			idx := make([]int, MAX_VERTS_PER_EDGE)
+			idx := make([]int32, MAX_VERTS_PER_EDGE)
 			idx[0] = 0
 			idx[1] = nn
 			nidx := 2
 			for k := 0; k < nidx-1; {
 				a := idx[k]
 				b := idx[k+1]
-				va := rcGetVert(edge, a)
-				vb := rcGetVert(edge, b)
+				va := common.GetVert3(edge, a)
+				vb := common.GetVert3(edge, b)
 				// Find maximum deviation along the segment.
-				maxd := float64(0)
-				maxi := -1
+				maxd := float32(0)
+				maxi := int32(-1)
 				for m := a + 1; m < b; m++ {
-					dev := distancePtSeg(rcGetVert(edge, m), va, vb)
+					dev := common.DistancePtSeg(common.GetVert3(edge, m), va, vb)
 					if dev > maxd {
 						maxd = dev
 						maxi = m
@@ -707,14 +540,14 @@ func buildPolyDetail(in []float64, nin int,
 			// Add new vertices.
 			if swapped {
 				for k := nidx - 2; k > 0; k-- {
-					copy(rcGetVert(verts, *nverts), rcGetVert(edge, idx[k]*3))
+					copy(common.GetVert3(verts, *nverts), common.GetVert3(edge, idx[k]*3))
 					hull[nhull] = *nverts
 					nhull++
 					*nverts++
 				}
 			} else {
 				for k := 1; k < nidx-1; k++ {
-					copy(rcGetVert(verts, *nverts), rcGetVert(edge, idx[k]))
+					copy(common.GetVert3(verts, *nverts), common.GetVert3(edge, idx[k]))
 					hull[nhull] = *nverts
 					nhull++
 					*nverts++
@@ -744,31 +577,31 @@ func buildPolyDetail(in []float64, nin int,
 
 	if sampleDist > 0 {
 		// Create sample locations in a grid.
-		bmin := make([]float64, 3)
-		bmax := make([]float64, 3)
+		bmin := make([]float32, 3)
+		bmax := make([]float32, 3)
 		copy(bmin, in)
 		copy(bmax, in)
-		for i := 1; i < nin; i++ {
-			common.Vmin(bmin, rcGetVert(in, i))
-			common.Vmax(bmax, rcGetVert(in, i))
+		for i := int32(1); i < nin; i++ {
+			common.Vmin(bmin, common.GetVert3(in, i))
+			common.Vmax(bmax, common.GetVert3(in, i))
 		}
-		x0 := int(math.Floor(bmin[0] / sampleDist))
-		x1 := int(math.Ceil(bmax[0] / sampleDist))
-		z0 := int(math.Floor(bmin[2] / sampleDist))
-		z1 := int(math.Ceil(bmax[2] / sampleDist))
+		x0 := int32(math.Floor(float64(bmin[0] / sampleDist)))
+		x1 := int32(math.Ceil(float64(bmax[0] / sampleDist)))
+		z0 := int32(math.Floor(float64(bmin[2] / sampleDist)))
+		z1 := int32(math.Ceil(float64(bmax[2] / sampleDist)))
 		samples.Clear()
 		for z := z0; z < z1; z++ {
 			for x := x0; x < x1; x++ {
-				pt := make([]float64, 3)
-				pt[0] = float64(x) * sampleDist
+				pt := make([]float32, 3)
+				pt[0] = float32(x) * sampleDist
 				pt[1] = (bmax[1] + bmin[1]) * 0.5
-				pt[2] = float64(z) * sampleDist
+				pt[2] = float32(z) * sampleDist
 				// Make sure the samples are not too close to the edges.
-				if distToPoly(nin, in, pt) > -sampleDist/2 {
+				if common.DistToPoly(nin, in, pt) > -sampleDist/2 {
 					continue
 				}
 				samples.Push(x)
-				samples.Push(getHeight(pt[0], pt[1], pt[2], cs, ics, chf.Ch, heightSearchRadius, hp))
+				samples.Push(int32(getHeight(pt[0], pt[1], pt[2], cs, ics, chf.Ch, heightSearchRadius, hp)))
 				samples.Push(z)
 				samples.Push(0) // Not added
 			}
@@ -784,21 +617,21 @@ func buildPolyDetail(in []float64, nin int,
 			}
 
 			// Find sample with most error.
-			bestpt := []float64{0, 0, 0}
-			bestd := float64(0)
+			bestpt := []float32{0, 0, 0}
+			bestd := float32(0)
 			besti := -1
 			for i := 0; i < nsamples; i++ {
 				s := samples.Slice(i*4, samples.Len())
 				if s[3] != 0 {
 					continue
 				} // skip added.
-				pt := make([]float64, 3)
+				pt := make([]float32, 3)
 				// The sample location is jittered to get rid of some bad triangulations
 				// which are cause by symmetrical data from the grid structure.
-				pt[0] = float64(s[0])*sampleDist + getJitterX(i)*float64(cs)*0.1
-				pt[1] = float64(s[1]) * chf.Ch
-				pt[2] = float64(s[2])*sampleDist + getJitterY(i)*cs*0.1
-				d := distToTriMesh(pt, verts, *nverts, tris.Data(), tris.Len()/4)
+				pt[0] = float32(s[0])*sampleDist + getJitterX(i)*float32(cs)*0.1
+				pt[1] = float32(s[1]) * chf.Ch
+				pt[2] = float32(s[2])*sampleDist + getJitterY(i)*cs*0.1
+				d := common.DistToTriMesh(pt, verts, *nverts, tris.Data(), int32(tris.Len()/4))
 				if d < 0 {
 					continue
 				} // did not hit the mesh.
@@ -827,33 +660,33 @@ func buildPolyDetail(in []float64, nin int,
 		}
 	}
 
-	ntris := tris.Len() / 4
+	ntris := int32(tris.Len() / 4)
 	if ntris > MAX_TRIS {
-		tris.Resize(MAX_TRIS * 4)
+		tris.Resize(int(MAX_TRIS * 4))
 	}
 
 	return true
 }
 
-func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, verts []int, bs int, hp *rcHeightPatch, array Stack[int]) {
+func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []uint16, npoly int32, verts []uint16, bs int32, hp *rcHeightPatch, array Stack[int32]) {
 	// Note: Reads to the compact heightfield are offset by border size (bs)
 	// since border size offset is already removed from the polymesh vertices.
 
 	offset :=
-		[18]int{ //9*2
+		[18]int32{ //9*2
 			0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0,
 		}
 
 	// Find cell closest to a poly vertex
-	startCellX := 0
-	startCellY := 0
-	startSpanIndex := -1
-	dmin := RC_UNSET_HEIGHT
-	for j := 0; j < npoly && dmin > 0; j++ {
+	startCellX := int32(0)
+	startCellY := int32(0)
+	startSpanIndex := int32(-1)
+	dmin := int32(RC_UNSET_HEIGHT)
+	for j := int32(0); j < npoly && dmin > 0; j++ {
 		for k := 0; k < 9 && dmin > 0; k++ {
-			ax := verts[poly[j]*3+0] + offset[k*2+0]
-			ay := verts[poly[j]*3+1]
-			az := verts[poly[j]*3+2] + offset[k*2+1]
+			ax := int32(verts[poly[j]*3+0]) + offset[k*2+0]
+			ay := int32(verts[poly[j]*3+1])
+			az := int32(verts[poly[j]*3+2]) + offset[k*2+1]
 			if ax < hp.xmin || ax >= hp.xmin+hp.width ||
 				az < hp.ymin || az >= hp.ymin+hp.height {
 				continue
@@ -864,11 +697,11 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 			ni := (c.Index + c.Count)
 			for ; i < ni && dmin > 0; i++ {
 				s := chf.Spans[i]
-				d := common.Abs(ay - s.Y)
+				d := common.Abs(ay - int32(s.Y))
 				if d < dmin {
 					startCellX = ax
 					startCellY = az
-					startSpanIndex = i
+					startSpanIndex = int32(i)
 					dmin = d
 				}
 			}
@@ -879,11 +712,11 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 		panic("")
 	}
 	// Find center of the polygon
-	pcx := 0
-	pcy := 0
-	for j := 0; j < npoly; j++ {
-		pcx += verts[poly[j]*3+0]
-		pcy += verts[poly[j]*3+2]
+	pcx := int32(0)
+	pcy := int32(0)
+	for j := int32(0); j < npoly; j++ {
+		pcx += int32(verts[poly[j]*3+0])
+		pcy += int32(verts[poly[j]*3+2])
 	}
 	pcx /= npoly
 	pcy /= npoly
@@ -894,16 +727,16 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 	array.Push(startCellY)
 	array.Push(startSpanIndex)
 
-	dirs := []int{0, 1, 2, 3}
-	hp.data = make([]int, hp.width*hp.height)
+	dirs := []int32{0, 1, 2, 3}
+	hp.data = make([]uint16, hp.width*hp.height)
 	// DFS to move to the center. Note that we need a DFS here and can not just move
 	// directly towards the center without recording intermediate nodes, even though the polygons
 	// are convex. In very rare we can get stuck due to contour simplification if we do not
 	// record nodes.
-	cx := -1
-	cy := -1
-	ci := -1
-	for true {
+	cx := int32(-1)
+	cy := int32(-1)
+	ci := int32(-1)
+	for {
 		if array.Len() < 3 {
 			break
 		}
@@ -919,15 +752,15 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 		// If we are already at the correct X-position, prefer direction
 		// directly towards the center in the Y-axis; otherwise prefer
 		// direction in the X-axis
-		var directDir int
+		var directDir int32
 		if cx == pcx {
-			y := -1
+			y := int32(-1)
 			if pcy > cy {
 				y = 1
 			}
 			directDir = common.GetDirForOffset(0, y)
 		} else {
-			x := -1
+			x := int32(-1)
 			if pcx > cx {
 				x = 1
 			}
@@ -960,7 +793,7 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 			hp.data[hpx+hpy*hp.width] = 1
 			array.Push(newX)
 			array.Push(newY)
-			array.Push(chf.Cells[(newX+bs)+(newY+bs)*chf.Width].Index + rcGetCon(cs, dir))
+			array.Push(int32(chf.Cells[(newX+bs)+(newY+bs)*chf.Width].Index) + rcGetCon(cs, dir))
 		}
 
 		dirs[directDir], dirs[3] = dirs[3], dirs[directDir]
@@ -979,145 +812,25 @@ func seedArrayWithPolyCenter(chf *RcCompactHeightfield, poly []int, npoly int, v
 	hp.data[cx-hp.xmin+(cy-hp.ymin)*hp.width] = cs.Y
 }
 
-func push3(queue Stack[int], v1, v2, v3 int) {
+func push3(queue Stack[int32], v1, v2, v3 int32) {
 	queue.Resize(queue.Len() + 3)
 	queue.SetByIndex(queue.Len()-3, v1)
 	queue.SetByIndex(queue.Len()-2, v2)
 	queue.SetByIndex(queue.Len()-1, v3)
 }
 
-func etHeightData(chf *RcCompactHeightfield,
-	poly []int, npoly int,
-	verts []int, bs int,
-	hp *rcHeightPatch, queue Stack[int],
-	region int) {
-	// Note: Reads to the compact heightfield are offset by border size (bs)
-	// since border size offset is already removed from the polymesh vertices.
-
-	queue.Clear()
-	if hp.data == nil {
-		hp.data = make([]int, hp.width*hp.height)
-	}
-	for i := range hp.data {
-		hp.data[i] = 0xff
-	}
-	// Set all heights to RC_UNSET_HEIGHT.
-
-	empty := true
-
-	// We cannot sample from this poly if it was created from polys
-	// of different regions. If it was then it could potentially be overlapping
-	// with polys of that region and the heights sampled here could be wrong.
-	if region != RC_MULTIPLE_REGS {
-		// Copy the height from the same region, and mark region borders
-		// as seed points to fill the rest.
-		for hy := 0; hy < hp.height; hy++ {
-			y := hp.ymin + hy + bs
-			for hx := 0; hx < hp.width; hx++ {
-				x := hp.xmin + hx + bs
-				c := chf.Cells[x+y*chf.Width]
-				i := c.Index
-				ni := (c.Index + c.Count)
-				for ; i < ni; i++ {
-					s := chf.Spans[i]
-					if s.Reg == region {
-						// Store height
-						hp.data[hx+hy*hp.width] = s.Y
-						empty = false
-
-						// If any of the neighbours is not in same region,
-						// add the current location as flood fill start
-						border := false
-						for dir := 0; dir < 4; dir++ {
-							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
-								ax := x + common.GetDirOffsetX(dir)
-								ay := y + common.GetDirOffsetY(dir)
-								ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
-								as := chf.Spans[ai]
-								if as.Reg != region {
-									border = true
-									break
-								}
-							}
-						}
-						if border {
-							push3(queue, x, y, i)
-						}
-
-						break
-					}
-				}
-			}
-		}
-	}
-
-	// if the polygon does not contain any points from the current region (rare, but happens)
-	// or if it could potentially be overlapping polygons of the same region,
-	// then use the center as the seed point.
-	if empty {
-		seedArrayWithPolyCenter(chf, poly, npoly, verts, bs, hp, queue)
-	}
-
-	RETRACT_SIZE := 256
-	head := 0
-
-	// We assume the seed is centered in the polygon, so a BFS to collect
-	// height data will ensure we do not move onto overlapping polygons and
-	// sample wrong heights.
-	for head*3 < queue.Len() {
-		cx := queue.Index(head*3 + 0)
-		cy := queue.Index(head*3 + 1)
-		ci := queue.Index(head*3 + 2)
-		head++
-		if head >= RETRACT_SIZE {
-			head = 0
-			if queue.Len() > RETRACT_SIZE*3 {
-				copy(queue.Data(), queue.Data()[RETRACT_SIZE*3:queue.Len()-RETRACT_SIZE*3])
-			}
-
-			queue.Resize(queue.Len() - RETRACT_SIZE*3)
-		}
-
-		cs := chf.Spans[ci]
-		for dir := 0; dir < 4; dir++ {
-			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
-				continue
-			}
-
-			ax := cx + common.GetDirOffsetX(dir)
-			ay := cy + common.GetDirOffsetY(dir)
-			hx := ax - hp.xmin - bs
-			hy := ay - hp.ymin - bs
-
-			if hx >= hp.width || hy >= hp.height {
-				continue
-			}
-
-			if hp.data[hx+hy*hp.width] != RC_UNSET_HEIGHT {
-				continue
-			}
-
-			ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(cs, dir)
-			as := chf.Spans[ai]
-
-			hp.data[hx+hy*hp.width] = as.Y
-
-			push3(queue, ax, ay, ai)
-		}
-	}
-}
 func getHeightData(chf *RcCompactHeightfield,
-	poly []int, npoly int,
-	verts []int, bs int,
-	hp *rcHeightPatch, queue Stack[int],
-	region int) {
+	poly []uint16, npoly int32,
+	verts []uint16, bs int32,
+	hp *rcHeightPatch, queue Stack[int32],
+	region int32) {
 	// Note: Reads to the compact heightfield are offset by border size (bs)
 	// since border size offset is already removed from the polymesh vertices.
 
 	queue.Clear()
 	// Set all heights to RC_UNSET_HEIGHT.
 	if hp.data == nil {
-		hp.data = make([]int, hp.width*hp.height)
+		hp.data = make([]uint16, hp.width*hp.height)
 	}
 	for i := range hp.data {
 		hp.data[i] = 0xff
@@ -1130,16 +843,16 @@ func getHeightData(chf *RcCompactHeightfield,
 	if region != RC_MULTIPLE_REGS {
 		// Copy the height from the same region, and mark region borders
 		// as seed points to fill the rest.
-		for hy := 0; hy < hp.height; hy++ {
+		for hy := int32(0); hy < hp.height; hy++ {
 			y := hp.ymin + hy + bs
-			for hx := 0; hx < hp.width; hx++ {
+			for hx := int32(0); hx < hp.width; hx++ {
 				x := hp.xmin + hx + bs
 				c := chf.Cells[x+y*chf.Width]
 				i := c.Index
 				ni := (c.Index + c.Count)
 				for ; i < ni; i++ {
 					s := chf.Spans[i]
-					if s.Reg == region {
+					if int32(s.Reg) == region {
 						// Store height
 						hp.data[hx+hy*hp.width] = s.Y
 						empty = false
@@ -1147,20 +860,20 @@ func getHeightData(chf *RcCompactHeightfield,
 						// If any of the neighbours is not in same region,
 						// add the current location as flood fill start
 						border := false
-						for dir := 0; dir < 4; dir++ {
+						for dir := int32(0); dir < 4; dir++ {
 							if rcGetCon(s, dir) != RC_NOT_CONNECTED {
 								ax := x + common.GetDirOffsetX(dir)
 								ay := y + common.GetDirOffsetY(dir)
-								ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(s, dir)
+								ai := int32(chf.Cells[ax+ay*chf.Width].Index) + rcGetCon(s, dir)
 								as := chf.Spans[ai]
-								if as.Reg != region {
+								if int32(as.Reg) != region {
 									border = true
 									break
 								}
 							}
 						}
 						if border {
-							push3(queue, x, y, i)
+							push3(queue, x, y, int32(i))
 						}
 
 						break
@@ -1198,7 +911,7 @@ func getHeightData(chf *RcCompactHeightfield,
 		}
 
 		cs := chf.Spans[ci]
-		for dir := 0; dir < 4; dir++ {
+		for dir := int32(0); dir < 4; dir++ {
 			if rcGetCon(cs, dir) == RC_NOT_CONNECTED {
 				continue
 			}
@@ -1216,7 +929,7 @@ func getHeightData(chf *RcCompactHeightfield,
 				continue
 			}
 
-			ai := chf.Cells[ax+ay*chf.Width].Index + rcGetCon(cs, dir)
+			ai := int32(chf.Cells[ax+ay*chf.Width].Index) + rcGetCon(cs, dir)
 			as := chf.Spans[ai]
 
 			hp.data[hx+hy*hp.width] = as.Y
@@ -1226,17 +939,17 @@ func getHeightData(chf *RcCompactHeightfield,
 	}
 }
 
-func getEdgeFlags(va, vb []float64,
-	vpoly []float64, npoly int) int {
+func getEdgeFlags(va, vb []float32,
+	vpoly []float32, npoly int32) int32 {
 	// The flag returned by this function matches dtDetailTriEdgeFlags in Detour.
 	// Figure out if edge (va,vb) is part of the polygon boundary.
-	thrSqr := common.Sqr(0.001)
-	i := 0
+	thrSqr := float32(common.Sqr(0.001))
+	i := int32(0)
 	j := npoly - 1
 	for i < npoly {
 
-		if distancePtSeg2d(va, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr &&
-			distancePtSeg2d(vb, rcGetVert(vpoly, j), rcGetVert(vpoly, i)) < thrSqr {
+		if common.DistancePtSeg2d(va, common.GetVert3(vpoly, j), common.GetVert3(vpoly, i)) < thrSqr &&
+			common.DistancePtSeg2d(vb, common.GetVert3(vpoly, j), common.GetVert3(vpoly, i)) < thrSqr {
 			return 1
 		}
 		j = i
@@ -1245,9 +958,9 @@ func getEdgeFlags(va, vb []float64,
 	return 0
 }
 
-func getTriFlags(va, vb, vc []float64,
-	vpoly []float64, npoly int) int {
-	flags := 0
+func getTriFlags(va, vb, vc []float32,
+	vpoly []float32, npoly int32) int32 {
+	flags := int32(0)
 	flags |= getEdgeFlags(va, vb, vpoly, npoly) << 0
 	flags |= getEdgeFlags(vb, vc, vpoly, npoly) << 2
 	flags |= getEdgeFlags(vc, va, vpoly, npoly) << 4
@@ -1258,12 +971,12 @@ func getTriFlags(va, vb, vc []float64,
 // / with the polygons in its associated polygon mesh object.
 // / @ingroup recast
 type RcPolyMeshDetail struct {
-	Meshes  []int     ///< The sub-mesh data. [Size: 4*#nmeshes]
-	Verts   []float64 ///< The mesh vertices. [Size: 3*#nverts]
-	Tris    []int     ///< The mesh triangles. [Size: 4*#ntris]
-	Nmeshes int       ///< The number of sub-meshes defined by #meshes.
-	Nverts  int       ///< The number of vertices in #verts.
-	Ntris   int       ///< The number of triangles in #tris.
+	Meshes  []uint32  ///< The sub-mesh data. [Size: 4*#nmeshes]
+	Verts   []float32 ///< The mesh vertices. [Size: 3*#nverts]
+	Tris    []uint8   ///< The mesh triangles. [Size: 4*#ntris]
+	Nmeshes int32     ///< The number of sub-meshes defined by #meshes.
+	Nverts  int32     ///< The number of vertices in #verts.
+	Ntris   int32     ///< The number of triangles in #tris.
 	// Explicitly-disabled copy constructor and copy assignment operator.
 }
 
@@ -1272,7 +985,7 @@ type RcPolyMeshDetail struct {
 // / See the #RcConfig documentation for more information on the configuration parameters.
 // /
 // / @see rcAllocPolyMeshDetail, RcPolyMesh, RcCompactHeightfield, RcPolyMeshDetail, RcConfig
-func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDist float64, sampleMaxError float64,
+func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDist float32, sampleMaxError float32,
 	dmesh *RcPolyMeshDetail) bool {
 	if mesh.Nverts == 0 || mesh.Npolys == 0 {
 		return true
@@ -1283,22 +996,22 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 	ch := mesh.Ch
 	orig := mesh.Bmin
 	borderSize := mesh.BorderSize
-	heightSearchRadius := int(common.Max(1, math.Ceil(mesh.MaxEdgeError)))
-	c := func() int { return 0 }
+	heightSearchRadius := int32(common.Max(1, math.Ceil(float64(mesh.MaxEdgeError))))
+	c := func() int32 { return 0 }
 	edges := NewStackArray(c, 64)
-	tris := NewStackArray(c, 512)
+	tris := NewStackArray(func() int32 { return 0 }, 512)
 	arr := NewStackArray(c, 512)
 	samples := NewStackArray(c, 512)
-	verts := make([]float64, 256*3)
+	verts := make([]float32, 256*3)
 	var hp rcHeightPatch
 	nPolyVerts := 0
-	maxhw := 0
-	maxhh := 0
-	bounds := make([]int, mesh.Npolys*4)
+	maxhw := int32(0)
+	maxhh := int32(0)
+	bounds := make([]int32, mesh.Npolys*4)
 
-	poly := make([]float64, nvp*3)
+	poly := make([]float32, nvp*3)
 	// Find max size for a polygon area.
-	for i := 0; i < mesh.Npolys; i++ {
+	for i := int32(0); i < mesh.Npolys; i++ {
 		p := mesh.Polys[i*nvp*2:]
 		xmin := &bounds[i*4+0]
 		xmax := &bounds[i*4+1]
@@ -1308,59 +1021,59 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		*xmax = 0
 		*ymin = chf.Height
 		*ymax = 0
-		for j := 0; j < nvp; j++ {
+		for j := int32(0); j < nvp; j++ {
 			if p[j] == RC_MESH_NULL_IDX {
 				break
 			}
-			v := rcGetVert(mesh.Verts, p[j])
-			*xmin = common.Min(*xmin, v[0])
-			*xmax = common.Max(*xmax, v[0])
-			*ymin = common.Min(*ymin, v[2])
-			*ymax = common.Max(*ymax, v[2])
+			v := common.GetVert3(mesh.Verts, p[j])
+			*xmin = min(*xmin, int32(v[0]))
+			*xmax = max(*xmax, int32(v[0]))
+			*ymin = min(*ymin, int32(v[2]))
+			*ymax = max(*ymax, int32(v[2]))
 			nPolyVerts++
 		}
-		*xmin = common.Max(0, *xmin-1)
-		*xmax = common.Min(chf.Width, *xmax+1)
-		*ymin = common.Max(0, *ymin-1)
-		*ymax = common.Min(chf.Height, *ymax+1)
+		*xmin = max(0, *xmin-1)
+		*xmax = min(chf.Width, *xmax+1)
+		*ymin = max(0, *ymin-1)
+		*ymax = min(chf.Height, *ymax+1)
 		if *xmin >= *xmax || *ymin >= *ymax {
 			continue
 		}
-		maxhw = common.Max(maxhw, *xmax-*xmin)
-		maxhh = common.Max(maxhh, *ymax-*ymin)
+		maxhw = max(maxhw, *xmax-*xmin)
+		maxhh = max(maxhh, *ymax-*ymin)
 	}
 
-	hp.data = make([]int, maxhw*maxhh)
+	hp.data = make([]uint16, maxhw*maxhh)
 
 	dmesh.Nmeshes = mesh.Npolys
 	dmesh.Nverts = 0
 	dmesh.Ntris = 0
 
-	dmesh.Meshes = make([]int, dmesh.Nmeshes*4)
+	dmesh.Meshes = make([]uint32, dmesh.Nmeshes*4)
 
 	vcap := nPolyVerts + nPolyVerts/2
 	tcap := vcap * 2
 
 	dmesh.Nverts = 0
 
-	dmesh.Verts = make([]float64, vcap*3)
+	dmesh.Verts = make([]float32, vcap*3)
 	dmesh.Ntris = 0
 
-	dmesh.Tris = make([]int, tcap*4)
+	dmesh.Tris = make([]uint8, tcap*4)
 
-	for i := 0; i < mesh.Npolys; i++ {
+	for i := int32(0); i < mesh.Npolys; i++ {
 		p := mesh.Polys[i*nvp*2:]
 
 		// Store polygon vertices for processing.
-		npoly := 0
-		for j := 0; j < nvp; j++ {
+		npoly := int32(0)
+		for j := int32(0); j < nvp; j++ {
 			if p[j] == RC_MESH_NULL_IDX {
 				break
 			}
-			v := rcGetVert(mesh.Verts, p[j])
-			poly[j*3+0] = float64(v[0]) * cs
-			poly[j*3+1] = float64(v[1]) * ch
-			poly[j*3+2] = float64(v[2]) * cs
+			v := common.GetVert3(mesh.Verts, p[j])
+			poly[j*3+0] = float32(v[0]) * cs
+			poly[j*3+1] = float32(v[1]) * ch
+			poly[j*3+2] = float32(v[2]) * cs
 			npoly++
 		}
 
@@ -1369,10 +1082,10 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		hp.ymin = bounds[i*4+2]
 		hp.width = bounds[i*4+1] - bounds[i*4+0]
 		hp.height = bounds[i*4+3] - bounds[i*4+2]
-		getHeightData(chf, p, npoly, mesh.Verts, borderSize, &hp, arr, mesh.Regs[i])
+		getHeightData(chf, p, npoly, mesh.Verts, borderSize, &hp, arr, int32(mesh.Regs[i]))
 
 		// Build detail mesh.
-		nverts := 0
+		nverts := int32(0)
 		if !buildPolyDetail(poly, npoly,
 			sampleDist, sampleMaxError,
 			heightSearchRadius, chf, &hp,
@@ -1382,13 +1095,13 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		}
 
 		// Move detail verts to world space.
-		for j := 0; j < nverts; j++ {
+		for j := int32(0); j < nverts; j++ {
 			verts[j*3+0] += orig[0]
 			verts[j*3+1] += orig[1] + chf.Ch // Is this offset necessary?
 			verts[j*3+2] += orig[2]
 		}
 		// Offset poly too, will be used to flag checking.
-		for j := 0; j < npoly; j++ {
+		for j := int32(0); j < npoly; j++ {
 			poly[j*3+0] += orig[0]
 			poly[j*3+1] += orig[1]
 			poly[j*3+2] += orig[2]
@@ -1397,24 +1110,24 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		// Store detail submesh.
 		ntris := tris.Len() / 4
 
-		dmesh.Meshes[i*4+0] = dmesh.Nverts
-		dmesh.Meshes[i*4+1] = nverts
-		dmesh.Meshes[i*4+2] = dmesh.Ntris
-		dmesh.Meshes[i*4+3] = ntris
+		dmesh.Meshes[i*4+0] = uint32(dmesh.Nverts)
+		dmesh.Meshes[i*4+1] = uint32(nverts)
+		dmesh.Meshes[i*4+2] = uint32(dmesh.Ntris)
+		dmesh.Meshes[i*4+3] = uint32(ntris)
 
 		// Store vertices, allocate more memory if necessary.
-		if dmesh.Nverts+nverts > vcap {
-			for dmesh.Nverts+nverts > vcap {
+		if int(dmesh.Nverts)+int(nverts) > vcap {
+			for int(dmesh.Nverts)+int(nverts) > vcap {
 				vcap += 256
 			}
 
-			newv := make([]float64, vcap*3)
+			newv := make([]float32, vcap*3)
 			if dmesh.Nverts != 0 {
 				copy(newv, dmesh.Verts[:3*dmesh.Nverts])
 			}
 			dmesh.Verts = newv
 		}
-		for j := 0; j < nverts; j++ {
+		for j := int32(0); j < nverts; j++ {
 			dmesh.Verts[dmesh.Nverts*3+0] = verts[j*3+0]
 			dmesh.Verts[dmesh.Nverts*3+1] = verts[j*3+1]
 			dmesh.Verts[dmesh.Nverts*3+2] = verts[j*3+2]
@@ -1422,12 +1135,12 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		}
 
 		// Store triangles, allocate more memory if necessary.
-		if dmesh.Ntris+ntris > tcap {
-			for dmesh.Ntris+ntris > tcap {
+		if int(dmesh.Ntris)+ntris > tcap {
+			for int(dmesh.Ntris)+ntris > tcap {
 				tcap += 256
 			}
 
-			newt := make([]int, tcap*4)
+			newt := make([]uint8, tcap*4)
 
 			if dmesh.Ntris != 0 {
 				copy(newt, dmesh.Tris[:4*dmesh.Ntris])
@@ -1436,10 +1149,10 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 		}
 		for j := 0; j < ntris; j++ {
 			t := tris.Slice(j*4, tris.Len())
-			dmesh.Tris[dmesh.Ntris*4+0] = t[0]
-			dmesh.Tris[dmesh.Ntris*4+1] = t[1]
-			dmesh.Tris[dmesh.Ntris*4+2] = t[2]
-			dmesh.Tris[dmesh.Ntris*4+3] = getTriFlags(rcGetVert(verts, t[0]), rcGetVert(verts, t[1]), rcGetVert(verts, t[2]), poly, npoly)
+			dmesh.Tris[dmesh.Ntris*4+0] = uint8(t[0])
+			dmesh.Tris[dmesh.Ntris*4+1] = uint8(t[1])
+			dmesh.Tris[dmesh.Ntris*4+2] = uint8(t[2])
+			dmesh.Tris[dmesh.Ntris*4+3] = uint8(getTriFlags(common.GetVert3(verts, t[0]), common.GetVert3(verts, t[1]), common.GetVert3(verts, t[2]), poly, npoly))
 			dmesh.Ntris++
 		}
 	}
@@ -1448,13 +1161,13 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 }
 
 // / @see rcAllocPolyMeshDetail, RcPolyMeshDetail
-func rcMergePolyMeshDetails(meshes []*RcPolyMeshDetail, nmeshes int, mesh *RcPolyMeshDetail) bool {
+func rcMergePolyMeshDetails(meshes []*RcPolyMeshDetail, nmeshes int32, mesh *RcPolyMeshDetail) bool {
 
-	maxVerts := 0
-	maxTris := 0
-	maxMeshes := 0
+	maxVerts := int32(0)
+	maxTris := int32(0)
+	maxMeshes := int32(0)
 
-	for i := 0; i < nmeshes; i++ {
+	for i := int32(0); i < nmeshes; i++ {
 		if meshes[i] == nil {
 			continue
 		}
@@ -1464,33 +1177,33 @@ func rcMergePolyMeshDetails(meshes []*RcPolyMeshDetail, nmeshes int, mesh *RcPol
 	}
 
 	mesh.Nmeshes = 0
-	mesh.Meshes = make([]int, maxMeshes*4)
+	mesh.Meshes = make([]uint32, maxMeshes*4)
 	mesh.Ntris = 0
-	mesh.Tris = make([]int, maxTris*4)
+	mesh.Tris = make([]uint8, maxTris*4)
 	mesh.Nverts = 0
 
-	mesh.Verts = make([]float64, maxVerts*3)
+	mesh.Verts = make([]float32, maxVerts*3)
 	// Merge datas.
-	for i := 0; i < nmeshes; i++ {
+	for i := int32(0); i < nmeshes; i++ {
 		dm := meshes[i]
 		if dm == nil {
 			continue
 		}
-		for j := 0; j < dm.Nmeshes; j++ {
-			dst := rcGetVert4(mesh.Meshes, mesh.Nmeshes)
-			src := rcGetVert4(dm.Meshes, j)
-			dst[0] = mesh.Nverts + src[0]
+		for j := int32(0); j < dm.Nmeshes; j++ {
+			dst := common.GetVert4(mesh.Meshes, mesh.Nmeshes)
+			src := common.GetVert4(dm.Meshes, j)
+			dst[0] = uint32(mesh.Nverts) + src[0]
 			dst[1] = src[1]
-			dst[2] = mesh.Ntris + src[2]
+			dst[2] = uint32(mesh.Ntris) + src[2]
 			dst[3] = src[3]
 			mesh.Nmeshes++
 		}
 
-		for k := 0; k < dm.Nverts; k++ {
-			copy(rcGetVert(mesh.Verts, mesh.Nverts), rcGetVert(dm.Verts, k))
+		for k := int32(0); k < dm.Nverts; k++ {
+			copy(common.GetVert3(mesh.Verts, mesh.Nverts), common.GetVert3(dm.Verts, k))
 			mesh.Nverts++
 		}
-		for k := 0; k < dm.Ntris; k++ {
+		for k := int32(0); k < dm.Ntris; k++ {
 			mesh.Tris[mesh.Ntris*4+0] = dm.Tris[k*4+0]
 			mesh.Tris[mesh.Ntris*4+1] = dm.Tris[k*4+1]
 			mesh.Tris[mesh.Ntris*4+2] = dm.Tris[k*4+2]

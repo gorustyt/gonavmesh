@@ -1,8 +1,8 @@
-package recast
+package detour
 
 import (
 	"container/heap"
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 )
 
 const (
@@ -20,12 +20,12 @@ const (
 )
 
 type DtNode struct {
-	Pos    []float64 ///< Position of the node.
-	Cost   float64   ///< Cost from previous node to current node.
-	Total  float64   ///< Cost up to the node.
-	Pidx   int       ///<  parent node.
-	State  int       ///< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
-	Flags  int       ///< Node flags. A combination of DtNodeFlags.
+	Pos    []float32 ///< Position of the node.
+	Cost   float32   ///< Cost from previous node to current node.
+	Total  float32   ///< Cost up to the node.
+	Pidx   uint32    ///<  parent node.
+	State  uint32    ///< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
+	Flags  uint32    ///< Node flags. A combination of DtNodeFlags.
 	Id     DtPolyRef ///< Polygon ref the node corresponds to.
 	_index int       //堆中移除和更新对象用
 }
@@ -35,7 +35,7 @@ func NewDtNode() *DtNode {
 		Pidx:  DT_NODE_PARENT_BITS,
 		State: DT_NODE_STATE_BITS,
 		Flags: 3,
-		Pos:   make([]float64, 3),
+		Pos:   make([]float32, 3),
 	}
 }
 
@@ -135,14 +135,14 @@ func (q *nodeQueue[T]) Swap(i, j int) {
 
 }
 
-func dtHashRef(a DtPolyRef) int {
+func dtHashRef(a DtPolyRef) int32 {
 	a += ^(a << 15)
 	a ^= (a >> 10)
 	a += (a << 3)
 	a ^= (a >> 6)
 	a += ^(a << 11)
 	a ^= (a >> 16)
-	return int(a)
+	return int32(a)
 }
 
 const (
@@ -153,20 +153,20 @@ type DtNodePool struct {
 	m_nodes     []*DtNode
 	m_first     []DtNodeIndex
 	m_next      []DtNodeIndex
-	m_maxNodes  int
-	m_hashSize  int
-	m_nodeCount int
+	m_maxNodes  int32
+	m_hashSize  int32
+	m_nodeCount int32
 }
 
-func NewDtNodePool(maxNodes, hashSize int) *DtNodePool {
+func NewDtNodePool(maxNodes, hashSize int32) *DtNodePool {
 	p := &DtNodePool{
 		m_maxNodes: maxNodes,
 		m_hashSize: hashSize,
 	}
-	common.AssertTrue(common.NextPow2(p.m_hashSize) == p.m_hashSize)
+	common.AssertTrue(common.NextPow2(uint32(p.m_hashSize)) == uint32(p.m_hashSize))
 	// pidx is special as 0 means "none" and 1 is the first node. For that reason
 	// we have 1 fewer nodes available than the number of values it can contain.
-	common.AssertTrue(p.m_maxNodes > 0 && p.m_maxNodes <= int(DT_NULL_IDX) && p.m_maxNodes <= (1<<DT_NODE_PARENT_BITS)-1)
+	common.AssertTrue(p.m_maxNodes > 0 && int(p.m_maxNodes) <= int(DT_NULL_IDX) && p.m_maxNodes <= (1<<DT_NODE_PARENT_BITS)-1)
 	p.m_nodes = make([]*DtNode, p.m_maxNodes)
 	p.m_next = make([]DtNodeIndex, p.m_maxNodes)
 	p.m_first = make([]DtNodeIndex, hashSize)
@@ -201,12 +201,12 @@ func (p *DtNodePool) GetNodeAtIdx(idx int) *DtNode {
 	return p.m_nodes[idx-1]
 }
 
-func (p *DtNodePool) GetMaxNodes() int { return p.m_maxNodes }
+func (p *DtNodePool) GetMaxNodes() int32 { return p.m_maxNodes }
 
-func (p *DtNodePool) GetHashSize() int                { return p.m_hashSize }
+func (p *DtNodePool) GetHashSize() int32              { return p.m_hashSize }
 func (p *DtNodePool) GetFirst(bucket int) DtNodeIndex { return p.m_first[bucket] }
 func (p *DtNodePool) GetNext(i int) DtNodeIndex       { return p.m_next[i] }
-func (p *DtNodePool) GetNodeCount() int               { return p.m_nodeCount }
+func (p *DtNodePool) GetNodeCount() int32             { return p.m_nodeCount }
 func (p *DtNodePool) Clear() {
 	p.m_next = make([]DtNodeIndex, len(p.m_next))
 	p.m_nodeCount = 0
@@ -229,8 +229,8 @@ func (p *DtNodePool) FindNodes(id DtPolyRef, maxNodes int) (nodes []*DtNode, n i
 	return nodes, n
 }
 
-func (p *DtNodePool) GetNode(id DtPolyRef, states ...int) *DtNode {
-	state := 0
+func (p *DtNodePool) GetNode(id DtPolyRef, states ...uint32) *DtNode {
+	state := uint32(0)
 	if len(states) > 0 {
 		state = states[0]
 	}
@@ -270,7 +270,7 @@ func (p *DtNodePool) GetNode(id DtPolyRef, states ...int) *DtNode {
 	return node
 }
 
-func (p *DtNodePool) FindNode1(id DtPolyRef, state int) *DtNode {
+func (p *DtNodePool) FindNode1(id DtPolyRef, state uint32) *DtNode {
 	bucket := dtHashRef(id) & (p.m_hashSize - 1)
 	i := p.m_first[bucket]
 	for i != DT_NULL_IDX {

@@ -1,11 +1,14 @@
-package recast
+package detour_crowd
 
-import "gonavamesh/common"
+import (
+	"github.com/gorustyt/gonavmesh/common"
+	"github.com/gorustyt/gonavmesh/detour"
+)
 
-func DtMergeCorridorStartMoved(path []DtPolyRef, npath, maxPath int,
-	visited []DtPolyRef, nvisited int) int {
-	furthestPath := -1
-	furthestVisited := -1
+func DtMergeCorridorStartMoved(path []detour.DtPolyRef, npath, maxPath int32,
+	visited []detour.DtPolyRef, nvisited int32) int32 {
+	furthestPath := int32(-1)
+	furthestVisited := int32(-1)
 
 	// Find furthest common polygon.
 	for i := npath - 1; i >= 0; i-- {
@@ -32,8 +35,8 @@ func DtMergeCorridorStartMoved(path []DtPolyRef, npath, maxPath int,
 
 	// Adjust beginning of the buffer to include the visited.
 	req := nvisited - furthestVisited
-	orig := common.Min(furthestPath+1, npath)
-	size := common.Max(0, npath-orig)
+	orig := min(furthestPath+1, npath)
+	size := int32(max(0, npath-orig))
 	if req+size > maxPath {
 		size = maxPath - req
 	}
@@ -43,14 +46,14 @@ func DtMergeCorridorStartMoved(path []DtPolyRef, npath, maxPath int,
 	}
 
 	// Store visited
-	for i := 0; i < req; i++ {
+	for i := int32(0); i < req; i++ {
 		path[i] = visited[(nvisited-1)-i]
 	}
 
 	return req + size
 }
 
-func dtMergeCorridorEndMoved(path []DtPolyRef, npath, maxPath int, visited []DtPolyRef, nvisited int) int {
+func dtMergeCorridorEndMoved(path []detour.DtPolyRef, npath, maxPath int, visited []detour.DtPolyRef, nvisited int) int {
 	furthestPath := -1
 	furthestVisited := -1
 
@@ -89,9 +92,9 @@ func dtMergeCorridorEndMoved(path []DtPolyRef, npath, maxPath int, visited []DtP
 	return ppos + count
 }
 
-func dtMergeCorridorStartShortcut(path []DtPolyRef, npath, maxPath int, visited []DtPolyRef, nvisited int) int {
-	furthestPath := -1
-	furthestVisited := -1
+func dtMergeCorridorStartShortcut(path []detour.DtPolyRef, npath, maxPath int32, visited []detour.DtPolyRef, nvisited int32) int32 {
+	furthestPath := int32(-1)
+	furthestVisited := int32(-1)
 
 	// Find furthest common polygon.
 	for i := npath - 1; i >= 0; i-- {
@@ -133,7 +136,7 @@ func dtMergeCorridorStartShortcut(path []DtPolyRef, npath, maxPath int, visited 
 	}
 
 	// Store visited
-	for i := 0; i < req; i++ {
+	for i := int32(0); i < req; i++ {
 		path[i] = visited[i]
 	}
 
@@ -184,24 +187,24 @@ may be needed.  E.g. If you move the target, check #getLastPoly() to see if it i
 // / Represents a dynamic polygon corridor used to plan agent movement.
 // / @ingroup crowd, detour
 type dtPathCorridor struct {
-	m_pos     []float64
-	m_target  []float64
-	m_path    []DtPolyRef
-	m_npath   int
-	m_maxPath int
+	m_pos     []float32
+	m_target  []float32
+	m_path    []detour.DtPolyRef
+	m_npath   int32
+	m_maxPath int32
 }
 
 // / Gets the current position within the corridor. (In the first polygon.)
 // / @return The current position within the corridor.
-func (d *dtPathCorridor) GetPos() []float64 { return d.m_pos }
+func (d *dtPathCorridor) GetPos() []float32 { return d.m_pos }
 
 // / Gets the current target within the corridor. (In the last polygon.)
 // / @return The current target within the corridor.
-func (d *dtPathCorridor) getTarget() []float64 { return d.m_target }
+func (d *dtPathCorridor) getTarget() []float32 { return d.m_target }
 
 // / The polygon reference id of the first polygon in the corridor, the polygon containing the position.
 // / @return The polygon reference id of the first polygon in the corridor. (Or zero if there is no path.)
-func (d *dtPathCorridor) getFirstPoly() DtPolyRef {
+func (d *dtPathCorridor) getFirstPoly() detour.DtPolyRef {
 	if d.m_npath > 0 {
 		return d.m_path[0]
 	}
@@ -210,7 +213,7 @@ func (d *dtPathCorridor) getFirstPoly() DtPolyRef {
 
 // / The polygon reference id of the last polygon in the corridor, the polygon containing the target.
 // / @return The polygon reference id of the last polygon in the corridor. (Or zero if there is no path.)
-func (d *dtPathCorridor) getLastPoly() DtPolyRef {
+func (d *dtPathCorridor) getLastPoly() detour.DtPolyRef {
 	if d.m_npath > 0 {
 		return d.m_path[d.m_npath-1]
 	}
@@ -219,21 +222,21 @@ func (d *dtPathCorridor) getLastPoly() DtPolyRef {
 
 // / The corridor's path.
 // / @return The corridor's path. [(polyRef) * #getPathCount()]
-func (d *dtPathCorridor) GetPath() []DtPolyRef { return d.m_path }
+func (d *dtPathCorridor) GetPath() []detour.DtPolyRef { return d.m_path }
 
 // / The number of polygons in the current corridor path.
 // / @return The number of polygons in the current corridor path.
-func (d *dtPathCorridor) GetPathCount() int { return d.m_npath }
+func (d *dtPathCorridor) GetPathCount() int { return int(d.m_npath) }
 
 // / @par
 // /
 // / @warning Cannot be called more than once.
-func newDtPathCorridor(maxPath int) *dtPathCorridor {
+func newDtPathCorridor(maxPath int32) *dtPathCorridor {
 	d := &dtPathCorridor{
-		m_pos:    make([]float64, 3),
-		m_target: make([]float64, 3),
+		m_pos:    make([]float32, 3),
+		m_target: make([]float32, 3),
 	}
-	d.m_path = make([]DtPolyRef, maxPath)
+	d.m_path = make([]detour.DtPolyRef, maxPath)
 	d.m_npath = 0
 	d.m_maxPath = maxPath
 	return d
@@ -243,7 +246,7 @@ func newDtPathCorridor(maxPath int) *dtPathCorridor {
 // /
 // / Essentially, the corridor is set of one polygon in size with the target
 // / equal to the position.
-func (d *dtPathCorridor) reset(ref DtPolyRef, pos []float64) {
+func (d *dtPathCorridor) reset(ref detour.DtPolyRef, pos []float32) {
 	copy(d.m_pos[:], pos)
 	copy(d.m_target[:], pos)
 	d.m_path[0] = ref
@@ -264,18 +267,18 @@ func (d *dtPathCorridor) reset(ref DtPolyRef, pos []float64) {
 
 	If the target is within range, it will be the last corner and have a polygon reference id of zero.
 */
-func (d *dtPathCorridor) findCorners(cornerVerts []float64, cornerFlags []int,
-	cornerPolys []DtPolyRef, maxCorners int,
-	navquery NavMeshQuery, filter *DtQueryFilter) int {
+func (d *dtPathCorridor) findCorners(cornerVerts []float32, cornerFlags []int32,
+	cornerPolys []detour.DtPolyRef, maxCorners int32,
+	navquery detour.NavMeshQuery, filter *detour.DtQueryFilter) int32 {
 	MIN_TARGET_DIST := 0.01
 
-	ncorners := 0
+	ncorners := int32(0)
 	ncorners, _ = navquery.FindStraightPath(d.m_pos[:], d.m_target[:], d.m_path, d.m_npath,
 		cornerVerts, cornerFlags, cornerPolys, maxCorners, 0)
 
 	// Prune points in the beginning of the path which are too close.
 	for ncorners > 0 {
-		if (cornerFlags[0]&DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0) || common.Vdist2DSqr(cornerVerts, d.m_pos[:]) > common.Sqr(MIN_TARGET_DIST) {
+		if (cornerFlags[0]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0) || float64(common.Vdist2DSqr(cornerVerts, d.m_pos[:])) > common.Sqr(MIN_TARGET_DIST) {
 			break
 		}
 
@@ -288,8 +291,8 @@ func (d *dtPathCorridor) findCorners(cornerVerts []float64, cornerFlags []int,
 	}
 
 	// Prune points after an off-mesh connection.
-	for i := 0; i < ncorners; i++ {
-		if cornerFlags[i]&DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0 {
+	for i := int32(0); i < ncorners; i++ {
+		if cornerFlags[i]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0 {
 			ncorners = i + 1
 			break
 		}
@@ -317,10 +320,10 @@ of the call to match the needs to the agent.
 
 This function is not suitable for long distance searches.
 */
-func (d *dtPathCorridor) optimizePathVisibility(next []float64, pathOptimizationRange float64,
-	navquery NavMeshQuery, filter *DtQueryFilter) {
+func (d *dtPathCorridor) optimizePathVisibility(next []float32, pathOptimizationRange float32,
+	navquery detour.NavMeshQuery, filter *detour.DtQueryFilter) {
 	// Clamp the ray to max distance.
-	goal := make([]float64, 3)
+	goal := make([]float32, 3)
 	copy(goal, next)
 	dist := common.Vdist2D(d.m_pos[:], goal)
 
@@ -333,22 +336,22 @@ func (d *dtPathCorridor) optimizePathVisibility(next []float64, pathOptimization
 	dist = common.Min(dist+0.01, pathOptimizationRange)
 
 	// Adjust ray length.
-	delta := make([]float64, 3)
+	delta := make([]float32, 3)
 	common.Vsub(delta, goal, d.m_pos[:])
 	common.Vmad(goal, d.m_pos[:], delta, pathOptimizationRange/dist)
 
-	MAX_RES := 32
-	res := make([]DtPolyRef, MAX_RES)
+	MAX_RES := int32(32)
+	res := make([]detour.DtPolyRef, MAX_RES)
 
 	var (
-		t float64
+		t float32
 	)
-	norm := make([]float64, 3)
-	nres := 0
+	norm := make([]float32, 3)
+	nres := int32(0)
 
 	navquery.Raycast(d.m_path[0], d.m_pos[:], goal, filter, &t, norm, res, &nres, MAX_RES)
 	if nres > 1 && t > 0.99 {
-		d.m_npath = dtMergeCorridorStartShortcut(d.m_path, d.m_npath, d.m_maxPath, res, nres)
+		d.m_npath = dtMergeCorridorStartShortcut(d.m_path, d.m_npath, d.m_maxPath, res, int32(nres))
 	}
 }
 
@@ -364,7 +367,7 @@ func (d *dtPathCorridor) optimizePathVisibility(next []float64, pathOptimization
 	The more inaccurate the agent movement, the more beneficial this function becomes. Simply adjust the frequency of
 	the call to match the needs to the agent.
 */
-func (d *dtPathCorridor) optimizePathTopology(navquery NavMeshQuery, filter *DtQueryFilter) bool {
+func (d *dtPathCorridor) optimizePathTopology(navquery detour.NavMeshQuery, filter *detour.DtQueryFilter) bool {
 	if d.m_npath < 3 {
 		return false
 	}
@@ -372,25 +375,25 @@ func (d *dtPathCorridor) optimizePathTopology(navquery NavMeshQuery, filter *DtQ
 	MAX_ITER := 32
 	MAX_RES := 32
 
-	res := make([]DtPolyRef, MAX_RES)
+	res := make([]detour.DtPolyRef, MAX_RES)
 	navquery.InitSlicedFindPath(d.m_path[0], d.m_path[d.m_npath-1], d.m_pos[:], d.m_target[:], filter, 0)
-	navquery.UpdateSlicedFindPath(MAX_ITER)
-	nres, status := navquery.FinalizeSlicedFindPathPartial(d.m_path, d.m_npath, res, MAX_RES)
+	navquery.UpdateSlicedFindPath(int32(MAX_ITER))
+	nres, status := navquery.FinalizeSlicedFindPathPartial(d.m_path, int32(d.m_npath), res, int32(MAX_RES))
 	if status.DtStatusSucceed() && nres > 0 {
-		d.m_npath = dtMergeCorridorStartShortcut(d.m_path, d.m_npath, d.m_maxPath, res, nres)
+		d.m_npath = dtMergeCorridorStartShortcut(d.m_path, d.m_npath, d.m_maxPath, res, int32(nres))
 		return true
 	}
 
 	return false
 }
 
-func (d *dtPathCorridor) moveOverOffmeshConnection(offMeshConRef DtPolyRef, refs []DtPolyRef,
-	startPos, endPos []float64,
-	navquery NavMeshQuery) bool {
+func (d *dtPathCorridor) moveOverOffmeshConnection(offMeshConRef detour.DtPolyRef, refs []detour.DtPolyRef,
+	startPos, endPos []float32,
+	navquery detour.NavMeshQuery) bool {
 	// Advance the path up to and over the off-mesh connection.
-	var prevRef DtPolyRef
+	var prevRef detour.DtPolyRef
 	polyRef := d.m_path[0]
-	npos := 0
+	npos := int32(0)
 	for npos < d.m_npath && polyRef != offMeshConRef {
 		prevRef = polyRef
 		polyRef = d.m_path[npos]
@@ -438,13 +441,13 @@ depends on local polygon density, query search half extents, etc.
 The resulting position will differ from the desired position if the desired position is not on the navigation mesh,
 or it can't be reached using a local search.
 */
-func (d *dtPathCorridor) movePosition(npos []float64, navquery NavMeshQuery, filter *DtQueryFilter) bool {
+func (d *dtPathCorridor) movePosition(npos []float32, navquery detour.NavMeshQuery, filter *detour.DtQueryFilter) bool {
 	// Move along navmesh and update new position.
-	result := make([]float64, 3)
+	result := make([]float32, 3)
 	MAX_VISITED := 16
-	visited := make([]DtPolyRef, MAX_VISITED)
-	nvisited := 0
-	status := navquery.MoveAlongSurface(d.m_path[0], d.m_pos[:], npos, filter, result, visited, &nvisited, MAX_VISITED)
+	visited := make([]detour.DtPolyRef, MAX_VISITED)
+	nvisited := int32(0)
+	status := navquery.MoveAlongSurface(d.m_path[0], d.m_pos[:], npos, filter, result, visited, &nvisited, int32(MAX_VISITED))
 	if status.DtStatusSucceed() {
 		d.m_npath = DtMergeCorridorStartMoved(d.m_path, d.m_npath, d.m_maxPath, visited, nvisited)
 
@@ -472,17 +475,17 @@ The expected use case is that the desired target will be 'near' the current corr
 
 The resulting target will differ from the desired target if the desired target is not on the navigation mesh, or it can't be reached using a local search.
 */
-func (d *dtPathCorridor) moveTargetPosition(npos []float64, navquery *DtNavMeshQuery, filter *DtQueryFilter) bool {
+func (d *dtPathCorridor) moveTargetPosition(npos []float32, navquery *detour.DtNavMeshQuery, filter *detour.DtQueryFilter) bool {
 	// Move along navmesh and update new position.
-	result := make([]float64, 3)
+	result := make([]float32, 3)
 	MAX_VISITED := 16
-	visited := make([]DtPolyRef, MAX_VISITED)
-	nvisited := 0
-	var status DtStatus
+	visited := make([]detour.DtPolyRef, MAX_VISITED)
+	nvisited := int32(0)
+	var status detour.DtStatus
 	status = navquery.MoveAlongSurface(d.m_path[d.m_npath-1], d.m_target[:], npos, filter, result, visited, &nvisited,
-		MAX_VISITED)
+		int32(MAX_VISITED))
 	if status.DtStatusSucceed() {
-		d.m_npath = dtMergeCorridorEndMoved(d.m_path, d.m_npath, d.m_maxPath, visited, nvisited)
+		d.m_npath = int32(dtMergeCorridorEndMoved(d.m_path, int(d.m_npath), int(d.m_maxPath), visited, int(nvisited)))
 		// TODO: should we do that?
 		// Adjust the position to stay on top of the navmesh.
 		/*	float h = m_target[1];
@@ -502,13 +505,13 @@ func (d *dtPathCorridor) moveTargetPosition(npos []float64, navquery *DtNavMeshQ
 // / is expected to be in the last polygon.
 // /
 // / @warning The size of the path must not exceed the size of corridor's path buffer set during #init().
-func (d *dtPathCorridor) setCorridor(target []float64, path []DtPolyRef, npath int) {
+func (d *dtPathCorridor) setCorridor(target []float32, path []detour.DtPolyRef, npath int) {
 	copy(d.m_target[:], target)
 	copy(d.m_path, path[:npath])
-	d.m_npath = npath
+	d.m_npath = int32(npath)
 }
 
-func (d *dtPathCorridor) fixPathStart(safeRef DtPolyRef, safePos []float64) bool {
+func (d *dtPathCorridor) fixPathStart(safeRef detour.DtPolyRef, safePos []float32) bool {
 
 	copy(d.m_pos[:], safePos)
 	if d.m_npath < 3 && d.m_npath > 0 {
@@ -524,10 +527,10 @@ func (d *dtPathCorridor) fixPathStart(safeRef DtPolyRef, safePos []float64) bool
 	return true
 }
 
-func (d *dtPathCorridor) trimInvalidPath(safeRef DtPolyRef, safePos []float64,
-	navquery *DtNavMeshQuery, filter *DtQueryFilter) bool {
+func (d *dtPathCorridor) trimInvalidPath(safeRef detour.DtPolyRef, safePos []float32,
+	navquery *detour.DtNavMeshQuery, filter *detour.DtQueryFilter) bool {
 	// Keep valid path as far as possible.
-	n := 0
+	n := int32(0)
 	for n < d.m_npath && navquery.IsValidPolyRef(d.m_path[n], filter) {
 		n++
 	}
@@ -546,7 +549,7 @@ func (d *dtPathCorridor) trimInvalidPath(safeRef DtPolyRef, safePos []float64,
 	}
 
 	// Clamp target pos to last poly
-	tgt := make([]float64, 3)
+	tgt := make([]float32, 3)
 	copy(tgt, d.m_target[:])
 	tgt, _ = navquery.ClosestPointOnPolyBoundary(d.m_path[d.m_npath-1], d.m_target[:])
 
@@ -557,10 +560,10 @@ func (d *dtPathCorridor) trimInvalidPath(safeRef DtPolyRef, safePos []float64,
 // /
 // / The path can be invalidated if there are structural changes to the underlying navigation mesh, or the state of
 // / a polygon within the path changes resulting in it being filtered out. (E.g. An exclusion or inclusion flag changes.)
-func (d *dtPathCorridor) isValid(maxLookAhead int, navquery NavMeshQuery, filter *DtQueryFilter) bool {
+func (d *dtPathCorridor) isValid(maxLookAhead int32, navquery detour.NavMeshQuery, filter *detour.DtQueryFilter) bool {
 	// Check that all polygons still pass query filter.
-	n := common.Min(d.m_npath, maxLookAhead)
-	for i := 0; i < n; i++ {
+	n := min(d.m_npath, maxLookAhead)
+	for i := int32(0); i < n; i++ {
 		if !navquery.IsValidPolyRef(d.m_path[i], filter) {
 			return false
 		}

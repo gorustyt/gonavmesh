@@ -1,6 +1,8 @@
-package recast
+package detour_crowd
 
-import "gonavamesh/common"
+import (
+	"github.com/gorustyt/gonavmesh/detour"
+)
 
 type DtPathQueueRef int
 
@@ -9,15 +11,15 @@ const DT_PATHQ_INVALID = 0
 type PathQuery struct {
 	ref DtPathQueueRef
 	/// Path find start and end location.
-	startPos, endPos [3]float64
-	startRef, endRef DtPolyRef
+	startPos, endPos [3]float32
+	startRef, endRef detour.DtPolyRef
 	/// Result.
-	path  []DtPolyRef
-	npath int
+	path  []detour.DtPolyRef
+	npath int32
 	/// State.
-	status    DtStatus
+	status    detour.DtStatus
 	keepAlive int
-	filter    *DtQueryFilter ///< TODO: This is potentially dangerous!
+	filter    *detour.DtQueryFilter ///< TODO: This is potentially dangerous!
 }
 
 type DtPathQueue struct {
@@ -26,10 +28,10 @@ type DtPathQueue struct {
 	m_nextHandle  DtPathQueueRef
 	m_maxPathSize int
 	m_queueHead   int
-	m_navquery    NavMeshQuery
+	m_navquery    detour.NavMeshQuery
 }
 
-func (d *DtPathQueue) GetNavQuery() NavMeshQuery { return d.m_navquery }
+func (d *DtPathQueue) GetNavQuery() detour.NavMeshQuery { return d.m_navquery }
 func newDtPathQueue() *DtPathQueue {
 	d := &DtPathQueue{
 		MAX_QUEUE: 8,
@@ -45,13 +47,13 @@ func (d *DtPathQueue) purge() {
 	}
 }
 
-func (d *DtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMesh) bool {
+func (d *DtPathQueue) init(maxPathSize int, maxSearchNodeCount int32, nav detour.IDtNavMesh) bool {
 	d.purge()
-	d.m_navquery = NewDtNavMeshQuery(nav, maxSearchNodeCount)
+	d.m_navquery = detour.NewDtNavMeshQuery(nav, maxSearchNodeCount)
 	d.m_maxPathSize = maxPathSize
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		d.m_queue[i].ref = DT_PATHQ_INVALID
-		d.m_queue[i].path = make([]DtPolyRef, d.m_maxPathSize)
+		d.m_queue[i].path = make([]detour.DtPolyRef, d.m_maxPathSize)
 	}
 
 	d.m_queueHead = 0
@@ -59,7 +61,7 @@ func (d *DtPathQueue) init(maxPathSize int, maxSearchNodeCount int, nav IDtNavMe
 	return true
 }
 
-func (d *DtPathQueue) update(maxIters int) {
+func (d *DtPathQueue) update(maxIters int32) {
 	MAX_KEEP_ALIVE := 2 // in update ticks.
 
 	// Update path request until there is nothing to update
@@ -94,12 +96,12 @@ func (d *DtPathQueue) update(maxIters int) {
 		}
 		// Handle query in progress.
 		if q.status.DtStatusInProgress() {
-			iters := 0
+			iters := int32(0)
 			iters, q.status = d.m_navquery.UpdateSlicedFindPath(iterCount)
 			iterCount -= iters
 		}
 		if q.status.DtStatusSucceed() {
-			q.npath, q.status = d.m_navquery.FinalizeSlicedFindPath(q.path, d.m_maxPathSize)
+			q.npath, q.status = d.m_navquery.FinalizeSlicedFindPath(q.path, int32(d.m_maxPathSize))
 		}
 
 		if iterCount <= 0 {
@@ -110,9 +112,9 @@ func (d *DtPathQueue) update(maxIters int) {
 	}
 }
 
-func (d *DtPathQueue) request(startRef, endRef DtPolyRef,
-	startPos, endPos []float64,
-	filter *DtQueryFilter) DtPathQueueRef {
+func (d *DtPathQueue) request(startRef, endRef detour.DtPolyRef,
+	startPos, endPos []float32,
+	filter *detour.DtQueryFilter) DtPathQueueRef {
 	// Find empty slot
 	slot := -1
 	for i := 0; i < d.MAX_QUEUE; i++ {
@@ -147,30 +149,30 @@ func (d *DtPathQueue) request(startRef, endRef DtPolyRef,
 	return ref
 }
 
-func (d *DtPathQueue) getRequestStatus(ref DtPathQueueRef) DtStatus {
+func (d *DtPathQueue) getRequestStatus(ref DtPathQueueRef) detour.DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			return d.m_queue[i].status
 		}
 
 	}
-	return DT_FAILURE
+	return detour.DT_FAILURE
 }
 
-func (d *DtPathQueue) getPathResult(ref DtPathQueueRef, path []DtPolyRef, pathSize *int, maxPath int) DtStatus {
+func (d *DtPathQueue) getPathResult(ref DtPathQueueRef, path []detour.DtPolyRef, pathSize *int32, maxPath int32) detour.DtStatus {
 	for i := 0; i < d.MAX_QUEUE; i++ {
 		if d.m_queue[i].ref == ref {
 			q := d.m_queue[i]
-			details := q.status & DT_STATUS_DETAIL_MASK
+			details := q.status & detour.DT_STATUS_DETAIL_MASK
 			// Free request for reuse.
 			q.ref = DT_PATHQ_INVALID
 			q.status = 0
 			// Copy path
-			n := common.Min(q.npath, maxPath)
+			n := min(q.npath, maxPath)
 			copy(path, q.path[:n])
 			*pathSize = n
-			return details | DT_SUCCESS
+			return details | detour.DT_SUCCESS
 		}
 	}
-	return DT_FAILURE
+	return detour.DT_FAILURE
 }

@@ -6,10 +6,18 @@ import (
 	"math"
 )
 
-type IT interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-		~float32 | ~float64
+func IsTFloat64[T float64 | float32](v T) bool {
+	var tmp any = v
+	_, ok := tmp.(float64)
+	return ok
+}
+
+func GetTFloatMax[T float64 | float32](v T) T {
+	if IsTFloat64(v) {
+		t1 := math.MaxFloat64
+		return T(t1)
+	}
+	return T(math.MaxFloat32)
 }
 
 // / Returns the square of the value.
@@ -37,7 +45,7 @@ func Abs[T IT](a T) T {
 // / @param[out]		dest	The result vector. [(x, y, z)]
 // / @param[in]		v1		The base vector. [(x, y, z)]
 // / @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
-func Vadd(res []float64, v1, v2 []float64) {
+func Vadd[T float64 | float32](res []T, v1, v2 []T) {
 	res[0] = v1[0] + v2[0]
 	res[1] = v1[1] + v2[1]
 	res[2] = v1[2] + v2[2]
@@ -47,7 +55,7 @@ func Vadd(res []float64, v1, v2 []float64) {
 // / @param[out]		dest	The result vector. [(x, y, z)]
 // / @param[in]		v1		The base vector. [(x, y, z)]
 // / @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
-func Vsub(res, v1, v2 []float64) {
+func Vsub[T float64 | float32](res, v1, v2 []T) {
 	res[0] = v1[0] - v2[0]
 	res[1] = v1[1] - v2[1]
 	res[2] = v1[2] - v2[2]
@@ -56,7 +64,7 @@ func Vsub(res, v1, v2 []float64) {
 // / Selects the minimum value of each element from the specified vectors.
 // / @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
-func Vmin(mn, v []float64) {
+func Vmin[T float64 | float32](mn, v []T) {
 	mn[0] = Min(mn[0], v[0])
 	mn[1] = Min(mn[1], v[1])
 	mn[2] = Min(mn[2], v[2])
@@ -65,7 +73,7 @@ func Vmin(mn, v []float64) {
 // / Selects the maximum value of each element from the specified vectors.
 // / @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
-func Vmax(mx, v []float64) {
+func Vmax[T float64 | float32](mx, v []T) {
 	mx[0] = Max(mx[0], v[0])
 	mx[1] = Max(mx[1], v[1])
 	mx[2] = Max(mx[2], v[2])
@@ -75,28 +83,28 @@ func Vmax(mx, v []float64) {
 // / @param[in]		v1	A point. [(x, y, z)]
 // / @param[in]		v2	A point. [(x, y, z)]
 // / @return The distance between the two points.
-func Vdist(v1, v2 []float64) float64 {
+func Vdist[T float64 | float32](v1, v2 []T) T {
 	dx := v2[0] - v1[0]
 	dy := v2[1] - v1[1]
 	dz := v2[2] - v1[2]
-	return Sqrt(dx*dx + dy*dy + dz*dz)
+	return T(Sqrt(float64(dx*dx + dy*dy + dz*dz)))
 }
 
 // / Returns the square of the distance between two points.
 // / @param[in]		v1	A point. [(x, y, z)]
 // / @param[in]		v2	A point. [(x, y, z)]
 // / @return The square of the distance between the two points.
-func VdistSqr(v1, v2 []float64) float64 {
+func VdistSqr[T float64 | float32](v1, v2 []T) float64 {
 	dx := v2[0] - v1[0]
 	dy := v2[1] - v1[1]
 	dz := v2[2] - v1[2]
-	return dx*dx + dy*dy + dz*dz
+	return float64(dx*dx + dy*dy + dz*dz)
 }
 
 // / Normalizes the vector.
 // / @param[in,out]	v	The vector to normalize. [(x, y, z)]
-func Vnormalize(v []float64) { //向量的单位化
-	d := 1.0 / Sqrt(Sqr(v[0])+Sqr(v[1])+Sqr(v[2]))
+func Vnormalize(v []float32) { //向量的单位化
+	d := float32(1.0 / Sqrt(Sqr(float64(v[0]))+Sqr(float64(v[1]))+Sqr(float64(v[2]))))
 	v[0] *= d
 	v[1] *= d
 	v[2] *= d
@@ -131,17 +139,17 @@ func Max[T IT](a, b T) T {
 // /
 // / Basically, this function will return true if the specified points are
 // / close enough to eachother to be considered colocated.
-func Vequal(p0 []float64, p1 []float64) bool {
+func Vequal(p0 []float32, p1 []float32) bool {
 	thr := Sqr(1.0 / 16384.0)
 	d := VdistSqr(p0, p1)
-	return d < thr
+	return float64(d) < thr
 }
 
 // / Scales the vector by the specified value. (@p v * @p t)
 // /  @param[out]	dest	The result vector. [(x, y, z)]
 // /  @param[in]		v		The vector to scale. [(x, y, z)]
 // /  @param[in]		t		The scaling factor.
-func Vscale(res []float64, v []float64, t float64) {
+func Vscale(res []float32, v []float32, t float32) {
 	res[0] = v[0] * t
 	res[1] = v[1] * t
 	res[2] = v[2] * t
@@ -155,7 +163,7 @@ func Vscale(res []float64, v []float64, t float64) {
 // / @param[out]		dest	The cross product. [(x, y, z)]
 // / @param[in]		v1		A Vector [(x, y, z)]
 // / @param[in]		v2		A vector [(x, y, z)]
-func Vcross(res []float64, v1, v2 []float64) { //求向量的叉集
+func Vcross(res []float32, v1, v2 []float32) { //求向量的叉集
 	res[0] = v1[1]*v2[2] - v1[2]*v2[1]
 	res[1] = v1[2]*v2[0] - v1[0]*v2[2]
 	res[2] = v1[0]*v2[1] - v1[1]*v2[0]
@@ -165,7 +173,7 @@ func Vcross(res []float64, v1, v2 []float64) { //求向量的叉集
 // / @param[in]		v1	A Vector [(x, y, z)]
 // / @param[in]		v2	A vector [(x, y, z)]
 // / @return The dot product.
-func Vdot(v1, v2 []float64) float64 { //求向量的点积
+func Vdot[T float64 | float32](v1, v2 []T) T { //求向量的点积
 	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
 }
 
@@ -174,7 +182,7 @@ func Vdot(v1, v2 []float64) float64 { //求向量的点积
 // / @param[in]		v1		The base vector. [(x, y, z)]
 // / @param[in]		v2		The vector to scale and add to @p v1. [(x, y, z)]
 // / @param[in]		s		The amount to scale @p v2 by before adding to @p v1.
-func Vmad(res []float64, v1, v2 []float64, s float64) {
+func Vmad[T float64 | float32](res []T, v1, v2 []T, s T) {
 	res[0] = v1[0] + v2[0]*s
 	res[1] = v1[1] + v2[1]*s
 	res[2] = v1[2] + v2[2]*s
@@ -200,7 +208,7 @@ func Clamp[T cmp.Ordered](value, minInclusive, maxInclusive T) T {
 // /  @param[in]		x		The x-value of the vector.
 // /  @param[in]		y		The y-value of the vector.
 // /  @param[in]		z		The z-value of the vector.
-func Vset(dest []float64, x, y, z float64) {
+func Vset(dest []float32, x, y, z float32) {
 	dest[0] = x
 	dest[1] = y
 	dest[2] = z
@@ -208,7 +216,7 @@ func Vset(dest []float64, x, y, z float64) {
 
 // / Checks that the specified vector's 2D components are finite.
 // /  @param[in]		v	A point. [(x, y, z)]
-func Visfinite2D(v []float64) bool {
+func Visfinite2D(v []float32) bool {
 	return IsFinite(v[0]) && IsFinite(v[2])
 }
 
@@ -218,7 +226,7 @@ func Visfinite2D(v []float64) bool {
 // / @return The perp dot product on the xz-plane.
 // /
 // / The vectors are projected onto the xz-plane, so the y-values are ignored.
-func Vperp2D(u, v []float64) float64 {
+func Vperp2D(u, v []float32) float32 {
 	return u[2]*v[0] - u[0]*v[2]
 }
 
@@ -228,7 +236,7 @@ func Vperp2D(u, v []float64) float64 {
 // / @return The dot product on the xz-plane.
 // /
 // / The vectors are projected onto the xz-plane, so the y-values are ignored.
-func Vdot2D(u, v []float64) float64 {
+func Vdot2D(u, v []float32) float32 {
 	return u[0]*v[0] + u[2]*v[2]
 }
 
@@ -236,7 +244,7 @@ func Vdot2D(u, v []float64) float64 {
 // /  @param[in]		v1	A point. [(x, y, z)]
 // /  @param[in]		v2	A point. [(x, y, z)]
 // / @return The square of the distance between the point on the xz-plane.
-func Vdist2DSqr(v1, v2 []float64) float64 {
+func Vdist2DSqr(v1, v2 []float32) float32 {
 	dx := v2[0] - v1[0]
 	dz := v2[2] - v1[2]
 	return dx*dx + dz*dz
@@ -248,17 +256,17 @@ func Vdist2DSqr(v1, v2 []float64) float64 {
 // / @return The distance between the point on the xz-plane.
 // /
 // / The vectors are projected onto the xz-plane, so the y-values are ignored.
-func Vdist2D(v1, v2 []float64) float64 {
+func Vdist2D(v1, v2 []float32) float32 {
 	dx := v2[0] - v1[0]
 	dz := v2[2] - v1[2]
-	return math.Sqrt(dx*dx + dz*dz)
+	return float32(math.Sqrt(float64(dx*dx + dz*dz)))
 }
 
 // / Derives the scalar length of the vector.
 // /  @param[in]		v The vector. [(x, y, z)]
 // / @return The scalar length of the vector.
-func Vlen(v []float64) float64 {
-	return math.Sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+func Vlen(v []float32) float32 {
+	return float32(math.Sqrt(float64(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])))
 }
 
 // / Performs a linear interpolation between two vectors. (@p v1 toward @p v2)
@@ -266,7 +274,7 @@ func Vlen(v []float64) float64 {
 // /  @param[in]		v1		The starting vector.
 // /  @param[in]		v2		The destination vector.
 // /	 @param[in]		t		The interpolation factor. [Limits: 0 <= value <= 1.0]
-func Vlerp(dest []float64, v1, v2 []float64, t float64) []float64 {
+func Vlerp(dest []float32, v1, v2 []float32, t float32) []float32 {
 	dest[0] = v1[0] + (v2[0]-v1[0])*t
 	dest[1] = v1[1] + (v2[1]-v1[1])*t
 	dest[2] = v1[2] + (v2[2]-v1[2])*t
@@ -276,7 +284,7 @@ func Vlerp(dest []float64, v1, v2 []float64, t float64) []float64 {
 // / Derives the square of the scalar length of the vector. (len * len)
 // /  @param[in]		v The vector. [(x, y, z)]
 // / @return The square of the scalar length of the vector.
-func VlenSqr(v []float64) float64 {
+func VlenSqr(v []float32) float32 {
 	return v[0]*v[0] + v[1]*v[1] + v[2]*v[2]
 }
 
@@ -289,7 +297,7 @@ func VlenSqr(v []float64) float64 {
 // /  @param[in]		b		Vertex B. [(x, y, z)]
 // /  @param[in]		c		Vertex C. [(x, y, z)]
 // / @return The signed xz-plane area of the triangle.
-func TriArea2D(a, b, c []float64) float64 {
+func TriArea2D(a, b, c []float32) float32 {
 	abx := b[0] - a[0]
 	abz := b[2] - a[2]
 	acx := c[0] - a[0]
@@ -301,27 +309,27 @@ func TriArea2D(a, b, c []float64) float64 {
 // /  @param[in]		v	A point. [(x, y, z)]
 // / @return True if all of the point's components are finite, i.e. not NaN
 // / or any of the infinities.
-func Visfinite(v []float64) bool {
+func Visfinite(v []float32) bool {
 	return !(IsFinite(v[0]) && IsFinite(v[1]) && IsFinite(v[2]))
 }
-func IsFinite(v float64) bool {
-	return math.IsInf(v, -1) || math.IsInf(v, 1) || math.IsNaN(v)
+func IsFinite(v float32) bool {
+	return math.IsInf(float64(v), -1) || math.IsInf(float64(v), 1) || math.IsNaN(float64(v))
 }
 
 // / Gets the direction for the specified offset. One of x and y should be 0.
 // / @param[in]		offsetX		The x offset. [Limits: -1 <= value <= 1]
 // / @param[in]		offsetZ		The z offset. [Limits: -1 <= value <= 1]
 // / @return The direction that represents the offset.
-func GetDirForOffset(offsetX, offsetZ int) int {
-	dirs := []int{3, 0, -1, 2, 1}
+func GetDirForOffset(offsetX, offsetZ int32) int32 {
+	dirs := []int32{3, 0, -1, 2, 1}
 	return dirs[((offsetZ+1)<<1)+offsetX]
 }
 
 // / Gets the standard width (x-axis) offset for the specified direction.
 // / @param[in]		direction		The direction. [Limits: 0 <= value < 4]
 // / @return The width offset to apply to the current cell position to move in the direction.
-func GetDirOffsetX(direction int) int {
-	offset := [4]int{-1, 0, 1, 0}
+func GetDirOffsetX(direction int32) int32 {
+	offset := [4]int32{-1, 0, 1, 0}
 	return offset[direction&0x03]
 }
 
@@ -329,12 +337,12 @@ func GetDirOffsetX(direction int) int {
 // / Gets the standard height (z-axis) offset for the specified direction.
 // / @param[in]		direction		The direction. [Limits: 0 <= value < 4]
 // / @return The height offset to apply to the current cell position to move in the direction.
-func GetDirOffsetY(direction int) int {
-	offset := [4]int{0, 1, 0, -1}
+func GetDirOffsetY(direction int32) int32 {
+	offset := [4]int32{0, 1, 0, -1}
 	return offset[direction&0x03]
 }
 
-func NextPow2(v int) int {
+func NextPow2(v uint32) uint32 {
 	v--
 	v |= v >> 1
 	v |= v >> 2
@@ -345,15 +353,15 @@ func NextPow2(v int) int {
 	return v
 }
 
-func Ilog2(v int) int {
-	getBool := func(b bool) int {
+func Ilog2(v uint32) uint32 {
+	getBool := func(b bool) uint32 {
 		if b {
 			return 1
 		}
 		return 0
 	}
-	var r int
-	var shift int
+	var r uint32
+	var shift uint32
 	r = getBool((v > 0xffff)) << 4
 	v >>= r
 	shift = getBool((v > 0xff)) << 3
@@ -367,10 +375,6 @@ func Ilog2(v int) int {
 	r |= shift
 	r |= (v >> 1)
 	return r
-}
-
-func GetVs3[T IT](verts []T, index int) []T {
-	return verts[index*3 : index*3+3]
 }
 
 func GluProject[T1 int32 | int](obj []float64, projection, modelview []float64, view []T1) []float64 {

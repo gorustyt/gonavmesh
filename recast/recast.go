@@ -1,7 +1,7 @@
 package recast
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 	"log"
 	"math"
 )
@@ -22,19 +22,19 @@ type RcConfig struct {
 	BorderSize int
 
 	/// The xz-plane cell size to use for fields. [Limit: > 0] [Units: wu]
-	Cs float64
+	Cs float32
 
 	/// The y-axis cell size to use for fields. [Limit: > 0] [Units: wu]
-	Ch float64
+	Ch float32
 
 	/// The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu]
-	Bmin [3]float64
+	Bmin [3]float32
 
 	/// The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
-	Bmax [3]float64
+	Bmax [3]float32
 
 	/// The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees]
-	WalkableSlopeAngle float64
+	WalkableSlopeAngle float32
 
 	/// Minimum floor to 'ceiling' height that will still allow the floor area to
 	/// be considered walkable. [Limit: >= 3] [Units: vx]
@@ -52,7 +52,7 @@ type RcConfig struct {
 
 	/// The maximum distance a simplified contour's border edges should deviate
 	/// the original raw contour. [Limit: >=0] [Units: vx]
-	MaxSimplificationError float64
+	MaxSimplificationError float32
 
 	/// The minimum number of cells allowed to form isolated island areas. [Limit: >=0] [Units: vx]
 	MinRegionArea int
@@ -67,11 +67,11 @@ type RcConfig struct {
 
 	/// Sets the sampling distance to use when generating the detail mesh.
 	/// (For height detail only.) [Limits: 0 or >= 0.9] [Units: wu]
-	DetailSampleDist float64
+	DetailSampleDist float32
 
 	/// The maximum distance the detail mesh surface should deviate from heightfield
 	/// data. (For height detail only.) [Limit: >=0] [Units: wu]
-	DetailSampleMaxError float64
+	DetailSampleMaxError float32
 }
 
 // / The default area id used to indicate a walkable polygon.
@@ -79,73 +79,73 @@ type RcConfig struct {
 // / recognized by some steps in the build process.
 const RC_WALKABLE_AREA = 63
 
-func RcCalcBounds(verts []float64, numVerts int, minBounds []float64, maxBounds []float64) {
+func RcCalcBounds(verts []float32, numVerts int, minBounds []float32, maxBounds []float32) {
 	// Calculate bounding box.
 	copy(minBounds, verts)
 	copy(maxBounds, verts)
 	for i := 1; i < numVerts; i++ {
-		v := rcGetVert(verts, i)
+		v := common.GetVert3(verts, i)
 		common.Vmin(minBounds, v)
 		common.Vmax(maxBounds, v)
 	}
 }
 
-func RcCalcGridSize(minBounds, maxBounds []float64, cellSize float64, sizeX, sizeZ *int) {
+func RcCalcGridSize(minBounds, maxBounds []float32, cellSize float32, sizeX, sizeZ *int) {
 	*sizeX = int((maxBounds[0]-minBounds[0])/cellSize + 0.5)
 	*sizeZ = int((maxBounds[2]-minBounds[2])/cellSize + 0.5)
 }
 
-func calcTriNormal(v0, v1, v2 []float64, faceNormal []float64) {
-	e0 := make([]float64, 3)
-	e1 := make([]float64, 3)
+func calcTriNormal(v0, v1, v2 []float32, faceNormal []float32) {
+	e0 := make([]float32, 3)
+	e1 := make([]float32, 3)
 	common.Vsub(e0, v1, v0)
 	common.Vsub(e1, v2, v0)
 	common.Vcross(faceNormal, e0, e1)
 	common.Vnormalize(faceNormal)
 }
 
-func RcMarkWalkableTriangles(walkableSlopeAngle float64,
-	verts []float64, numVerts int,
+func RcMarkWalkableTriangles(walkableSlopeAngle float32,
+	verts []float32, numVerts int,
 	tris []int, numTris int,
 	triAreaIDs []int) {
 
-	walkableThr := math.Cos(walkableSlopeAngle / 180.0 * math.Pi)
+	walkableThr := math.Cos(float64(walkableSlopeAngle) / 180.0 * math.Pi)
 
-	norm := make([]float64, 3)
+	norm := make([]float32, 3)
 
 	for i := 0; i < numTris; i++ {
-		tri := rcGetVert(tris, i)
+		tri := common.GetVert3(tris, i)
 
-		calcTriNormal(rcGetVert(verts, tri[0]), rcGetVert(verts, tri[1]), rcGetVert(verts, tri[2]), norm)
+		calcTriNormal(common.GetVert3(verts, tri[0]), common.GetVert3(verts, tri[1]), common.GetVert3(verts, tri[2]), norm)
 		// Check if the face is walkable.
-		if norm[1] > walkableThr {
+		if float64(norm[1]) > walkableThr {
 			triAreaIDs[i] = RC_WALKABLE_AREA
 		}
 	}
 }
 
-func rcClearUnwalkableTriangles(walkableSlopeAngle float64,
-	verts []float64, numVerts int,
+func rcClearUnwalkableTriangles(walkableSlopeAngle float32,
+	verts []float32, numVerts int,
 	tris []int, numTris int,
 	triAreaIDs []int) {
 	// The minimum Y value for a face normal of a triangle with a walkable slope.
-	walkableLimitY := math.Cos(walkableSlopeAngle / 180.0 * math.Pi)
+	walkableLimitY := math.Cos(float64(walkableSlopeAngle) / 180.0 * math.Pi)
 
-	faceNormal := make([]float64, 3)
+	faceNormal := make([]float32, 3)
 	for i := 0; i < numTris; i++ {
-		tri := rcGetVert(tris, i)
-		calcTriNormal(rcGetVert(verts, tri[0]), rcGetVert(verts, tri[1]), rcGetVert(verts, tri[2]), faceNormal)
+		tri := common.GetVert3(tris, i)
+		calcTriNormal(common.GetVert3(verts, tri[0]), common.GetVert3(verts, tri[1]), common.GetVert3(verts, tri[2]), faceNormal)
 		// Check if the face is walkable.
-		if faceNormal[1] <= walkableLimitY {
+		if float64(faceNormal[1]) <= walkableLimitY {
 			triAreaIDs[i] = RC_NULL_AREA
 		}
 	}
 }
 
-func rcGetHeightFieldSpanCount(heightfield *RcHeightfield) int {
+func rcGetHeightFieldSpanCount(heightfield *RcHeightfield) int32 {
 	numCols := heightfield.Width * heightfield.Height
-	spanCount := 0
-	for columnIndex := 0; columnIndex < numCols; columnIndex++ {
+	spanCount := int32(0)
+	for columnIndex := int32(0); columnIndex < numCols; columnIndex++ {
 		for span := heightfield.Spans[columnIndex]; span != nil; span = span.Next {
 			if span.Area != RC_NULL_AREA {
 				spanCount++
@@ -155,7 +155,7 @@ func rcGetHeightFieldSpanCount(heightfield *RcHeightfield) int {
 	return spanCount
 }
 
-func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
+func RcBuildCompactHeightfield(walkableHeight, walkableClimb int32,
 	heightfield *RcHeightfield, compactHeightfield *RcCompactHeightfield) bool {
 	xSize := heightfield.Width
 	zSize := heightfield.Height
@@ -170,27 +170,27 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	compactHeightfield.MaxRegions = 0
 	copy(compactHeightfield.Bmin[:], heightfield.Bmin[:])
 	copy(compactHeightfield.Bmax[:], heightfield.Bmax[:])
-	compactHeightfield.Bmax[1] += float64(walkableHeight) * heightfield.Ch
+	compactHeightfield.Bmax[1] += float32(walkableHeight) * heightfield.Ch
 	compactHeightfield.Cs = heightfield.Cs
 	compactHeightfield.Ch = heightfield.Ch
 	compactHeightfield.Cells = make([]*RcCompactCell, xSize*zSize)
 	for i := range compactHeightfield.Cells {
-		compactHeightfield.Cells[i] = &RcCompactCell{}
+		compactHeightfield.Cells[i] = newRcCompactCell()
 	}
 	compactHeightfield.Spans = make([]*RcCompactSpan, spanCount)
 	for i := range compactHeightfield.Spans {
-		compactHeightfield.Spans[i] = &RcCompactSpan{}
+		compactHeightfield.Spans[i] = newRcCompactSpan()
 	}
-	compactHeightfield.Areas = make([]int, spanCount)
+	compactHeightfield.Areas = make([]uint8, spanCount)
 	for i := range compactHeightfield.Areas {
 		compactHeightfield.Areas[i] = RC_NULL_AREA
 	}
 	MAX_HEIGHT := 0xffff
 
 	// Fill in cells and spans.
-	currentCellIndex := 0
+	currentCellIndex := uint32(0)
 	numColumns := xSize * zSize
-	for columnIndex := 0; columnIndex < numColumns; columnIndex++ {
+	for columnIndex := int32(0); columnIndex < numColumns; columnIndex++ {
 		span := heightfield.Spans[columnIndex]
 
 		// If there are no spans at this cell, just leave the data to index=0, count=0.
@@ -205,13 +205,13 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 		for ; span != nil; span = span.Next {
 			if span.Area != RC_NULL_AREA {
 				bot := span.Smax
-				top := MAX_HEIGHT
+				top := int32(MAX_HEIGHT)
 				if span.Next != nil {
-					top = span.Next.Smin
+					top = int32(span.Next.Smin)
 				}
-				compactHeightfield.Spans[currentCellIndex].Y = common.Clamp(bot, 0, 0xffff)
-				compactHeightfield.Spans[currentCellIndex].H = common.Clamp(top-bot, 0, 0xff)
-				compactHeightfield.Areas[currentCellIndex] = span.Area
+				compactHeightfield.Spans[currentCellIndex].Y = common.Clamp(uint16(bot), 0, 0xffff)
+				compactHeightfield.Spans[currentCellIndex].H = common.Clamp(top-int32(bot), 0, 0xff)
+				compactHeightfield.Areas[currentCellIndex] = uint8(span.Area)
 				currentCellIndex++
 				cell.Count++
 			}
@@ -222,15 +222,15 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	MAX_LAYERS := RC_NOT_CONNECTED - 1
 	maxLayerIndex := 0
 	zStride := xSize // for readability
-	for z := 0; z < zSize; z++ {
-		for x := 0; x < xSize; x++ {
+	for z := int32(0); z < zSize; z++ {
+		for x := int32(0); x < xSize; x++ {
 			cell := compactHeightfield.Cells[x+z*zStride]
 			i := cell.Index
 			ni := (cell.Index + cell.Count)
 			for ; i < ni; i++ {
 				span := compactHeightfield.Spans[i]
 
-				for dir := 0; dir < 4; dir++ {
+				for dir := int32(0); dir < 4; dir++ {
 					rcSetCon(span, dir, RC_NOT_CONNECTED)
 					neighborX := x + common.GetDirOffsetX(dir)
 					neighborZ := z + common.GetDirOffsetY(dir)
@@ -246,19 +246,19 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 					nk := (neighborCell.Index + neighborCell.Count)
 					for ; k < nk; k++ {
 						neighborSpan := compactHeightfield.Spans[k]
-						bot := common.Max(span.Y, neighborSpan.Y)
-						top := common.Min(span.Y+span.H, neighborSpan.Y+neighborSpan.H)
+						bot := max(int32(span.Y), int32(neighborSpan.Y))
+						top := min(int32(span.Y)+span.H, int32(neighborSpan.Y)+neighborSpan.H)
 
 						// Check that the gap between the spans is walkable,
 						// and that the climb height between the gaps is not too high.
-						if (top-bot) >= walkableHeight && common.Abs(neighborSpan.Y-span.Y) <= walkableClimb {
+						if (top-bot) >= walkableHeight && common.Abs(int32(neighborSpan.Y)-int32(span.Y)) <= walkableClimb {
 							// Mark direction as walkable.
 							layerIndex := k - neighborCell.Index
-							if layerIndex < 0 || layerIndex > MAX_LAYERS {
-								maxLayerIndex = common.Max(maxLayerIndex, layerIndex)
+							if layerIndex < 0 || int(layerIndex) > MAX_LAYERS {
+								maxLayerIndex = common.Max(maxLayerIndex, int(layerIndex))
 								continue
 							}
-							rcSetCon(span, dir, layerIndex)
+							rcSetCon(span, dir, int32(layerIndex))
 							break
 						}
 					}
@@ -274,9 +274,9 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int,
 	return true
 }
 
-func RcCreateHeightfield(sizeX, sizeZ int,
-	minBounds, maxBounds []float64,
-	cellSize, cellHeight float64) (heightfield *RcHeightfield) {
+func RcCreateHeightfield(sizeX, sizeZ int32,
+	minBounds, maxBounds []float32,
+	cellSize, cellHeight float32) (heightfield *RcHeightfield) {
 	heightfield = &RcHeightfield{}
 	heightfield.Width = sizeX
 	heightfield.Height = sizeZ

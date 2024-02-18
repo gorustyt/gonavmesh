@@ -1,7 +1,7 @@
 package recast
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 	"sort"
 )
 
@@ -10,8 +10,8 @@ const (
 )
 
 type RcCompactCell struct {
-	Index int ///< Index to the first span in the column.
-	Count int ///< Number of spans in the column.
+	Index uint32 ///< Index to the first span in the column.
+	Count uint32 ///< Number of spans in the column.
 }
 
 func newRcCompactCell() *RcCompactCell {
@@ -23,10 +23,10 @@ func newRcCompactCell() *RcCompactCell {
 
 // / Represents a span of unobstructed space within a compact heightfield.
 type RcCompactSpan struct {
-	Y   int ///< The lower extent of the span. (Measured from the heightfield's base.)
-	Reg int ///< The id of the region the span belongs to. (Or zero if not in a region.)
-	Con int ///< Packed neighbor connection data.
-	H   int ///< The height of the span.  (Measured from #y.)
+	Y   uint16 ///< The lower extent of the span. (Measured from the heightfield's base.)
+	Reg uint16 ///< The id of the region the span belongs to. (Or zero if not in a region.)
+	Con int32  ///< Packed neighbor connection data.
+	H   int32  ///< The height of the span.  (Measured from #y.)
 }
 
 func newRcCompactSpan() *RcCompactSpan {
@@ -36,7 +36,7 @@ func newRcCompactSpan() *RcCompactSpan {
 	}
 }
 
-func rcGetCon(span *RcCompactSpan, direction int) int {
+func rcGetCon(span *RcCompactSpan, direction int32) int32 {
 	shift := direction * 6
 	return (span.Con >> shift) & 0x3f
 }
@@ -44,55 +44,22 @@ func rcGetCon(span *RcCompactSpan, direction int) int {
 // / A compact, static heightfield representing unobstructed space.
 // / @ingroup recast
 type RcCompactHeightfield struct {
-	Width          int              ///< The width of the heightfield. (Along the x-axis in cell units.)
-	Height         int              ///< The height of the heightfield. (Along the z-axis in cell units.)
-	SpanCount      int              ///< The number of spans in the heightfield.
-	WalkableHeight int              ///< The walkable height used during the build of the field.  (See: RcConfig::walkableHeight)
-	WalkableClimb  int              ///< The walkable climb used during the build of the field. (See: RcConfig::walkableClimb)
-	BorderSize     int              ///< The AABB border size used during the build of the field. (See: RcConfig::borderSize)
-	MaxDistance    int              ///< The maximum distance value of any span within the field.
-	MaxRegions     int              ///< The maximum region id of any span within the field.
-	Bmin           [3]float64       ///< The minimum bounds in world space. [(x, y, z)]
-	Bmax           [3]float64       ///< The maximum bounds in world space. [(x, y, z)]
-	Cs             float64          ///< The size of each cell. (On the xz-plane.)
-	Ch             float64          ///< The height of each cell. (The minimum increment along the y-axis.)
+	Width          int32            ///< The width of the heightfield. (Along the x-axis in cell units.)
+	Height         int32            ///< The height of the heightfield. (Along the z-axis in cell units.)
+	SpanCount      int32            ///< The number of spans in the heightfield.
+	WalkableHeight int32            ///< The walkable height used during the build of the field.  (See: RcConfig::walkableHeight)
+	WalkableClimb  int32            ///< The walkable climb used during the build of the field. (See: RcConfig::walkableClimb)
+	BorderSize     int32            ///< The AABB border size used during the build of the field. (See: RcConfig::borderSize)
+	MaxDistance    uint16           ///< The maximum distance value of any span within the field.
+	MaxRegions     uint16           ///< The maximum region id of any span within the field.
+	Bmin           [3]float32       ///< The minimum bounds in world space. [(x, y, z)]
+	Bmax           [3]float32       ///< The maximum bounds in world space. [(x, y, z)]
+	Cs             float32          ///< The size of each cell. (On the xz-plane.)
+	Ch             float32          ///< The height of each cell. (The minimum increment along the y-axis.)
 	Cells          []*RcCompactCell ///< Array of cells. [Size: #width*#height]
 	Spans          []*RcCompactSpan ///< Array of spans. [Size: #spanCount]
-	Dist           []int            ///< Array containing border distance data. [Size: #spanCount]
-	Areas          []int            ///< Array containing area id data. [Size: #spanCount]
-}
-
-// TODO (graham): This is duplicated in the ConvexVolumeTool in RecastDemo
-// / Checks if a point is contained within a polygon
-// /
-// / @param[in]	numVerts	Number of vertices in the polygon
-// / @param[in]	verts		The polygon vertices
-// / @param[in]	point		The point to check
-// / @returns true if the point lies within the polygon, false otherwise.
-func pointInPoly(numVerts int, verts []float64, point []float64) bool {
-	inPoly := false
-	i := 0
-	j := numVerts - 1
-	for i < numVerts {
-		vi := verts[i*3 : i*3+3]
-		vj := verts[j*3 : j*3+3]
-
-		if (vi[2] > point[2]) == (vj[2] > point[2]) {
-			j = i
-			i++
-			continue
-		}
-
-		if point[0] >= (vj[0]-vi[0])*(point[2]-vi[2])/(vj[2]-vi[2])+vi[0] {
-			j = i
-			i++
-			continue
-		}
-		inPoly = !inPoly
-		j = i
-		i++
-	}
-	return inPoly
+	Dist           []uint16         ///< Array containing border distance data. [Size: #spanCount]
+	Areas          []uint8          ///< Array containing area id data. [Size: #spanCount]
 }
 
 func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightfield) bool {
@@ -106,8 +73,8 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 		distanceToBoundary[i] = 0xff
 	}
 	// Mark boundary cells.
-	for z := 0; z < zSize; z++ {
-		for x := 0; x < xSize; x++ {
+	for z := int32(0); z < zSize; z++ {
+		for x := int32(0); x < xSize; x++ {
 			cell := compactHeightfield.Cells[x+z*zStride]
 			spanIndex := cell.Index
 			maxSpanIndex := cell.Index + cell.Count
@@ -120,7 +87,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 
 				// Check that there is a non-null adjacent span in each of the 4 cardinal directions.
 				neighborCount := 0
-				for direction := 0; direction < 4; direction++ {
+				for direction := int32(0); direction < 4; direction++ {
 					neighborConnection := rcGetCon(span, direction)
 					if neighborConnection == RC_NOT_CONNECTED {
 						break
@@ -128,7 +95,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 
 					neighborX := x + common.GetDirOffsetX(direction)
 					neighborZ := z + common.GetDirOffsetY(direction)
-					neighborSpanIndex := compactHeightfield.Cells[neighborX+neighborZ*zStride].Index + neighborConnection
+					neighborSpanIndex := int32(compactHeightfield.Cells[neighborX+neighborZ*zStride].Index) + neighborConnection
 
 					if compactHeightfield.Areas[neighborSpanIndex] == RC_NULL_AREA {
 						break
@@ -144,8 +111,8 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 		}
 	}
 	// Pass 1
-	for z := 0; z < zSize; z++ {
-		for x := 0; x < xSize; x++ {
+	for z := int32(0); z < zSize; z++ {
+		for x := int32(0); x < xSize; x++ {
 			cell := compactHeightfield.Cells[x+z*zStride]
 			maxSpanIndex := cell.Index + cell.Count
 			for spanIndex := cell.Index; spanIndex < maxSpanIndex; spanIndex++ {
@@ -155,7 +122,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					// (-1,0)
 					aX := x + common.GetDirOffsetX(0)
 					aY := z + common.GetDirOffsetY(0)
-					aIndex := compactHeightfield.Cells[aX+aY*xSize].Index + rcGetCon(span, 0)
+					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 0)
 					aSpan := compactHeightfield.Spans[aIndex]
 					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
@@ -166,7 +133,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					if rcGetCon(aSpan, 3) != RC_NOT_CONNECTED {
 						bX := aX + common.GetDirOffsetX(3)
 						bY := aY + common.GetDirOffsetY(3)
-						bIndex := compactHeightfield.Cells[bX+bY*xSize].Index + rcGetCon(aSpan, 3)
+						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 3)
 						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
@@ -177,7 +144,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					// (0,-1)
 					aX := x + common.GetDirOffsetX(3)
 					aY := z + common.GetDirOffsetY(3)
-					aIndex := compactHeightfield.Cells[aX+aY*xSize].Index + rcGetCon(span, 3)
+					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 3)
 					aSpan := compactHeightfield.Spans[aIndex]
 					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
@@ -188,7 +155,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					if rcGetCon(aSpan, 2) != RC_NOT_CONNECTED {
 						bX := aX + common.GetDirOffsetX(2)
 						bY := aY + common.GetDirOffsetY(2)
-						bIndex := compactHeightfield.Cells[bX+bY*xSize].Index + rcGetCon(aSpan, 2)
+						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 2)
 						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
@@ -211,7 +178,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					// (1,0)
 					aX := x + common.GetDirOffsetX(2)
 					aY := z + common.GetDirOffsetY(2)
-					aIndex := compactHeightfield.Cells[aX+aY*xSize].Index + rcGetCon(span, 2)
+					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 2)
 					aSpan := compactHeightfield.Spans[aIndex]
 					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
@@ -222,7 +189,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					if rcGetCon(aSpan, 1) != RC_NOT_CONNECTED {
 						bX := aX + common.GetDirOffsetX(1)
 						bY := aY + common.GetDirOffsetY(1)
-						bIndex := compactHeightfield.Cells[bX+bY*xSize].Index + rcGetCon(aSpan, 1)
+						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 1)
 						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
@@ -233,7 +200,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					// (0,1)
 					aX := x + common.GetDirOffsetX(1)
 					aY := z + common.GetDirOffsetY(1)
-					aIndex := compactHeightfield.Cells[aX+aY*xSize].Index + rcGetCon(span, 1)
+					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 1)
 					aSpan := compactHeightfield.Spans[aIndex]
 					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
@@ -244,7 +211,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					if rcGetCon(aSpan, 0) != RC_NOT_CONNECTED {
 						bX := aX + common.GetDirOffsetX(0)
 						bY := aY + common.GetDirOffsetY(0)
-						bIndex := compactHeightfield.Cells[bX+bY*xSize].Index + rcGetCon(aSpan, 0)
+						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 0)
 						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
@@ -256,7 +223,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 	}
 
 	minBoundaryDistance := erosionRadius * 2
-	for spanIndex := 0; spanIndex < compactHeightfield.SpanCount; spanIndex++ {
+	for spanIndex := int32(0); spanIndex < compactHeightfield.SpanCount; spanIndex++ {
 		if distanceToBoundary[spanIndex] < minBoundaryDistance {
 			compactHeightfield.Areas[spanIndex] = RC_NULL_AREA
 		}
@@ -271,14 +238,14 @@ func rcMedianFilterWalkableArea(compactHeightfield *RcCompactHeightfield) bool {
 	zSize := compactHeightfield.Height
 	zStride := xSize // For readability
 
-	areas := make([]int, compactHeightfield.SpanCount)
+	areas := make([]uint8, compactHeightfield.SpanCount)
 
 	for i := range areas {
 		areas[i] = 0xff
 	}
 
-	for z := 0; z < zSize; z++ {
-		for x := 0; x < xSize; x++ {
+	for z := int32(0); z < zSize; z++ {
+		for x := int32(0); x < xSize; x++ {
 			cell := compactHeightfield.Cells[x+z*zStride]
 			maxSpanIndex := cell.Index + cell.Count
 			for spanIndex := cell.Index; spanIndex < maxSpanIndex; spanIndex++ {
@@ -288,19 +255,19 @@ func rcMedianFilterWalkableArea(compactHeightfield *RcCompactHeightfield) bool {
 					continue
 				}
 
-				var neighborAreas [9]int
+				var neighborAreas [9]uint8
 				for neighborIndex := 0; neighborIndex < 9; neighborIndex++ {
 					neighborAreas[neighborIndex] = compactHeightfield.Areas[spanIndex]
 				}
 
-				for dir := 0; dir < 4; dir++ {
+				for dir := int32(0); dir < 4; dir++ {
 					if rcGetCon(span, dir) == RC_NOT_CONNECTED {
 						continue
 					}
 
 					aX := x + common.GetDirOffsetX(dir)
 					aZ := z + common.GetDirOffsetY(dir)
-					aIndex := compactHeightfield.Cells[aX+aZ*zStride].Index + rcGetCon(span, dir)
+					aIndex := int32(compactHeightfield.Cells[aX+aZ*zStride].Index) + rcGetCon(span, dir)
 					if compactHeightfield.Areas[aIndex] != RC_NULL_AREA {
 						neighborAreas[dir*2+0] = compactHeightfield.Areas[aIndex]
 					}
@@ -311,7 +278,7 @@ func rcMedianFilterWalkableArea(compactHeightfield *RcCompactHeightfield) bool {
 					if neighborConnection2 != RC_NOT_CONNECTED {
 						bX := aX + common.GetDirOffsetX(dir2)
 						bZ := aZ + common.GetDirOffsetY(dir2)
-						bIndex := compactHeightfield.Cells[bX+bZ*zStride].Index + neighborConnection2
+						bIndex := int32(compactHeightfield.Cells[bX+bZ*zStride].Index) + neighborConnection2
 						if compactHeightfield.Areas[bIndex] != RC_NULL_AREA {
 							neighborAreas[dir*2+1] = compactHeightfield.Areas[bIndex]
 						}
@@ -333,19 +300,19 @@ func rcMedianFilterWalkableArea(compactHeightfield *RcCompactHeightfield) bool {
 	return true
 }
 
-func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeightfield *RcCompactHeightfield) {
+func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float32, areaId uint8, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.Width
 	zSize := compactHeightfield.Height
 	zStride := xSize // For readability
 
 	// Find the footprint of the box area in grid cell coordinates.
-	minX := int((boxMinBounds[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	minY := int((boxMinBounds[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	minZ := int((boxMinBounds[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
-	maxX := int((boxMaxBounds[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	maxY := int((boxMaxBounds[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	maxZ := int((boxMaxBounds[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	minX := int32((boxMinBounds[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	minY := int32((boxMinBounds[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	minZ := int32((boxMinBounds[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	maxX := int32((boxMaxBounds[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	maxY := int32((boxMaxBounds[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	maxZ := int32((boxMaxBounds[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
 
 	// Early-out if the box is outside the bounds of the grid.
 	if maxX < 0 {
@@ -384,7 +351,7 @@ func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeig
 				span := compactHeightfield.Spans[spanIndex]
 
 				// Skip if the span is outside the box extents.
-				if span.Y < minY || span.Y > maxY {
+				if int32(span.Y) < minY || int32(span.Y) > maxY {
 					continue
 				}
 
@@ -400,18 +367,18 @@ func rcMarkBoxArea(boxMinBounds, boxMaxBounds []float64, areaId int, compactHeig
 	}
 }
 
-func RcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, areaId int, compactHeightfield *RcCompactHeightfield) {
+func RcMarkConvexPolyArea(verts []float32, numVerts int32, minY, maxY float32, areaId uint8, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.Width
 	zSize := compactHeightfield.Height
 	zStride := xSize // For readability
 
 	// Compute the bounding box of the polygon
-	bmin := make([]float64, 3)
-	bmax := make([]float64, 3)
+	bmin := make([]float32, 3)
+	bmax := make([]float32, 3)
 	copy(bmin, verts)
 	copy(bmax, verts)
-	for i := 1; i < numVerts; i++ {
+	for i := int32(1); i < numVerts; i++ {
 		common.Vmin(bmin, verts[i*3:i*3+3])
 		common.Vmax(bmax, verts[i*3:i*3+3])
 	}
@@ -419,12 +386,12 @@ func RcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, are
 	bmax[1] = maxY
 
 	// Compute the grid footprint of the polygon
-	minx := int((bmin[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	miny := int((bmin[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	minz := int((bmin[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
-	maxx := int((bmax[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	maxy := int((bmax[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	maxz := int((bmax[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	minx := int32((bmin[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	miny := int32((bmin[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	minz := int32((bmin[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	maxx := int32((bmax[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	maxy := int32((bmax[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	maxz := int32((bmax[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
 
 	// Early-out if the polygon lies entirely outside the grid.
 	if maxx < 0 {
@@ -458,8 +425,8 @@ func RcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, are
 	for z := minz; z <= maxz; z++ {
 		for x := minx; x <= maxx; x++ {
 			cell := compactHeightfield.Cells[x+z*zStride]
-			maxSpanIndex := (int)(cell.Index + cell.Count)
-			for spanIndex := cell.Index; spanIndex < maxSpanIndex; spanIndex++ {
+			maxSpanIndex := int32(cell.Index + cell.Count)
+			for spanIndex := cell.Index; int(spanIndex) < int(maxSpanIndex); spanIndex++ {
 				span := compactHeightfield.Spans[spanIndex]
 
 				// Skip if span is removed.
@@ -468,17 +435,17 @@ func RcMarkConvexPolyArea(verts []float64, numVerts int, minY, maxY float64, are
 				}
 
 				// Skip if y extents don't overlap.
-				if span.Y < miny || span.Y > maxy {
+				if int32(span.Y) < miny || int32(span.Y) > maxy {
 					continue
 				}
 
-				point := []float64{
-					compactHeightfield.Bmin[0] + (float64(x)+0.5)*compactHeightfield.Cs,
+				point := []float32{
+					compactHeightfield.Bmin[0] + (float32(x)+0.5)*compactHeightfield.Cs,
 					0,
-					compactHeightfield.Bmin[2] + (float64(z)+0.5)*compactHeightfield.Cs,
+					compactHeightfield.Bmin[2] + (float32(z)+0.5)*compactHeightfield.Cs,
 				}
 
-				if pointInPoly(numVerts, verts, point) {
+				if common.PointInPoly(numVerts, verts, point) {
 					compactHeightfield.Areas[spanIndex] = areaId
 				}
 			}
@@ -493,20 +460,20 @@ const (
 // / Normalizes the vector if the length is greater than zero.
 // / If the magnitude is zero, the vector is unchanged.
 // / @param[in,out]	v	The vector to normalize. [(x, y, z)]
-func rcVsafeNormalize(v []float64) {
+func rcVsafeNormalize(v []float32) {
 	sqMag := common.Sqr(v[0]) + common.Sqr(v[1]) + common.Sqr(v[2])
 	if sqMag > EPSILON {
-		inverseMag := 1.0 / common.Sqrt(sqMag)
+		inverseMag := float32(1.0 / common.Sqrt(float64(sqMag)))
 		v[0] *= inverseMag
 		v[1] *= inverseMag
 		v[2] *= inverseMag
 	}
 }
 
-func RcOffsetPoly(verts []float64, numVerts int, offset float64, outVerts []float64, maxOutVerts int) int {
+func RcOffsetPoly(verts []float32, numVerts int, offset float32, outVerts []float32, maxOutVerts int) int {
 	// Defines the limit at which a miter becomes a bevel.
 	// Similar in behavior to https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit
-	const MITER_LIMIT float64 = 1.20
+	const MITER_LIMIT float32 = 1.20
 	numOutVerts := 0
 
 	for vertIndex := 0; vertIndex < numVerts; vertIndex++ {
@@ -519,13 +486,13 @@ func RcOffsetPoly(verts []float64, numVerts int, offset float64, outVerts []floa
 		vertC := verts[vertIndexC*3 : vertIndexC*3+3]
 
 		// From A to B on the x/z plane
-		prevSegmentDir := make([]float64, 3)
+		prevSegmentDir := make([]float32, 3)
 		common.Vsub(prevSegmentDir, vertB, vertA)
 		prevSegmentDir[1] = 0 // Squash onto x/z plane
 		rcVsafeNormalize(prevSegmentDir)
 
 		// From B to C on the x/z plane
-		currSegmentDir := make([]float64, 3)
+		currSegmentDir := make([]float32, 3)
 		common.Vsub(currSegmentDir, vertC, vertB)
 		currSegmentDir[1] = 0 // Squash onto x/z plane
 		rcVsafeNormalize(currSegmentDir)
@@ -596,29 +563,29 @@ func RcOffsetPoly(verts []float64, numVerts int, offset float64, outVerts []floa
 	return numOutVerts
 }
 
-func rcMarkCylinderArea(position []float64, radius float64, height float64, areaId int, compactHeightfield *RcCompactHeightfield) {
+func rcMarkCylinderArea(position []float32, radius float32, height float32, areaId uint8, compactHeightfield *RcCompactHeightfield) {
 
 	xSize := compactHeightfield.Width
 	zSize := compactHeightfield.Height
 	zStride := xSize // For readability
 
 	// Compute the bounding box of the cylinder
-	cylinderBBMin := []float64{
+	cylinderBBMin := []float32{
 		position[0] - radius,
 		position[1],
 		position[2] - radius}
-	cylinderBBMax := []float64{
+	cylinderBBMax := []float32{
 		position[0] + radius,
 		position[1] + height,
 		position[2] + radius}
 
 	// Compute the grid footprint of the cylinder
-	minx := int((cylinderBBMin[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	miny := int((cylinderBBMin[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	minz := int((cylinderBBMin[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
-	maxx := int((cylinderBBMax[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
-	maxy := int((cylinderBBMax[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
-	maxz := int((cylinderBBMax[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	minx := int32((cylinderBBMin[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	miny := int32((cylinderBBMin[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	minz := int32((cylinderBBMin[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
+	maxx := int32((cylinderBBMax[0] - compactHeightfield.Bmin[0]) / compactHeightfield.Cs)
+	maxy := int32((cylinderBBMax[1] - compactHeightfield.Bmin[1]) / compactHeightfield.Ch)
+	maxz := int32((cylinderBBMax[2] - compactHeightfield.Bmin[2]) / compactHeightfield.Cs)
 
 	// Early-out if the cylinder is completely outside the grid bounds.
 	if maxx < 0 {
@@ -655,8 +622,8 @@ func rcMarkCylinderArea(position []float64, radius float64, height float64, area
 			cell := compactHeightfield.Cells[x+z*zStride]
 			maxSpanIndex := cell.Index + cell.Count
 
-			cellX := compactHeightfield.Bmin[0] + (float64(x)+0.5)*compactHeightfield.Cs
-			cellZ := compactHeightfield.Bmin[2] + (float64(z)+0.5)*compactHeightfield.Cs
+			cellX := compactHeightfield.Bmin[0] + (float32(x)+0.5)*compactHeightfield.Cs
+			cellZ := compactHeightfield.Bmin[2] + (float32(z)+0.5)*compactHeightfield.Cs
 			deltaX := cellX - position[0]
 			deltaZ := cellZ - position[2]
 
@@ -675,7 +642,7 @@ func rcMarkCylinderArea(position []float64, radius float64, height float64, area
 				}
 
 				// Mark if y extents overlap.
-				if span.Y >= miny && span.Y <= maxy {
+				if int32(span.Y) >= miny && int32(span.Y) <= maxy {
 					compactHeightfield.Areas[spanIndex] = areaId
 				}
 			}

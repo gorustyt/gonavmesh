@@ -1,4 +1,4 @@
-package recast
+package detour
 
 type DtStatus int
 
