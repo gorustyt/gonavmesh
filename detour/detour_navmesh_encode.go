@@ -25,7 +25,7 @@ func getStructAlignOffset[T any](v T) int {
 }
 
 func getAlignOffset(old int) int {
-	return dtAlign4(int(old)) - int(old)
+	return dtAlign4(old) - old
 }
 func (d *NavMeshData) ToProto() {
 
