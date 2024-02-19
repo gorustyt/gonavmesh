@@ -23,10 +23,10 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 				log.Println("Cancelled")
 				return
 			}
-			ctx.Config().PropsConfig.OnLoadClick()
+			ctx.Config().PropsConfig.OnLoadClick(reader)
 		}, w)
-		fd.SetFilter(storage.NewExtensionFileFilter([]string{".obj"}))
-		p, err := filepath.Abs("./demo/objs/Meshes")
+		fd.SetFilter(storage.NewExtensionFileFilter([]string{".bin"}))
+		p, err := filepath.Abs("./")
 		if err != nil {
 			panic(err)
 		}

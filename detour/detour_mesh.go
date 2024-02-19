@@ -393,6 +393,22 @@ type NavMeshParams struct {
 	MaxPolys   int32      ///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
 }
 
+func (d *NavMeshParams) FromBin(r *rw.ReaderWriter) {
+	r.ReadFloat32s(d.Orig[:])
+	d.TileWidth = r.ReadFloat32()
+	d.TileHeight = r.ReadFloat32()
+	d.MaxTiles = r.ReadInt32()
+	d.MaxPolys = r.ReadInt32()
+}
+
+func (d *NavMeshParams) ToBin(w *rw.ReaderWriter) {
+	w.WriteFloat32s(d.Orig[:])
+	w.WriteFloat32(d.TileWidth)
+	w.WriteFloat32(d.TileHeight)
+	w.WriteInt32(d.MaxTiles)
+	w.WriteInt32(d.MaxPolys)
+}
+
 type IDtNavMesh interface {
 	/// Adds a tile to the navigation mesh.
 	///  @param[in]		data		Data for the new tile mesh. (See: #dtCreateNavMeshData)
@@ -588,7 +604,7 @@ func (mesh *DtNavMesh) GetMaxTiles() int32 {
 // /  @param[in]	ip		The index of the polygon within the tile.
 func (mesh *DtNavMesh) EncodePolyId(salt, it, ip uint32) DtPolyRef {
 	if DT_POLYREF64 == 1 {
-		return DtPolyRef(int64(salt)<<(DT_POLY_BITS+DT_TILE_BITS) | (it << DT_POLY_BITS) | ip)
+		return DtPolyRef(int64(salt)<<(DT_POLY_BITS+DT_TILE_BITS) | int64(it<<DT_POLY_BITS) | int64(ip))
 	} else {
 		return DtPolyRef(salt<<(mesh.m_polyBits+mesh.m_tileBits) | (it << mesh.m_polyBits) | ip)
 	}
@@ -636,7 +652,7 @@ func (mesh *DtNavMesh) DecodePolyId(r DtPolyRef) (salt, it, ip uint32) {
 // / @param[in]	edgeIndex		The index of the first vertex of the edge. For instance, if 0,
 // /								returns flags for edge AB.
 func DtGetDetailTriEdgeFlags(triFlags uint8, edgeIndex int32) int32 {
-	return (triFlags >> (edgeIndex * 2)) & 0x3
+	return int32(triFlags>>(edgeIndex*2)) & 0x3
 }
 
 func (mesh *DtNavMesh) DecodePolyIdPoly(ref DtPolyRef) uint32 {

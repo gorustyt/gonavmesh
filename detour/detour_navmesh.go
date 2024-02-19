@@ -25,6 +25,8 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 		mesh.m_tileLutSize = 1
 	}
 	mesh.m_tileLutMask = mesh.m_tileLutSize - 1
+	mesh.m_tiles = make([]*DtMeshTile, mesh.m_maxTiles)
+	mesh.m_posLookup = make([]*DtMeshTile, mesh.m_tileLutSize)
 	var m_nextFree *DtMeshTile
 	for i := mesh.m_maxTiles - 1; i >= 0; i-- {
 		mesh.m_tiles[i].salt = 1
@@ -37,7 +39,7 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 		mesh.m_tileBits = common.Ilog2(common.NextPow2(uint32(params.MaxTiles)))
 		mesh.m_polyBits = common.Ilog2(common.NextPow2(uint32(params.MaxPolys)))
 		// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
-		mesh.m_saltBits = common.Min(31, 32-mesh.m_tileBits-mesh.m_polyBits)
+		mesh.m_saltBits = min(31, 32-mesh.m_tileBits-mesh.m_polyBits)
 
 		if mesh.m_saltBits < 10 {
 			return mesh, DT_FAILURE | DT_INVALID_PARAM

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/data/binding"
 )
 
@@ -143,7 +144,7 @@ type PropsConfig struct {
 
 	KeepInterResults []string
 	OnSaveClick      func()
-	OnLoadClick      func()
+	OnLoadClick      func(reader fyne.URIReadCloser)
 	BuildTimeLabel   binding.String
 	OnBuildClick     func()
 	DrawMode         string

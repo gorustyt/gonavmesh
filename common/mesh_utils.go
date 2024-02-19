@@ -158,16 +158,17 @@ func Diagonal[T1 IT, T2 int32 | uint8 | int, T3 int32 | uint16 | int](i, j, n T1
 }
 
 func DiagonalieLoose[T1 IT, T2 int32 | uint8 | int, T3 int32 | uint16 | int](i, j, n T1, verts []T2, indices []T3) bool {
-	d0 := GetVert4(verts, indices[int64(i)]&0x0fffffff)
-	d1 := GetVert4(verts, indices[int64(j)]&0x0fffffff)
+	tmp := 0x0fffffff
+	d0 := GetVert4(verts, indices[int64(i)]&T3(tmp))
+	d1 := GetVert4(verts, indices[int64(j)]&T3(tmp))
 
 	// For each edge (k,k+1) of P
 	for k := int64(0); k < int64(n); k++ {
 		k1 := Next(k, int64(n))
 		// Skip edges incident to i or j
 		if !((k == int64(i)) || (k1 == int64(i)) || (k == int64(j)) || (k1 == int64(j))) {
-			p0 := GetVert3(verts, indices[k]&0x0fffffff)
-			p1 := GetVert3(verts, indices[k1]&0x0fffffff)
+			p0 := GetVert3(verts, indices[k]&T3(tmp))
+			p1 := GetVert3(verts, indices[k1]&T3(tmp))
 
 			if RcVequal(d0, p0) || RcVequal(d1, p0) || RcVequal(d0, p1) || RcVequal(d1, p1) {
 				continue
@@ -182,11 +183,12 @@ func DiagonalieLoose[T1 IT, T2 int32 | uint8 | int, T3 int32 | uint16 | int](i, 
 	return true
 }
 
-func InConeLoose[T1 IT, T2 int32 | uint8, T3 int32 | uint16](i, j, n T1, verts []T2, indices []T3) bool {
-	pi := GetVert4(verts, indices[int64(i)]&0x0fffffff)
-	pj := GetVert4(verts, indices[int64(j)]&0x0fffffff)
-	pi1 := GetVert4(verts, indices[int64(Next(i, n))]&0x0fffffff)
-	pin1 := GetVert4(verts, indices[int64(Prev(i, n))]&0x0fffffff)
+func InConeLoose[T1 IT, T2 int32 | uint8 | int, T3 int32 | uint16 | int](i, j, n T1, verts []T2, indices []T3) bool {
+	tmp := 0x0fffffff
+	pi := GetVert4(verts, indices[int64(i)]&T3(tmp))
+	pj := GetVert4(verts, indices[int64(j)]&T3(tmp))
+	pi1 := GetVert4(verts, indices[int64(Next(i, n))]&T3(tmp))
+	pin1 := GetVert4(verts, indices[int64(Prev(i, n))]&T3(tmp))
 
 	// If P[i] is a convex vertex [ i+1 left or on (i-1,i) ].
 	if LeftOn(pin1, pi, pi1) {
@@ -198,20 +200,21 @@ func InConeLoose[T1 IT, T2 int32 | uint8, T3 int32 | uint16](i, j, n T1, verts [
 	return !(LeftOn(pi, pj, pi1) && LeftOn(pj, pi, pin1))
 }
 
-func DiagonalLoose[T1 IT, T2 int32 | uint8, T3 int32 | uint16](i, j, n T1, verts []T2, indices []T3) bool {
+func DiagonalLoose[T1 IT, T2 int32 | uint8 | int, T3 int32 | uint16 | int](i, j, n T1, verts []T2, indices []T3) bool {
 	return InConeLoose(i, j, n, verts, indices) && DiagonalieLoose(i, j, n, verts, indices)
 }
 
 func Triangulate[T1 int32 | uint8 | int, T2 int32 | uint16 | int](n int32, verts []T1, indices []T2, tris []T2) int32 {
 	ntris := int32(0)
 	dst := 0
-
+	tmpT1 := 0x0fffffff
+	tmpT2 := 0x80000000
 	// The last bit of the index is used to indicate if the vertex can be removed.
 	for i := int32(0); i < n; i++ {
 		i1 := Next(i, n)
 		i2 := Next(i1, n)
 		if Diagonal[int32, T1, T2](i, i2, n, verts, indices) {
-			indices[i1] |= 0x80000000
+			indices[i1] |= T2(tmpT2)
 		}
 
 	}
@@ -221,9 +224,9 @@ func Triangulate[T1 int32 | uint8 | int, T2 int32 | uint16 | int](n int32, verts
 		mini := -1
 		for i := int32(0); i < n; i++ {
 			i1 := Next(i, n)
-			if indices[i1]&0x80000000 > 0 {
-				p0 := GetVert3(verts, (indices[i] & 0x0fffffff))
-				p2 := GetVert3(verts, (indices[Next(i1, n)] & 0x0fffffff))
+			if indices[i1]&T2(tmpT2) > 0 {
+				p0 := GetVert3(verts, (indices[i] & T2(tmpT1)))
+				p2 := GetVert3(verts, (indices[Next(i1, n)] & T2(tmpT1)))
 
 				dx := p2[0] - p0[0]
 				dy := p2[2] - p0[2]
@@ -251,8 +254,8 @@ func Triangulate[T1 int32 | uint8 | int, T2 int32 | uint16 | int](n int32, verts
 				i1 := Next(i, n)
 				i2 := Next(i1, n)
 				if DiagonalLoose(i, i2, n, verts, indices) {
-					p0 := GetVert4(verts, (indices[i] & 0x0fffffff))
-					p2 := GetVert4(verts, (indices[Next(i2, n)] & 0x0fffffff))
+					p0 := GetVert4(verts, (indices[i] & T2(tmpT1)))
+					p2 := GetVert4(verts, (indices[Next(i2, n)] & T2(tmpT1)))
 					dx := p2[0] - p0[0]
 					dy := p2[2] - p0[2]
 					length := dx*dx + dy*dy
@@ -274,11 +277,11 @@ func Triangulate[T1 int32 | uint8 | int, T2 int32 | uint16 | int](n int32, verts
 		i1 := Next(i, int(n))
 		i2 := Next(i1, int(n))
 
-		tris[dst] = indices[i] & 0x0fffffff
+		tris[dst] = indices[i] & T2(tmpT1)
 		dst++
-		tris[dst] = indices[i1] & 0x0fffffff
+		tris[dst] = indices[i1] & T2(tmpT1)
 		dst++
-		tris[dst] = indices[i2] & 0x0fffffff
+		tris[dst] = indices[i2] & T2(tmpT1)
 		dst++
 		ntris++
 
@@ -295,25 +298,25 @@ func Triangulate[T1 int32 | uint8 | int, T2 int32 | uint16 | int](n int32, verts
 
 		// Update diagonal flags.
 		if Diagonal[int32, T1, T2](Prev(int32(i), n), int32(i1), n, verts, indices) {
-			indices[i] |= 0x80000000
+			indices[i] |= T2(tmpT2)
 		} else {
-			indices[i] &= 0x0fffffff
+			indices[i] &= T2(tmpT1)
 		}
 
 		if Diagonal[int32, T1, T2](int32(i), Next(int32(i1), n), n, verts, indices) {
-			indices[i1] |= 0x80000000
+			indices[i1] |= T2(tmpT2)
 		} else {
-			indices[i1] &= 0x0fffffff
+			indices[i1] &= T2(tmpT1)
 		}
 
 	}
 
 	// Append the remaining triangle.
-	tris[dst] = indices[0] & 0x0fffffff
+	tris[dst] = indices[0] & T2(tmpT1)
 	dst++
-	tris[dst] = indices[1] & 0x0fffffff
+	tris[dst] = indices[1] & T2(tmpT1)
 	dst++
-	tris[dst] = indices[2] & 0x0fffffff
+	tris[dst] = indices[2] & T2(tmpT1)
 	dst++
 	ntris++
 

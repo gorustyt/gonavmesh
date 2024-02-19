@@ -6,7 +6,8 @@ import (
 )
 
 type Content struct {
-	cfg *config.Config
+	cfg    *config.Config
+	sample *Sample
 }
 
 func (c *Content) GetConfig() *config.Config {
@@ -53,5 +54,9 @@ func (c *Content) Refresh() {
 }
 
 func NewContent() *Content {
-	return &Content{cfg: config.NewConfig()}
+	c := &Content{
+		sample: NewSample(),
+		cfg:    config.NewConfig()}
+	c.cfg.PropsConfig.OnLoadClick = c.sample.Load
+	return c
 }

@@ -231,3 +231,7 @@ func (w *ReaderWriter) PadZero(n int) {
 func (w *ReaderWriter) ChangeOrder(order binary.ByteOrder) {
 	w.order = order
 }
+
+func (w *ReaderWriter) Size() int {
+	return w.writer.Len()
+}

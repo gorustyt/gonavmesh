@@ -1,6 +1,7 @@
 package detour
 
 import (
+	"errors"
 	"github.com/gorustyt/gonavmesh/common/rw"
 	"unsafe"
 )
@@ -35,8 +36,8 @@ func (d *NavMeshData) FromProto() {
 
 }
 
-func (d *NavMeshData) ToBin() (res []byte) {
-	w := rw.NewNavMeshDataBinWriter()
+func (d *NavMeshData) ToBin(w *rw.ReaderWriter) (dataSize int) {
+	oldSize := w.Size()
 	d.Header.ToBin(w)
 	w.PadZero(getStructAlignOffset(*d.Header))
 	w.WriteFloat32s(d.NavVerts)
@@ -71,14 +72,20 @@ func (d *NavMeshData) ToBin() (res []byte) {
 		v.ToBin(w)
 	}
 	w.PadZero(getAlignOffset(int(unsafe.Sizeof(DtOffMeshConnection{})) * len(d.OffMeshCons)))
-
-	return w.GetWriteBytes()
+	return w.Size() - oldSize
 }
 
-func (d *NavMeshData) FromBin(data []byte) {
-	r := rw.NewNavMeshDataBinReader(data)
+func (d *NavMeshData) FromBin(r *rw.ReaderWriter) error {
 	// Patch header pointers.
 	d.Header = (&DtMeshHeader{}).FromBin(r)
+	if d.Header.Magic != DT_NAVMESH_MAGIC {
+		return errors.New("magic error")
+	}
+
+	if d.Header.Version != DT_NAVMESH_VERSION {
+		return errors.New("version error")
+	}
+
 	r.Skip(getStructAlignOffset(*d.Header))
 	d.NavVerts = make([]float32, d.Header.VertCount*3)
 	r.ReadFloat32s(d.NavVerts)
@@ -115,5 +122,5 @@ func (d *NavMeshData) FromBin(data []byte) {
 		d.OffMeshCons[i] = (&DtOffMeshConnection{}).FromBin(r)
 	}
 	r.Skip(getAlignOffset(int(unsafe.Sizeof(DtOffMeshConnection{})) * len(d.OffMeshCons)))
-
+	return nil
 }

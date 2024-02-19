@@ -2,8 +2,9 @@ package mesh
 
 import (
 	"github.com/gorustyt/fyne/v2"
+	"github.com/gorustyt/gonavmesh/common/rw"
 	"github.com/gorustyt/gonavmesh/detour"
-	"github.com/gorustyt/gonavmesh/recast"
+	"io"
 	"log/slog"
 )
 
@@ -12,19 +13,36 @@ const NAVMESHSET_VERSION = 1
 
 type Sample struct {
 }
+
+func NewSample() *Sample {
+	return &Sample{}
+}
+
 type NavMeshSetHeader struct {
 	Magic    int
 	Version  int
 	NumTiles int
-	Params   detour.NavMeshParams
+	Params   *detour.NavMeshParams
 }
 
-func (n *NavMeshSetHeader) Encode(writer fyne.URIWriteCloser) {
-
+func NewNavMeshSetHeader() *NavMeshSetHeader {
+	return &NavMeshSetHeader{
+		Params: &detour.NavMeshParams{},
+	}
 }
 
-func (n *NavMeshSetHeader) Decode(reader fyne.URIReadCloser) {
+func (n *NavMeshSetHeader) Encode(w *rw.ReaderWriter) {
+	w.WriteInt32(n.Magic)
+	w.WriteInt32(n.Version)
+	w.WriteInt32(n.NumTiles)
+	n.Params.ToBin(w)
+}
 
+func (n *NavMeshSetHeader) Decode(r *rw.ReaderWriter) {
+	n.Magic = int(r.ReadInt32())
+	n.Version = int(r.ReadInt32())
+	n.NumTiles = int(r.ReadInt32())
+	n.Params.FromBin(r)
 }
 
 type NavMeshTileHeader struct {
@@ -32,95 +50,100 @@ type NavMeshTileHeader struct {
 	DataSize int
 }
 
-func (n *NavMeshTileHeader) Decode(reader fyne.URIReadCloser) {
-
+func (n *NavMeshTileHeader) Decode(r *rw.ReaderWriter) {
+	n.TileRef = detour.DtTileRef(r.ReadInt32())
+	n.DataSize = int(r.ReadInt32())
 }
-func (n *NavMeshTileHeader) Encode(writer fyne.URIWriteCloser) {
-
+func (n *NavMeshTileHeader) Encode(w *rw.ReaderWriter) {
+	w.WriteInt32(int32(n.TileRef))
+	w.WriteInt32(n.DataSize)
 }
 
 func (s *Sample) saveAll(writer fyne.URIWriteCloser, mesh *detour.DtNavMesh) {
 	if mesh == nil {
 		return
 	}
+	w := rw.NewNavMeshDataBinWriter()
 	// Store header.
-	var header NavMeshSetHeader
+	header := NewNavMeshSetHeader()
 	header.Magic = NAVMESHSET_MAGIC
 	header.Version = NAVMESHSET_VERSION
 	header.NumTiles = 0
-	for i := 0; i < mesh.GetMaxTiles(); i++ {
-		tile := mesh.GetTile(i)
-		if tile == nil || tile.Header == nil || tile.DataSize == 0 {
+	for i := int32(0); i < mesh.GetMaxTiles(); i++ {
+		tile := mesh.GetTile(int(i))
+		if tile == nil || tile.Header == nil || tile.Data == nil {
 			continue
 		}
 		header.NumTiles++
 	}
-	header.Params = *mesh.GetParams()
-	header.Encode(writer)
+	header.Params = mesh.GetParams()
+	header.Encode(w)
 
 	// Store tiles.
-	for i := 0; i < mesh.GetMaxTiles(); i++ {
-		tile := mesh.GetTile(i)
-		if tile == nil || tile.Header == nil || tile.DataSize == 0 {
+	for i := int32(0); i < mesh.GetMaxTiles(); i++ {
+		tile := mesh.GetTile(int(i))
+		if tile == nil || tile.Header == nil || tile.Data == nil {
 			continue
 		}
 
 		var tileHeader NavMeshTileHeader
 		tileHeader.TileRef = mesh.GetTileRef(tile)
-		tileHeader.DataSize = tile.DataSize
-		tileHeader.Encode(writer)
-
-		fwrite(tile.Data, tile.dataSize, 1, fp)
+		dataSize := tile.Data.ToBin(w)
+		tileHeader.DataSize = dataSize
+		tileHeader.Encode(w)
+		_, err := writer.Write(w.GetWriteBytes())
+		if err != nil {
+			panic(err)
+		}
 	}
 	writer.Close()
 }
 
-func (s *Sample)loadAll(reader fyne.URIReadCloser) *detour.DtNavMesh {
-
-// Read header.
-var header NavMeshSetHeader ;
-header.Encode(reader)
-if header.Magic != NAVMESHSET_MAGIC {
-	slog.Error("header.Magic != NAVMESHSET_MAGIC")
-	return nil
-}
-if header.Version != NAVMESHSET_VERSION {
-	slog.Error("header.Version != NAVMESHSET_VERSION ")
-	return nil
+func (s *Sample) Load(reader fyne.URIReadCloser) {
+	s.loadAll(reader)
 }
 
-var mesh *detour.DtNavMesh
+func (s *Sample) loadAll(reader fyne.URIReadCloser) detour.IDtNavMesh {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		panic(err)
+	}
+	r := rw.NewNavMeshDataBinReader(data)
+	// Read header.
+	header := NewNavMeshSetHeader()
+	header.Decode(r)
+	if header.Magic != NAVMESHSET_MAGIC {
+		slog.Error("header.Magic != NAVMESHSET_MAGIC")
+		return nil
+	}
+	if header.Version != NAVMESHSET_VERSION {
+		slog.Error("header.Version != NAVMESHSET_VERSION ")
+		return nil
+	}
 
- status := mesh.Init(header.Params);
-if (recast.DtStatusFailed(status)) {
-fclose(fp);
-return 0;
-}
+	mesh, _ := detour.NewDtNavMeshWithParams(header.Params)
 
-// Read tiles.
-for i := 0; i < header.NumTiles; i++{
-var tileHeader NavMeshTileHeader ;
-tileHeader.Decode(reader)
+	// Read tiles.
+	for i := 0; i < header.NumTiles; i++ {
+		var tileHeader NavMeshTileHeader
+		tileHeader.Decode(r)
 
-if (!tileHeader.TileRef || !tileHeader.dataSize){
-	break;
-}
+		if tileHeader.TileRef == 0 || tileHeader.DataSize == 0 {
+			break
+		}
 
-
-unsigned char* data = (unsigned char*)dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM);
-if (!data) break;
-memset(data, 0, tileHeader.dataSize);
-readLen = fread(data, tileHeader.dataSize, 1, fp);
-if (readLen != 1) {
-dtFree(data);
-fclose(fp);
-return 0;
-}
-
-mesh.AddTile(data, tileHeader.dataSize, detour.DT_TILE_FREE_DATA, tileHeader.TileRef, 0);
-}
-
-
-
-return mesh;
+		data := make([]byte, tileHeader.DataSize)
+		n, err := reader.Read(data)
+		if err != nil || n != tileHeader.DataSize {
+			panic("error data")
+		}
+		meshData := &detour.NavMeshData{}
+		err = meshData.FromBin(r)
+		if err != nil {
+			panic(err)
+		}
+		mesh.AddTile(meshData, detour.DT_TILE_FREE_DATA, tileHeader.TileRef)
+	}
+	reader.Close()
+	return mesh
 }

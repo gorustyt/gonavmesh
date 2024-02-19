@@ -1028,17 +1028,17 @@ func (query *dtCollectPolysQuery) process(tile *DtMeshTile, refs []DtPolyRef, co
 
 type dtSegInterval struct {
 	ref        DtPolyRef
-	tmin, tmax int8
+	tmin, tmax int
 }
 
-func insertInterval(ints []*dtSegInterval, maxInts int32, tmin, tmax int8, ref DtPolyRef) (nints int32) {
+func insertInterval(ints []*dtSegInterval, maxInts int32, tmin, tmax int, ref DtPolyRef) (nints int32) {
 	if nints+1 > maxInts {
 		return
 	}
 	// Find insertion point.
 	idx := int32(0)
 	for idx < nints {
-		if tmax <= ints[idx].tmin {
+		if tmax <= int(ints[idx].tmin) {
 			break
 		}
 		idx++
@@ -3579,7 +3579,7 @@ func (q *DtNavMeshQuery) GetPolyWallSegments(ref DtPolyRef, filter *DtQueryFilte
 					if link.Ref != 0 {
 						_, neiPoly := q.m_nav.GetTileAndPolyByRefUnsafe(link.Ref)
 						if filter.passFilter(neiPoly) {
-							nints = insertInterval(ints[:], MAX_INTERVAL, int8(link.Bmin), int8(link.Bmax), link.Ref)
+							nints = insertInterval(ints[:], MAX_INTERVAL, int(link.Bmin), int(link.Bmax), link.Ref)
 						}
 					}
 				}
