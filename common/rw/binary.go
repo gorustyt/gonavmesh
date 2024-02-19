@@ -215,12 +215,19 @@ func (w *ReaderWriter) WriteFloat32s(v interface{}) {
 		panic("not impl")
 	}
 }
-
+func (w *ReaderWriter) Skip(size int) {
+	w.writer.Next(size)
+}
 func (w *ReaderWriter) GetWriteBytes() (res []byte) {
 	res = w.writer.Bytes()
 	return res
 }
 
+func (w *ReaderWriter) PadZero(n int) {
+	for i := 0; i < n; i++ {
+		w.writer.WriteByte(0)
+	}
+}
 func (w *ReaderWriter) ChangeOrder(order binary.ByteOrder) {
 	w.order = order
 }

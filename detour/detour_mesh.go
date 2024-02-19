@@ -2,7 +2,6 @@ package detour
 
 import (
 	"github.com/gorustyt/gonavmesh/common/rw"
-	"github.com/gorustyt/gonavmesh/recast"
 	"math"
 	"unsafe"
 )
@@ -118,13 +117,14 @@ func (d *DtPoly) ToBin(w *rw.ReaderWriter) {
 	w.WriteInt8(d.AreaAndtype)
 }
 
-func (d *DtPoly) FromBin(w *rw.ReaderWriter) {
+func (d *DtPoly) FromBin(w *rw.ReaderWriter) *DtPoly {
 	d.FirstLink = w.ReadUInt32()
 	d.Flags = w.ReadUInt16()
 	w.ReadUInt16s(d.Verts[:])
 	w.ReadUInt16s(d.Neis[:])
 	d.VertCount = w.ReadUInt8()
 	d.AreaAndtype = w.ReadUInt8()
+	return d
 }
 
 // / Sets the user defined area id. [Limit: < #DT_MAX_AREAS]
@@ -154,11 +154,12 @@ func (d *DtPolyDetail) ToBin(w *rw.ReaderWriter) {
 	w.WriteInt8(d.TriCount)
 }
 
-func (d *DtPolyDetail) FromBin(w *rw.ReaderWriter) {
+func (d *DtPolyDetail) FromBin(w *rw.ReaderWriter) *DtPolyDetail {
 	d.VertBase = w.ReadUInt32()
 	d.TriBase = w.ReadUInt32()
 	d.VertCount = w.ReadUInt8()
 	d.TriCount = w.ReadUInt8()
+	return d
 }
 
 // Defines a link between polygons.
@@ -182,13 +183,14 @@ func (d *DtLink) ToBin(w *rw.ReaderWriter) {
 	w.WriteInt8(d.Bmax)
 }
 
-func (d *DtLink) FromBin(w *rw.ReaderWriter) {
+func (d *DtLink) FromBin(w *rw.ReaderWriter) *DtLink {
 	d.Ref = DtPolyRef(w.ReadInt32())
 	d.Next = w.ReadUInt32()
 	d.Edge = w.ReadUInt8()
 	d.Side = w.ReadUInt8()
 	d.Bmin = w.ReadUInt8()
 	d.Bmax = w.ReadUInt8()
+	return d
 }
 
 // / Bounding volume node.
@@ -206,10 +208,11 @@ func (d *DtBVNode) ToBin(w *rw.ReaderWriter) {
 	w.WriteInt32(d.I)
 }
 
-func (d *DtBVNode) FromBin(w *rw.ReaderWriter) {
+func (d *DtBVNode) FromBin(w *rw.ReaderWriter) *DtBVNode {
 	w.ReadUInt16s(d.Bmin[:])
 	w.ReadUInt16s(d.Bmax[:])
 	d.I = w.ReadInt32()
+	return d
 }
 
 // / Defines a navigation mesh tile.
@@ -239,7 +242,7 @@ type DtMeshTile struct {
 	Flags       int32                  ///< Tile flags. (See: #dtTileFlags)
 	Next        *DtMeshTile            ///< The next free tile, or the next tile in the spatial grid.
 	//存储的数据
-	Data *recast.NavMeshData
+	Data *NavMeshData
 }
 
 func (d *DtMeshTile) GetIndexByPloy(ploy *DtPoly) int {
@@ -310,7 +313,7 @@ func (d *DtMeshHeader) ToBin(w *rw.ReaderWriter) {
 	w.WriteFloat32(d.BvQuantFactor)
 }
 
-func (d *DtMeshHeader) FromBin(w *rw.ReaderWriter) {
+func (d *DtMeshHeader) FromBin(w *rw.ReaderWriter) *DtMeshHeader {
 	d.Magic = w.ReadInt32()
 	d.Version = w.ReadInt32()
 	d.X = w.ReadInt32()
@@ -332,6 +335,7 @@ func (d *DtMeshHeader) FromBin(w *rw.ReaderWriter) {
 	w.ReadFloat32s(d.Bmin[:])
 	w.ReadFloat32s(d.Bmax[:])
 	d.BvQuantFactor = w.ReadFloat32()
+	return d
 }
 
 // / Defines an navigation mesh off-mesh connection within a DtMeshTile object.
@@ -367,13 +371,14 @@ func (d *DtOffMeshConnection) ToBin(w *rw.ReaderWriter) {
 	w.WriteInt32(d.UserId)
 }
 
-func (d *DtOffMeshConnection) FromBin(w *rw.ReaderWriter) {
+func (d *DtOffMeshConnection) FromBin(w *rw.ReaderWriter) *DtOffMeshConnection {
 	w.ReadFloat32s(d.Pos[:])
 	d.Rad = w.ReadFloat32()
 	d.Poly = w.ReadUInt16()
 	d.Flags = w.ReadUInt8()
 	d.Side = w.ReadUInt8()
 	d.UserId = w.ReadUInt32()
+	return d
 }
 
 // / Configuration parameters used to define multi-tile navigation meshes.
@@ -396,11 +401,11 @@ type IDtNavMesh interface {
 	///  @param[in]		lastRef		The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
 	///  @param[out]	result		The tile reference. (If the tile was succesfully added.) [opt]
 	/// @return The status flags for the operation.
-	AddTile(data *recast.NavMeshData, flags int32, lastRef DtTileRef) (result DtTileRef, status DtStatus)
+	AddTile(data *NavMeshData, flags int32, lastRef DtTileRef) (result DtTileRef, status DtStatus)
 	/// Removes the specified tile from the navigation mesh.
 	///  @param[in]		ref			The reference of the tile to remove.
 	/// @return The status flags for the operation.
-	RemoveTile(ref DtTileRef) (data *recast.NavMeshData, status DtStatus)
+	RemoveTile(ref DtTileRef) (data *NavMeshData, status DtStatus)
 	/// @name Query Functions
 
 	/// Calculates the tile grid location for the specified world position.

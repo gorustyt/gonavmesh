@@ -2,7 +2,6 @@ package detour
 
 import (
 	"github.com/gorustyt/gonavmesh/common"
-	"github.com/gorustyt/gonavmesh/recast"
 	"math"
 	"sort"
 )
@@ -376,7 +375,7 @@ func createBVTree(params *DtNavMeshCreateParams, nodes []*DtBVNode) int32 {
 // / mesh.
 // /
 // / @see DtNavMesh, DtNavMesh::addTile()
-func DtCreateNavMeshData(params *DtNavMeshCreateParams) (outData *recast.NavMeshData, ok bool) {
+func DtCreateNavMeshData(params *DtNavMeshCreateParams) (outData *NavMeshData, ok bool) {
 	if params.Nvp > DT_VERTS_PER_POLYGON {
 		return outData, false
 	}
@@ -539,7 +538,7 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) (outData *recast.NavMesh
 		navBvtreeSize = params.PolyCount * 2
 	}
 	navBvtree := make([]*DtBVNode, navBvtreeSize)
-	data := &recast.NavMeshData{
+	data := &NavMeshData{
 		Header:      &header,
 		NavVerts:    navVerts,
 		NavPolys:    navPolys,

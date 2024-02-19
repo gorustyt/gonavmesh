@@ -2,7 +2,6 @@ package detour
 
 import (
 	"github.com/gorustyt/gonavmesh/common"
-	"github.com/gorustyt/gonavmesh/recast"
 	"math"
 )
 
@@ -54,7 +53,7 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 // /  @param[in]	flags		The tile flags. (See: #dtTileFlags)
 // / @return The status flags for the operation.
 // /  @see dtCreateNavMeshData
-func NewDtNavMesh(data *recast.NavMeshData, flags int32) (m IDtNavMesh, result DtTileRef, status DtStatus) {
+func NewDtNavMesh(data *NavMeshData, flags int32) (m IDtNavMesh, result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
 	header := data.Header
 	if header.Magic != DT_NAVMESH_MAGIC {
@@ -803,7 +802,7 @@ func (mesh *DtNavMesh) RestoreTileState(tile *DtMeshTile, tileState *dtTileState
 // / removed from this nav mesh.
 // /
 // / @see dtCreateNavMeshData, #removeTile
-func (mesh *DtNavMesh) AddTile(data *recast.NavMeshData, flags int32, lastRef DtTileRef) (result DtTileRef, status DtStatus) {
+func (mesh *DtNavMesh) AddTile(data *NavMeshData, flags int32, lastRef DtTileRef) (result DtTileRef, status DtStatus) {
 	// Make sure the data is in right format.
 	header := data.Header
 	if header.Magic != DT_NAVMESH_MAGIC {
@@ -1054,7 +1053,7 @@ func (mesh *DtNavMesh) GetTileAt(x, y, layer int32) *DtMeshTile {
 // / it can be added back to the navigation mesh at a later point.
 // /
 // / @see #addTile
-func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data *recast.NavMeshData, status DtStatus) {
+func (mesh *DtNavMesh) RemoveTile(ref DtTileRef) (data *NavMeshData, status DtStatus) {
 	if ref == 0 {
 		return data, DT_FAILURE | DT_INVALID_PARAM
 	}
