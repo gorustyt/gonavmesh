@@ -1,7 +1,7 @@
 package debug_utils
 
 import (
-	"gonavamesh/common"
+	"github.com/gorustyt/gonavmesh/common"
 	"math"
 )
 

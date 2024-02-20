@@ -1,8 +1,8 @@
 package debug_utils
 
 import (
-	"gonavamesh/common"
-	"gonavamesh/recast"
+	"github.com/gorustyt/gonavmesh/common"
+	"github.com/gorustyt/gonavmesh/recast"
 	"math"
 )
 

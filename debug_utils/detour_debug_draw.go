@@ -1,6 +1,6 @@
 package debug_utils
 
-import "gonavamesh/recast"
+import "github.com/gorustyt/gonavmesh/detour"
 
 const (
 	DU_DRAWNAVMESH_OFFMESHCONS = 0x01
@@ -23,7 +23,7 @@ func distancePtLine2d(pt, p, q []float64) float64 {
 	return dx*dx + dz*dz
 }
 
-func drawPolyBoundaries(dd DuDebugDraw, tile *recast.DtMeshTile, col int, linew float64, inner bool) {
+func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col int, linew float64, inner bool) {
 	const thr = 0.01 * 0.01
 
 	dd.Begin(DU_DRAW_LINES, linew)
@@ -44,9 +44,9 @@ func drawPolyBoundaries(dd DuDebugDraw, tile *recast.DtMeshTile, col int, linew 
 				if p.Neis[j] == 0 {
 					continue
 				}
-				if p.Neis[j]&recast.DT_EXT_LINK != 0 {
+				if p.Neis[j]&detour.DT_EXT_LINK != 0 {
 					con := false
-					for k := p.FirstLink; k != recast.DT_NULL_LINK; k = tile.Links[k].Next {
+					for k := p.FirstLink; k != detour.DT_NULL_LINK; k = tile.Links[k].Next {
 						if tile.Links[k].Edge == j {
 							con = true
 							break
