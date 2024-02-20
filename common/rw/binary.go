@@ -9,7 +9,7 @@ import (
 type ReaderWriter struct {
 	order   binary.ByteOrder
 	dataBuf []byte
-	writer  bytes.Buffer
+	rw      bytes.Buffer
 }
 
 func NewNavMeshDataBinWriter() *ReaderWriter {
@@ -18,7 +18,7 @@ func NewNavMeshDataBinWriter() *ReaderWriter {
 
 func NewNavMeshDataBinReader(data []byte) *ReaderWriter {
 	d := &ReaderWriter{order: binary.LittleEndian, dataBuf: make([]byte, 8)}
-	d.writer.Write(data)
+	d.rw.Write(data)
 	return d
 }
 
@@ -39,7 +39,7 @@ func (w *ReaderWriter) ReadUInt16s(value []uint16) {
 }
 
 func (w *ReaderWriter) ReadUInt16() uint16 {
-	_, err := w.writer.Read(w.dataBuf[:2])
+	_, err := w.rw.Read(w.dataBuf[:2])
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +63,7 @@ func (w *ReaderWriter) ReadInt8() int8 {
 }
 
 func (w *ReaderWriter) ReadUInt8() uint8 {
-	res, err := w.writer.ReadByte()
+	res, err := w.rw.ReadByte()
 	if err != nil {
 		panic(err)
 	}
@@ -86,7 +86,7 @@ func (w *ReaderWriter) ReadInt32() int32 {
 }
 
 func (w *ReaderWriter) ReadUInt32() uint32 {
-	_, err := w.writer.Read(w.dataBuf[:4])
+	_, err := w.rw.Read(w.dataBuf[:4])
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +110,7 @@ func (w *ReaderWriter) WriteInt16(v interface{}) {
 	default:
 		panic("not impl")
 	}
-	w.writer.Write(w.dataBuf[:2])
+	w.rw.Write(w.dataBuf[:2])
 }
 
 func (w *ReaderWriter) WriteInt16s(v interface{}) {
@@ -126,15 +126,15 @@ func (w *ReaderWriter) WriteInt16s(v interface{}) {
 	default:
 		panic("not impl")
 	}
-	w.writer.Write(w.dataBuf[:2])
+	w.rw.Write(w.dataBuf[:2])
 }
 
 func (w *ReaderWriter) WriteInt8(v interface{}) {
 	switch value := v.(type) {
 	case int8:
-		w.writer.WriteByte(byte(value))
+		w.rw.WriteByte(byte(value))
 	case uint8:
-		w.writer.WriteByte(value)
+		w.rw.WriteByte(value)
 	default:
 		panic("not impl")
 	}
@@ -166,7 +166,7 @@ func (w *ReaderWriter) WriteInt32(v interface{}) {
 	default:
 		panic("not impl")
 	}
-	w.writer.Write(w.dataBuf[:4])
+	w.rw.Write(w.dataBuf[:4])
 }
 
 func (w *ReaderWriter) WriteInt32s(v interface{}) {
@@ -198,7 +198,7 @@ func (w *ReaderWriter) WriteFloat32(v interface{}) {
 	default:
 		panic("not impl")
 	}
-	w.writer.Write(w.dataBuf[:4])
+	w.rw.Write(w.dataBuf[:4])
 }
 
 func (w *ReaderWriter) WriteFloat32s(v interface{}) {
@@ -216,16 +216,16 @@ func (w *ReaderWriter) WriteFloat32s(v interface{}) {
 	}
 }
 func (w *ReaderWriter) Skip(size int) {
-	w.writer.Next(size)
+	w.rw.Next(size)
 }
 func (w *ReaderWriter) GetWriteBytes() (res []byte) {
-	res = w.writer.Bytes()
+	res = w.rw.Bytes()
 	return res
 }
 
 func (w *ReaderWriter) PadZero(n int) {
 	for i := 0; i < n; i++ {
-		w.writer.WriteByte(0)
+		w.rw.WriteByte(0)
 	}
 }
 func (w *ReaderWriter) ChangeOrder(order binary.ByteOrder) {
@@ -233,5 +233,5 @@ func (w *ReaderWriter) ChangeOrder(order binary.ByteOrder) {
 }
 
 func (w *ReaderWriter) Size() int {
-	return w.writer.Len()
+	return w.rw.Len()
 }
