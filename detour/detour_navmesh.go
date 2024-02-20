@@ -26,7 +26,13 @@ func NewDtNavMeshWithParams(params *NavMeshParams) (m IDtNavMesh, status DtStatu
 	}
 	mesh.m_tileLutMask = mesh.m_tileLutSize - 1
 	mesh.m_tiles = make([]*DtMeshTile, mesh.m_maxTiles)
+	for i := range mesh.m_tiles {
+		mesh.m_tiles[i] = &DtMeshTile{}
+	}
 	mesh.m_posLookup = make([]*DtMeshTile, mesh.m_tileLutSize)
+	for i := range mesh.m_posLookup {
+		mesh.m_posLookup[i] = &DtMeshTile{}
+	}
 	var m_nextFree *DtMeshTile
 	for i := mesh.m_maxTiles - 1; i >= 0; i-- {
 		mesh.m_tiles[i].salt = 1

@@ -132,11 +132,6 @@ func (s *Sample) loadAll(reader fyne.URIReadCloser) detour.IDtNavMesh {
 			break
 		}
 
-		data := make([]byte, tileHeader.DataSize)
-		n, err := reader.Read(data)
-		if err != nil || n != tileHeader.DataSize {
-			panic("error data")
-		}
 		meshData := &detour.NavMeshData{}
 		err = meshData.FromBin(r)
 		if err != nil {
