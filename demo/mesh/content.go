@@ -54,9 +54,10 @@ func (c *Content) Refresh() {
 }
 
 func NewContent() *Content {
+	cfg := config.NewConfig()
 	c := &Content{
-		sample: NewSample(),
-		cfg:    config.NewConfig()}
+		cfg: cfg}
+	c.sample = NewSample(c)
 	c.cfg.PropsConfig.OnLoadClick = c.sample.Load
 	return c
 }

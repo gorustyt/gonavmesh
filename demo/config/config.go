@@ -76,6 +76,57 @@ type ToolsConfig struct {
 	HighlightDrawType string
 }
 
+func (cfg *ToolsConfig) GetShowCorners() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowCorners)
+}
+func (cfg *ToolsConfig) GetShowCollisionSegments() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowCollisionSegs)
+}
+func (cfg *ToolsConfig) GetShowPath() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowPath)
+}
+func (cfg *ToolsConfig) GetShowVO() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowVO)
+}
+func (cfg *ToolsConfig) GetShowOpt() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowPathOptimization)
+}
+func (cfg *ToolsConfig) GetShowNeis() bool {
+	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowNeighbours)
+}
+
+func (cfg *ToolsConfig) GetShowLabels() bool {
+	return cfg.HasExpandOptionsChecked(ExpandDebugDrawShowLabels)
+}
+func (cfg *ToolsConfig) GetShowGrid() bool {
+	return cfg.HasExpandOptionsChecked(ExpandDebugDrawShowProxGrid)
+}
+func (cfg *ToolsConfig) GetShowNodes() bool {
+	return cfg.HasExpandOptionsChecked(ExpandDebugDrawShowNodes)
+}
+func (cfg *ToolsConfig) GetShowPerfGraph() bool {
+	return cfg.HasExpandOptionsChecked(ExpandDebugDrawShowPerfGraph)
+}
+func (cfg *ToolsConfig) GetShowDetailAll() bool {
+	return cfg.HasExpandOptionsChecked(ExpandDebugDrawShowDetailAll)
+}
+
+func (cfg *ToolsConfig) GetAnticipateTurns() bool {
+	return cfg.HasExpandOptionsChecked(ExpandOptionsAnticipateTurns)
+}
+func (cfg *ToolsConfig) GetOptimizeVis() bool {
+	return cfg.HasExpandOptionsChecked(ExpandOptionsOptimizeVisibility)
+}
+func (cfg *ToolsConfig) GetOptimizeTopo() bool {
+	return cfg.HasExpandOptionsChecked(ExpandOptionsOptimizeTopology)
+}
+func (cfg *ToolsConfig) GetObstacleAvoidance() bool {
+	return cfg.HasExpandOptionsChecked(ExpandOptionsObstacleAvoidance)
+}
+func (cfg *ToolsConfig) GetSeparation() bool {
+	return cfg.HasExpandOptionsChecked(ExpandOptionsSeparation)
+}
+
 func (cfg *ToolsConfig) HasExpandOptionsChecked(desc string) bool {
 
 	for _, v := range cfg.ExpandDebugDraw {
