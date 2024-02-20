@@ -677,7 +677,7 @@ func titleCacheGetCornerHeight(layer *DtTileCacheLayer,
 				idx := px + pz*w
 				lh := layer.Heights[idx]
 				if common.Abs(lh-y) <= walkableClimb && layer.Areas[idx] != DT_TILECACHE_NULL_AREA {
-					height = common.Max(height, lh)
+					height = max(height, lh)
 					portal &= (layer.Cons[idx] >> 4)
 					if preg != 0xff && preg != layer.Regs[idx] {
 						allSameReg = false
@@ -1164,7 +1164,7 @@ func dtMarkBoxArea1(layer *DtTileCacheLayer, orig []float32, cs float32, ch floa
 	cx := (center[0] - orig[0]) * ics
 	cz := (center[2] - orig[2]) * ics
 
-	maxr := 1.41 * common.Max(halfExtents[0], halfExtents[2])
+	maxr := 1.41 * max(halfExtents[0], halfExtents[2])
 	minx := int(math.Floor(float64(cx - maxr*ics)))
 	maxx := int(math.Floor(float64(cx + maxr*ics)))
 	minz := int(math.Floor(float64(cz - maxr*ics)))
@@ -1240,7 +1240,7 @@ func DtBuildTileCachePolyMesh(
 		}
 		maxVertices += lcset.Conts[i].Nverts
 		maxTris += lcset.Conts[i].Nverts - 2
-		maxVertsPerCont = common.Max(maxVertsPerCont, lcset.Conts[i].Nverts)
+		maxVertsPerCont = max(maxVertsPerCont, lcset.Conts[i].Nverts)
 	}
 
 	// TODO: warn about too many vertices?

@@ -149,11 +149,11 @@ func DuDebugDrawHeightfieldSolid(dd DuDebugDraw, hf *recast.RcHeightfield) {
 	}
 
 	orig := hf.Bmin
-	cs := hf.Cs
-	ch := hf.Ch
+	cs := float64(hf.Cs)
+	ch := float64(hf.Ch)
 
-	w := hf.Width
-	h := hf.Height
+	w := int(hf.Width)
+	h := int(hf.Height)
 
 	fcol := make([]int, 6)
 	DuCalcBoxColors(fcol, DuRGBA(255, 255, 255, 255), DuRGBA(255, 255, 255, 255))
@@ -162,11 +162,12 @@ func DuDebugDrawHeightfieldSolid(dd DuDebugDraw, hf *recast.RcHeightfield) {
 
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			fx := orig[0] + float64(x)*cs
-			fz := orig[2] + float64(y)*cs
+			fx := float64(orig[0]) + float64(x)*cs
+			fz := float64(orig[2]) + float64(y)*cs
 			s := hf.Spans[x+y*w]
 			for s != nil {
-				DuAppendBox(dd, fx, orig[1]+float64(s.Smin)*ch, fz, fx+cs, orig[1]+float64(s.Smax)*ch, fz+cs, fcol)
+				DuAppendBox(dd, fx, float64(orig[1])+float64(s.Smin)*ch, fz, fx+cs, float64(
+					orig[1])+float64(s.Smax)*ch, fz+cs, fcol)
 				s = s.Next
 			}
 		}
@@ -180,11 +181,11 @@ func DuDebugDrawHeightfieldWalkable(dd DuDebugDraw, hf *recast.RcHeightfield) {
 	}
 
 	orig := hf.Bmin
-	cs := hf.Cs
-	ch := hf.Ch
+	cs := float64(hf.Cs)
+	ch := float64(hf.Ch)
 
-	w := hf.Width
-	h := hf.Height
+	w := int(hf.Width)
+	h := int(hf.Height)
 
 	fcol := make([]int, 6)
 	DuCalcBoxColors(fcol, DuRGBA(255, 255, 255, 255), DuRGBA(217, 217, 217, 255))
@@ -193,8 +194,8 @@ func DuDebugDrawHeightfieldWalkable(dd DuDebugDraw, hf *recast.RcHeightfield) {
 
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			fx := orig[0] + float64(x)*cs
-			fz := orig[2] + float64(y)*cs
+			fx := float64(orig[0]) + float64(x)*cs
+			fz := float64(orig[2]) + float64(y)*cs
 			s := hf.Spans[x+y*w]
 			for s != nil {
 				if s.Area == recast.RC_WALKABLE_AREA {
@@ -202,10 +203,10 @@ func DuDebugDrawHeightfieldWalkable(dd DuDebugDraw, hf *recast.RcHeightfield) {
 				} else if s.Area == recast.RC_NULL_AREA {
 					fcol[0] = DuRGBA(64, 64, 64, 255)
 				} else {
-					fcol[0] = duMultCol(dd.AreaToCol(s.Area), 200)
+					fcol[0] = duMultCol(dd.AreaToCol(int(s.Area)), 200)
 				}
 
-				DuAppendBox(dd, fx, orig[1]+float64(s.Smin)*ch, fz, fx+cs, orig[1]+float64(s.Smax)*ch, fz+cs, fcol)
+				DuAppendBox(dd, fx, float64(orig[1])+float64(s.Smin)*ch, fz, fx+cs, float64(orig[1])+float64(s.Smax)*ch, fz+cs, fcol)
 				s = s.Next
 			}
 		}
@@ -219,15 +220,16 @@ func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf *recast.RcCompactHei
 		return
 	}
 
-	cs := chf.Cs
-	ch := chf.Ch
+	cs := float64(chf.Cs)
+	ch := float64(chf.Ch)
 
 	dd.Begin(DU_DRAW_QUADS)
 
-	for y := 0; y < chf.Height; y++ {
-		for x := 0; x < chf.Width; x++ {
-			fx := chf.Bmin[0] + float64(x)*cs
-			fz := chf.Bmin[2] + float64(y)*cs
+	for y := int32(0); y < chf.Height; y++ {
+		for x := int32(0); x < chf.Width; x++ {
+			fx := float64(
+				chf.Bmin[0]) + float64(x)*cs
+			fz := float64(chf.Bmin[2]) + float64(y)*cs
 			c := chf.Cells[x+y*chf.Width]
 			i := c.Index
 			ni := c.Index + c.Count
@@ -241,10 +243,10 @@ func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf *recast.RcCompactHei
 				} else if area == recast.RC_NULL_AREA {
 					color = DuRGBA(0, 0, 0, 64)
 				} else {
-					color = dd.AreaToCol(area)
+					color = dd.AreaToCol(int(area))
 				}
 
-				fy := chf.Bmin[1] + float64(s.Y+1)*ch
+				fy := float64(chf.Bmin[1]) + float64(s.Y+1)*ch
 				dd.Vertex1(fx, fy, fz, color)
 				dd.Vertex1(fx, fy, fz+cs, color)
 				dd.Vertex1(fx+cs, fy, fz+cs, color)
@@ -260,25 +262,25 @@ func DuDebugDrawCompactHeightfieldRegions(dd DuDebugDraw, chf *recast.RcCompactH
 		return
 	}
 
-	cs := chf.Cs
-	ch := chf.Ch
+	cs := float64(chf.Cs)
+	ch := float64(chf.Ch)
 
 	dd.Begin(DU_DRAW_QUADS)
 
-	for y := 0; y < chf.Height; y++ {
-		for x := 0; x < chf.Width; x++ {
-			fx := chf.Bmin[0] + float64(x)*cs
-			fz := chf.Bmin[2] + float64(y)*cs
+	for y := int32(0); y < chf.Height; y++ {
+		for x := int32(0); x < chf.Width; x++ {
+			fx := float64(chf.Bmin[0]) + float64(x)*cs
+			fz := float64(chf.Bmin[2]) + float64(y)*cs
 			c := chf.Cells[x+y*chf.Width]
 
 			i := c.Index
 			ni := c.Index + c.Count
 			for ; i < ni; i++ {
 				s := chf.Spans[i]
-				fy := chf.Bmin[1] + float64(s.Y)*ch
+				fy := float64(chf.Bmin[1]) + float64(s.Y)*ch
 				var color int
 				if s.Reg != 0 {
-					color = DuIntToCol(s.Reg, 192)
+					color = DuIntToCol(int(s.Reg), 192)
 				} else {
 
 					color = DuRGBA(0, 0, 0, 64)
@@ -303,8 +305,8 @@ func DuDebugDrawCompactHeightfieldDistance(dd DuDebugDraw, chf *recast.RcCompact
 		return
 	}
 
-	cs := chf.Cs
-	ch := chf.Ch
+	cs := float64(chf.Cs)
+	ch := float64(chf.Ch)
 
 	maxd := chf.MaxDistance
 	if maxd < 1.0 {
@@ -314,18 +316,18 @@ func DuDebugDrawCompactHeightfieldDistance(dd DuDebugDraw, chf *recast.RcCompact
 
 	dd.Begin(DU_DRAW_QUADS)
 
-	for y := 0; y < chf.Height; y++ {
-		for x := 0; x < chf.Width; x++ {
-			fx := chf.Bmin[0] + float64(x)*cs
-			fz := chf.Bmin[2] + float64(y)*cs
+	for y := int32(0); y < chf.Height; y++ {
+		for x := int32(0); x < chf.Width; x++ {
+			fx := float64(chf.Bmin[0]) + float64(x)*cs
+			fz := float64(chf.Bmin[2]) + float64(y)*cs
 			c := chf.Cells[x+y*chf.Width]
 
 			i := c.Index
 			ni := c.Index + c.Count
 			for ; i < ni; i++ {
 				s := chf.Spans[i]
-				fy := chf.Bmin[1] + float64(s.Y+1)*ch
-				cd := (chf.Dist[i] * dscale)
+				fy := float64(chf.Bmin[1]) + float64(s.Y+1)*ch
+				cd := int(chf.Dist[i] * dscale)
 				color := DuRGBA(cd, cd, cd, 255)
 				dd.Vertex1(fx, fy, fz, color)
 				dd.Vertex1(fx, fy, fz+cs, color)
@@ -338,10 +340,10 @@ func DuDebugDrawCompactHeightfieldDistance(dd DuDebugDraw, chf *recast.RcCompact
 }
 
 func drawLayerPortals(dd DuDebugDraw, layer *recast.RcHeightfieldLayer) {
-	cs := layer.Cs
-	ch := layer.Ch
-	w := layer.Width
-	h := layer.Height
+	cs := float64(layer.Cs)
+	ch := float64(layer.Ch)
+	w := int(layer.Width)
+	h := int(layer.Height)
 
 	pcol := DuRGBA(255, 255, 255, 255)
 
@@ -360,12 +362,12 @@ func drawLayerPortals(dd DuDebugDraw, layer *recast.RcHeightfieldLayer) {
 			for dir := 0; dir < 4; dir++ {
 				if layer.Cons[idx] & (1 << (dir + 4)) {
 					seg := segs[dir*4:]
-					ax := layer.Bmin[0] + float64(x+seg[0])*cs
-					ay := layer.Bmin[1] + float64(lh+2)*ch
-					az := layer.Bmin[2] + float64(y+seg[1])*cs
-					bx := layer.Bmin[0] + float64(x+seg[2])*cs
-					by := layer.Bmin[1] + float64(lh+2)*ch
-					bz := layer.Bmin[2] + float64(y+seg[3])*cs
+					ax := float64(layer.Bmin[0]) + float64(x+seg[0])*cs
+					ay := float64(layer.Bmin[1]) + float64(lh+2)*ch
+					az := float64(layer.Bmin[2]) + float64(y+seg[1])*cs
+					bx := float64(layer.Bmin[0]) + float64(x+seg[2])*cs
+					by := float64(layer.Bmin[1]) + float64(lh+2)*ch
+					bz := float64(layer.Bmin[2]) + float64(y+seg[3])*cs
 					dd.Vertex1(ax, ay, az, pcol)
 					dd.Vertex1(bx, by, bz, pcol)
 				}
@@ -376,22 +378,22 @@ func drawLayerPortals(dd DuDebugDraw, layer *recast.RcHeightfieldLayer) {
 }
 
 func DuDebugDrawHeightfieldLayer(dd DuDebugDraw, layer *recast.RcHeightfieldLayer, idx int) {
-	cs := layer.Cs
-	ch := layer.Ch
-	w := layer.Width
-	h := layer.Height
+	cs := float64(layer.Cs)
+	ch := float64(layer.Ch)
+	w := int(layer.Width)
+	h := int(layer.Height)
 
 	color := DuIntToCol(idx+1, 255)
 
 	// Layer bounds
 	bmin := make([]float64, 3)
 	bmax := make([]float64, 3)
-	bmin[0] = layer.Bmin[0] + float64(layer.Minx)*cs
-	bmin[1] = layer.Bmin[1]
-	bmin[2] = layer.Bmin[2] + float64(layer.Miny)*cs
-	bmax[0] = layer.Bmin[0] + float64(layer.Maxx+1)*cs
-	bmax[1] = layer.Bmax[1]
-	bmax[2] = layer.Bmin[2] + float64(layer.Maxy+1)*cs
+	bmin[0] = float64(layer.Bmin[0]) + float64(layer.Minx)*cs
+	bmin[1] = float64(layer.Bmin[1])
+	bmin[2] = float64(layer.Bmin[2]) + float64(layer.Miny)*cs
+	bmax[0] = float64(layer.Bmin[0]) + float64(layer.Maxx+1)*cs
+	bmax[1] = float64(layer.Bmax[1])
+	bmax[2] = float64(layer.Bmin[2]) + float64(layer.Maxy+1)*cs
 	DuDebugDrawBoxWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
@@ -411,12 +413,12 @@ func DuDebugDrawHeightfieldLayer(dd DuDebugDraw, layer *recast.RcHeightfieldLaye
 			} else if area == recast.RC_NULL_AREA {
 				col = DuLerpCol(color, DuRGBA(0, 0, 0, 64), 32)
 			} else {
-				col = DuLerpCol(color, dd.AreaToCol(area), 32)
+				col = DuLerpCol(color, dd.AreaToCol(int(area)), 32)
 			}
 
-			fx := layer.Bmin[0] + float64(x)*cs
-			fy := layer.Bmin[1] + float64(lh+1)*ch
-			fz := layer.Bmin[2] + float64(y)*cs
+			fx := float64(layer.Bmin[0]) + float64(x)*cs
+			fy := float64(layer.Bmin[1]) + float64(lh+1)*ch
+			fz := float64(layer.Bmin[2]) + float64(y)*cs
 
 			dd.Vertex1(fx, fy, fz, col)
 			dd.Vertex1(fx, fy, fz+cs, col)
@@ -434,8 +436,8 @@ func DuDebugDrawHeightfieldLayers(dd DuDebugDraw, lset *recast.RcHeightfieldLaye
 	if dd == nil {
 		return
 	}
-	for i := 0; i < lset.Nlayers; i++ {
-		DuDebugDrawHeightfieldLayer(dd, lset.Layers[i], i)
+	for i := int32(0); i < lset.Nlayers; i++ {
+		DuDebugDrawHeightfieldLayer(dd, lset.Layers[i], int(i))
 	}
 
 }
@@ -665,7 +667,7 @@ func GetContourCenter(cont *recast.RcContour, orig []float64, cs, ch float64, ce
 		return
 	}
 
-	for i := 0; i < cont.Nverts; i++ {
+	for i := int32(0); i < cont.Nverts; i++ {
 		v := cont.Verts[i*4:]
 		center[0] += float64(v[0])
 		center[1] += float64(v[1])
@@ -681,8 +683,8 @@ func GetContourCenter(cont *recast.RcContour, orig []float64, cs, ch float64, ce
 }
 
 func findContourFromSet(cset *recast.RcContourSet, reg int) *recast.RcContour {
-	for i := 0; i < cset.Nconts; i++ {
-		if cset.Conts[i].Reg == reg {
+	for i := int32(0); i < cset.Nconts; i++ {
+		if int(cset.Conts[i].Reg) == reg {
 			return cset.Conts[i]
 		}
 
@@ -700,8 +702,8 @@ func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alp
 	}
 
 	orig := cset.Bmin
-	cs := cset.Cs
-	ch := cset.Ch
+	cs := float64(cset.Cs)
+	ch := float64(cset.Ch)
 
 	// Draw centers
 	pos := make([]float64, 3)
@@ -711,17 +713,17 @@ func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alp
 
 	dd.Begin(DU_DRAW_LINES, 2.0)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		cont := cset.Conts[i]
-		GetContourCenter(cont, orig, cs, ch, pos)
-		for j := 0; j < cont.Nverts; j++ {
+		GetContourCenter(cont, common.SliceTToSlice[float32, float64](orig), cs, ch, pos)
+		for j := int32(0); j < cont.Nverts; j++ {
 			v := cont.Verts[j*4:]
-			if v[3] == 0 || v[3] < cont.Reg {
+			if v[3] == 0 || v[3] < int32(cont.Reg) {
 				continue
 			}
-			cont2 := findContourFromSet(cset, v[3])
+			cont2 := findContourFromSet(cset, int(v[3]))
 			if cont2 != nil {
-				GetContourCenter(cont2, orig, cs, ch, pos2)
+				GetContourCenter(cont2, common.SliceTToSlice[float32, float64](orig), cs, ch, pos2)
 				DuAppendArc(dd, pos[0], pos[1], pos[2], pos2[0], pos2[1], pos2[2], 0.25, 0.6, 0.6, color)
 			}
 		}
@@ -733,10 +735,10 @@ func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alp
 
 	dd.Begin(DU_DRAW_POINTS, 7.0)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		cont := cset.Conts[i]
-		col := DuDarkenCol(DuIntToCol(cont.Reg, a))
-		GetContourCenter(cont, orig, cs, ch, pos)
+		col := DuDarkenCol(DuIntToCol(int(cont.Reg), a))
+		GetContourCenter(cont, common.SliceTToSlice[float32, float64](orig), cs, ch, pos)
 		dd.Vertex(pos, col)
 	}
 	dd.End()
@@ -752,22 +754,22 @@ func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ..
 	}
 
 	orig := cset.Bmin
-	cs := cset.Cs
-	ch := cset.Ch
+	cs := float64(cset.Cs)
+	ch := float64(cset.Ch)
 
 	a := int(alpha * 255.0)
 
 	dd.Begin(DU_DRAW_LINES, 2.0)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		c := cset.Conts[i]
-		color := DuIntToCol(c.Reg, a)
+		color := DuIntToCol(int(c.Reg), a)
 
-		for j := 0; j < c.Nrverts; j++ {
+		for j := int32(0); j < c.Nrverts; j++ {
 			v := c.Rverts[j*4:]
-			fx := orig[0] + float64(v[0])*cs
-			fy := orig[1] + float64(v[1]+1+(i&1))*ch
-			fz := orig[2] + float64(v[2])*cs
+			fx := float64(orig[0]) + float64(v[0])*cs
+			fy := float64(orig[1]) + float64(v[1]+1+(i&1))*ch
+			fz := float64(orig[2]) + float64(v[2])*cs
 			dd.Vertex1(fx, fy, fz, color)
 			if j > 0 {
 				dd.Vertex1(fx, fy, fz, color)
@@ -776,20 +778,20 @@ func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ..
 		}
 		// Loop last segment.
 		v := c.Rverts
-		fx := orig[0] + float64(v[0])*cs
-		fy := orig[1] + float64(v[1]+1+(i&1))*ch
-		fz := orig[2] + float64(v[2])*cs
+		fx := float64(orig[0]) + float64(v[0])*cs
+		fy := float64(orig[1]) + float64(v[1]+1+(i&1))*ch
+		fz := float64(orig[2]) + float64(v[2])*cs
 		dd.Vertex1(fx, fy, fz, color)
 	}
 	dd.End()
 
 	dd.Begin(DU_DRAW_POINTS, 2.0)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		c := cset.Conts[i]
-		color := DuDarkenCol(DuIntToCol(c.Reg, a))
+		color := DuDarkenCol(DuIntToCol(int(c.Reg), a))
 
-		for j := 0; j < c.Nrverts; j++ {
+		for j := int32(0); j < c.Nrverts; j++ {
 			v := c.Rverts[j*4:]
 			off := 0.0
 			colv := color
@@ -798,9 +800,9 @@ func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ..
 				off = ch * 2
 			}
 
-			fx := orig[0] + float64(v[0])*cs
-			fy := orig[1] + float64(v[1]+1+(i&1))*ch + off
-			fz := orig[2] + float64(v[2])*cs
+			fx := float64(orig[0]) + float64(v[0])*cs
+			fy := float64(orig[1]) + float64(v[1]+1+(i&1))*ch + off
+			fz := float64(orig[2]) + float64(v[2])*cs
 			dd.Vertex1(fx, fy, fz, colv)
 		}
 	}
@@ -817,22 +819,22 @@ func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...fl
 	}
 
 	orig := cset.Bmin
-	cs := cset.Cs
-	ch := cset.Ch
+	cs := float64(cset.Cs)
+	ch := float64(cset.Ch)
 
 	a := int(alpha * 255.0)
 
 	dd.Begin(DU_DRAW_LINES, 2.5)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		c := cset.Conts[i]
 		if c.Nverts == 0 {
 			continue
 		}
 
-		color := DuIntToCol(c.Reg, a)
+		color := DuIntToCol(int(c.Reg), a)
 		bcolor := DuLerpCol(color, DuRGBA(255, 255, 255, a), 128)
-		j := 0
+		j := int32(0)
 		k := c.Nverts - 1
 		for j < c.Nverts {
 			va := c.Verts[k*4:]
@@ -841,13 +843,13 @@ func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...fl
 			if va[3]&recast.RC_AREA_BORDER != 0 {
 				col = bcolor
 			}
-			fx := orig[0] + float64(va[0])*cs
-			fy := orig[1] + float64(va[1]+1+(i&1))*ch
-			fz := orig[2] + float64(va[2])*cs
+			fx := float64(orig[0]) + float64(va[0])*cs
+			fy := float64(orig[1]) + float64(va[1]+1+(i&1))*ch
+			fz := float64(orig[2]) + float64(va[2])*cs
 			dd.Vertex1(fx, fy, fz, col)
-			fx = orig[0] + float64(vb[0])*cs
-			fy = orig[1] + float64(vb[1]+1+(i&1))*ch
-			fz = orig[2] + float64(vb[2])*cs
+			fx = float64(orig[0]) + float64(vb[0])*cs
+			fy = float64(orig[1]) + float64(vb[1]+1+(i&1))*ch
+			fz = float64(orig[2]) + float64(vb[2])*cs
 			dd.Vertex1(fx, fy, fz, col)
 			k = j
 			j++
@@ -857,10 +859,10 @@ func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...fl
 
 	dd.Begin(DU_DRAW_POINTS, 3.0)
 
-	for i := 0; i < cset.Nconts; i++ {
+	for i := int32(0); i < cset.Nconts; i++ {
 		c := cset.Conts[i]
-		color := DuDarkenCol(DuIntToCol(c.Reg, a))
-		for j := 0; j < c.Nverts; j++ {
+		color := DuDarkenCol(DuIntToCol(int(c.Reg), a))
+		for j := int32(0); j < c.Nverts; j++ {
 			v := c.Verts[j*4:]
 			off := 0.0
 			colv := color
@@ -869,9 +871,9 @@ func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...fl
 				off = ch * 2
 			}
 
-			fx := orig[0] + float64(v[0])*cs
-			fy := orig[1] + float64(v[1]+1+(i&1))*ch + off
-			fz := orig[2] + float64(v[2])*cs
+			fx := float64(orig[0]) + float64(v[0])*cs
+			fy := float64(orig[1]) + float64(v[1]+1+(i&1))*ch + off
+			fz := float64(orig[2]) + float64(v[2])*cs
 			dd.Vertex1(fx, fy, fz, colv)
 		}
 	}
@@ -884,13 +886,13 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 	}
 
 	nvp := mesh.Nvp
-	cs := mesh.Cs
-	ch := mesh.Ch
+	cs := float64(mesh.Cs)
+	ch := float64(mesh.Ch)
 	orig := mesh.Bmin
 
 	dd.Begin(DU_DRAW_TRIS)
 
-	for i := 0; i < mesh.Npolys; i++ {
+	for i := int32(0); i < mesh.Npolys; i++ {
 		p := mesh.Polys[i*nvp*2:]
 		area := mesh.Areas[i]
 
@@ -900,22 +902,22 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 		} else if area == recast.RC_NULL_AREA {
 			color = DuRGBA(0, 0, 0, 64)
 		} else {
-			color = dd.AreaToCol(area)
+			color = dd.AreaToCol(int(area))
 		}
 
 		vi := make([]int, 3)
-		for j := 2; j < nvp; j++ {
+		for j := int32(2); j < nvp; j++ {
 			if p[j] == recast.RC_MESH_NULL_IDX {
 				break
 			}
-			vi[0] = p[0]
-			vi[1] = p[j-1]
-			vi[2] = p[j]
+			vi[0] = int(p[0])
+			vi[1] = int(p[j-1])
+			vi[2] = int(p[j])
 			for k := 0; k < 3; k++ {
 				v := mesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch
-				z := orig[2] + float64(v[2])*cs
+				x := float64(orig[0]) + float64(v[0])*cs
+				y := float64(orig[1]) + float64(v[1]+1)*ch
+				z := float64(orig[2]) + float64(v[2])*cs
 				dd.Vertex1(x, y, z, color)
 			}
 		}
@@ -925,9 +927,9 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 	// Draw neighbours edges
 	coln := DuRGBA(0, 48, 64, 32)
 	dd.Begin(DU_DRAW_LINES, 1.5)
-	for i := 0; i < mesh.Npolys; i++ {
+	for i := int32(0); i < mesh.Npolys; i++ {
 		p := mesh.Polys[i*nvp*2:]
-		for j := 0; j < nvp; j++ {
+		for j := int32(0); j < nvp; j++ {
 			if p[j] == recast.RC_MESH_NULL_IDX {
 				break
 			}
@@ -938,13 +940,13 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 			if j+1 >= nvp || p[j+1] == recast.RC_MESH_NULL_IDX {
 				nj = 0
 			}
-			vi := []int{p[j], p[nj]}
+			vi := []int{int(p[j]), int(p[nj])}
 
 			for k := 0; k < 2; k++ {
 				v := mesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch + 0.1
-				z := orig[2] + float64(v[2])*cs
+				x := float64(orig[0]) + float64(v[0])*cs
+				y := float64(orig[1]) + float64(v[1]+1)*ch + 0.1
+				z := float64(orig[2]) + float64(v[2])*cs
 				dd.Vertex1(x, y, z, coln)
 			}
 		}
@@ -954,9 +956,9 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 	// Draw boundary edges
 	colb := DuRGBA(0, 48, 64, 220)
 	dd.Begin(DU_DRAW_LINES, 2.5)
-	for i := 0; i < mesh.Npolys; i++ {
+	for i := int32(0); i < mesh.Npolys; i++ {
 		p := mesh.Polys[i*nvp*2:]
-		for j := 0; j < nvp; j++ {
+		for j := int32(0); j < nvp; j++ {
 			if p[j] == recast.RC_MESH_NULL_IDX {
 				break
 			}
@@ -967,7 +969,7 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 			if j+1 >= nvp || p[j+1] == recast.RC_MESH_NULL_IDX {
 				nj = 0
 			}
-			vi := [2]int{p[j], p[nj]}
+			vi := [2]int{int(p[j]), int(p[nj])}
 
 			col := colb
 			if (p[nvp+j] & 0xf) != 0xf {
@@ -976,9 +978,9 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 
 			for k := 0; k < 2; k++ {
 				v := mesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch + 0.1
-				z := orig[2] + float64(v[2])*cs
+				x := float64(orig[0]) + float64(v[0])*cs
+				y := float64(orig[1]) + float64(v[1]+1)*ch + 0.1
+				z := float64(orig[2]) + float64(v[2])*cs
 				dd.Vertex1(x, y, z, col)
 			}
 		}
@@ -987,11 +989,11 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 
 	dd.Begin(DU_DRAW_POINTS, 3.0)
 	colv := DuRGBA(0, 0, 0, 220)
-	for i := 0; i < mesh.Nverts; i++ {
+	for i := int32(0); i < mesh.Nverts; i++ {
 		v := mesh.Verts[i*3:]
-		x := orig[0] + float64(v[0])*cs
-		y := orig[1] + float64(v[1]+1)*ch + 0.1
-		z := orig[2] + float64(v[2])*cs
+		x := float64(orig[0]) + float64(v[0])*cs
+		y := float64(orig[1]) + float64(v[1]+1)*ch + 0.1
+		z := float64(orig[2]) + float64(v[2])*cs
 		dd.Vertex1(x, y, z, colv)
 	}
 	dd.End()
@@ -1004,7 +1006,7 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 
 	dd.Begin(DU_DRAW_TRIS)
 
-	for i := 0; i < dmesh.Nmeshes; i++ {
+	for i := int32(0); i < dmesh.Nmeshes; i++ {
 		m := dmesh.Meshes[i*4:]
 		bverts := m[0]
 		btris := m[2]
@@ -1012,12 +1014,12 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 		verts := dmesh.Verts[bverts*3:]
 		tris := dmesh.Tris[btris*4:]
 
-		color := DuIntToCol(i, 192)
+		color := DuIntToCol(int(i), 192)
 
-		for j := 0; j < ntris; j++ {
-			dd.Vertex(common.GetVs3(verts, tris[j*4+0]), color)
-			dd.Vertex(common.GetVs3(verts, tris[j*4+1]), color)
-			dd.Vertex(common.GetVs3(verts, tris[j*4+2]), color)
+		for j := uint32(0); j < ntris; j++ {
+			dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, tris[j*4+0])), color)
+			dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, tris[j*4+1])), color)
+			dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, tris[j*4+2])), color)
 		}
 	}
 	dd.End()
@@ -1025,7 +1027,7 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 	// Internal edges.
 	dd.Begin(DU_DRAW_LINES, 1.0)
 	coli := DuRGBA(0, 0, 0, 64)
-	for i := 0; i < dmesh.Nmeshes; i++ {
+	for i := int32(0); i < dmesh.Nmeshes; i++ {
 		m := dmesh.Meshes[i*4:]
 		bverts := m[0]
 		btris := m[2]
@@ -1033,7 +1035,7 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 		verts := dmesh.Verts[bverts*3:]
 		tris := dmesh.Tris[btris*4:]
 
-		for j := 0; j < ntris; j++ {
+		for j := uint32(0); j < ntris; j++ {
 			t := tris[j*4:]
 			k := 0
 			kp := 2
@@ -1042,8 +1044,8 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 				if ef == 0 {
 					// Internal edge
 					if t[kp] < t[k] {
-						dd.Vertex(common.GetVs3(verts, t[kp]), coli)
-						dd.Vertex(common.GetVs3(verts, t[k]), coli)
+						dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, t[kp])), coli)
+						dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, t[k])), coli)
 					}
 				}
 				kp = k
@@ -1056,7 +1058,7 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 	// External edges.
 	dd.Begin(DU_DRAW_LINES, 2.0)
 	cole := DuRGBA(0, 0, 0, 64)
-	for i := 0; i < dmesh.Nmeshes; i++ {
+	for i := int32(0); i < dmesh.Nmeshes; i++ {
 		m := dmesh.Meshes[i*4:]
 		bverts := m[0]
 		btris := m[2]
@@ -1064,7 +1066,7 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 		verts := dmesh.Verts[bverts*3:]
 		tris := dmesh.Tris[btris*4:]
 
-		for j := 0; j < ntris; j++ {
+		for j := uint32(0); j < ntris; j++ {
 			t := tris[j*4:]
 			k := 0
 			kp := 2
@@ -1072,8 +1074,8 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 				ef := (t[3] >> (kp * 2)) & 0x3
 				if ef != 0 {
 					// Ext edge
-					dd.Vertex(common.GetVs3(verts, t[kp]), cole)
-					dd.Vertex(common.GetVs3(verts, t[k]), cole)
+					dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, t[kp])), cole)
+					dd.Vertex(common.SliceTToSlice[float32, float64](common.GetVert3(verts, t[k])), cole)
 				}
 				kp = k
 				k++
@@ -1084,13 +1086,13 @@ func DuDebugDrawPolyMeshDetail(dd DuDebugDraw, dmesh *recast.RcPolyMeshDetail) {
 
 	dd.Begin(DU_DRAW_POINTS, 3.0)
 	colv := DuRGBA(0, 0, 0, 64)
-	for i := 0; i < dmesh.Nmeshes; i++ {
+	for i := int32(0); i < dmesh.Nmeshes; i++ {
 		m := dmesh.Meshes[i*4:]
 		bverts := m[0]
 		nverts := m[1]
 		verts := dmesh.Verts[bverts*3:]
-		for j := 0; j < nverts; j++ {
-			dd.Vertex(verts[j*3:], colv)
+		for j := uint32(0); j < nverts; j++ {
+			dd.Vertex(common.SliceTToSlice[float32, float64](verts[j*3:]), colv)
 		}
 
 	}

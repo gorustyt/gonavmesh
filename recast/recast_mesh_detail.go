@@ -352,9 +352,9 @@ func polyMinExtent(verts []float32, nverts int32) float32 {
 				continue
 			}
 			d := common.DistancePtSeg2d(common.GetVert3(verts, j), p1, p2)
-			maxEdgeDist = common.Max(maxEdgeDist, d)
+			maxEdgeDist = max(maxEdgeDist, d)
 		}
-		minDist = common.Min(minDist, maxEdgeDist)
+		minDist = min(minDist, maxEdgeDist)
 	}
 	return float32(common.Sqrt(float64(minDist)))
 }
@@ -996,7 +996,7 @@ func RcBuildPolyMeshDetail(mesh *RcPolyMesh, chf *RcCompactHeightfield, sampleDi
 	ch := mesh.Ch
 	orig := mesh.Bmin
 	borderSize := mesh.BorderSize
-	heightSearchRadius := int32(common.Max(1, math.Ceil(float64(mesh.MaxEdgeError))))
+	heightSearchRadius := int32(max(1, math.Ceil(float64(mesh.MaxEdgeError))))
 	c := func() int32 { return 0 }
 	edges := NewStackArray(c, 64)
 	tris := NewStackArray(func() int32 { return 0 }, 512)

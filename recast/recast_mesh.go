@@ -623,7 +623,7 @@ func RcBuildPolyMesh(cset *RcContourSet, nvp int32, mesh *RcPolyMesh) bool {
 		}
 		maxVertices += cset.Conts[i].Nverts
 		maxTris += cset.Conts[i].Nverts - 2
-		maxVertsPerCont = common.Max(maxVertsPerCont, cset.Conts[i].Nverts)
+		maxVertsPerCont = max(maxVertsPerCont, cset.Conts[i].Nverts)
 	}
 
 	if maxVertices >= 0xfffe {
@@ -873,7 +873,7 @@ func rcMergePolyMeshes(meshes []*RcPolyMesh, nmeshes int32, mesh *RcPolyMesh) bo
 	for i := int32(0); i < nmeshes; i++ {
 		common.Vmin(mesh.Bmin, meshes[i].Bmin)
 		common.Vmax(mesh.Bmax, meshes[i].Bmax)
-		maxVertsPerMesh = common.Max(maxVertsPerMesh, meshes[i].Nverts)
+		maxVertsPerMesh = max(maxVertsPerMesh, meshes[i].Nverts)
 		maxVerts += meshes[i].Nverts
 		maxPolys += meshes[i].Npolys
 	}

@@ -375,7 +375,7 @@ func getDistanceToGoal(ag *DtCrowdAgent, rangef float32) float32 {
 		endOfPath = true
 	}
 	if endOfPath {
-		return common.Min(common.Vdist2D(ag.Npos[:], common.GetVert3(ag.CornerVerts[:], ag.Ncorners-1)), rangef)
+		return min(common.Vdist2D(ag.Npos[:], common.GetVert3(ag.CornerVerts[:], ag.Ncorners-1)), rangef)
 	}
 
 	return rangef
@@ -388,7 +388,7 @@ func calcSmoothSteerDirection(ag *DtCrowdAgent, dir []float32) {
 	}
 
 	ip0 := 0
-	ip1 := common.Min(1, ag.Ncorners-1)
+	ip1 := min(1, ag.Ncorners-1)
 	p0 := common.GetVert3(ag.CornerVerts[:], ip0)
 	p1 := common.GetVert3(ag.CornerVerts[:], ip1)
 	dir0 := make([]float32, 3)
@@ -442,7 +442,7 @@ func addNeighbour(idx int, dist float32,
 		}
 
 		tgt := i + 1
-		n := common.Min(nneis-i, maxNeis-tgt)
+		n := min(nneis-i, maxNeis-tgt)
 
 		common.AssertTrue(tgt+n <= maxNeis)
 
@@ -455,7 +455,7 @@ func addNeighbour(idx int, dist float32,
 	nei.Idx = idx
 	nei.Dist = dist
 
-	return common.Min(nneis+1, maxNeis)
+	return min(nneis+1, maxNeis)
 }
 
 func getNeighbours(pos []float32, height float32, rangef float32,
@@ -515,7 +515,7 @@ func addToOptQueue(newag *DtCrowdAgent, agents []*DtCrowdAgent, nagents, maxAgen
 		}
 
 		tgt := i + 1
-		n := common.Min(nagents-i, maxAgents-tgt)
+		n := min(nagents-i, maxAgents-tgt)
 
 		common.AssertTrue(tgt+n <= maxAgents)
 
@@ -528,7 +528,7 @@ func addToOptQueue(newag *DtCrowdAgent, agents []*DtCrowdAgent, nagents, maxAgen
 
 	agents[slot] = newag
 
-	return common.Min(nagents+1, maxAgents)
+	return min(nagents+1, maxAgents)
 }
 
 func addToPathQueue(newag *DtCrowdAgent, agents []*DtCrowdAgent, nagents, maxAgents int) int {
@@ -552,7 +552,7 @@ func addToPathQueue(newag *DtCrowdAgent, agents []*DtCrowdAgent, nagents, maxAge
 		}
 
 		tgt := i + 1
-		n := common.Min(nagents-i, maxAgents-tgt)
+		n := min(nagents-i, maxAgents-tgt)
 
 		common.AssertTrue(tgt+n <= maxAgents)
 
@@ -565,7 +565,7 @@ func addToPathQueue(newag *DtCrowdAgent, agents []*DtCrowdAgent, nagents, maxAge
 
 	agents[slot] = newag
 
-	return common.Min(nagents+1, maxAgents)
+	return min(nagents+1, maxAgents)
 }
 
 func (d *DtCrowd) purge() {
@@ -1233,7 +1233,7 @@ func (d *DtCrowd) Update(dt float32, debug *DtCrowdAgentDebugInfo) {
 		// Check to see if the corner after the next corner is directly visible,
 		// and short cut to there.
 		if (ag.Params.UpdateFlags&DT_CROWD_OPTIMIZE_VIS > 0) && ag.Ncorners > 0 {
-			target := common.GetVert3(ag.CornerVerts[:], common.Min(1, ag.Ncorners-1))
+			target := common.GetVert3(ag.CornerVerts[:], min(1, ag.Ncorners-1))
 			ag.Corridor.optimizePathVisibility(target, ag.Params.PathOptimizationRange, d.m_navquery, d.m_filters[ag.Params.QueryFilterType])
 
 			// Copy data for debug purposes.

@@ -225,8 +225,8 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 					continue
 				}
 
-				regs[ri].ymin = common.Min(regs[ri].ymin, s.Y)
-				regs[ri].ymax = common.Max(regs[ri].ymax, s.Y)
+				regs[ri].ymin = min(regs[ri].ymin, s.Y)
+				regs[ri].ymax = max(regs[ri].ymax, s.Y)
 
 				// Collect all region layers.
 				if nlregs < RC_MAX_LAYERS {
@@ -313,8 +313,8 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 				}
 
 				// Skip if the height range would become too large.
-				ymin := common.Min(root.ymin, regn.ymin)
-				ymax := common.Max(root.ymax, regn.ymax)
+				ymin := min(root.ymin, regn.ymin)
+				ymax := max(root.ymax, regn.ymax)
 				if (ymax - ymin) >= 255 {
 					continue
 				}
@@ -332,8 +332,8 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 							return false
 						}
 					}
-					root.ymin = common.Min(root.ymin, regn.ymin)
-					root.ymax = common.Max(root.ymax, regn.ymax)
+					root.ymin = min(root.ymin, regn.ymin)
+					root.ymax = max(root.ymax, regn.ymax)
 				}
 			}
 		}
@@ -370,8 +370,8 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 				}
 
 				// Skip if the height range would become too large.
-				ymin := common.Min(ri.ymin, rj.ymin)
-				ymax := common.Max(ri.ymax, rj.ymax)
+				ymin := min(ri.ymin, rj.ymin)
+				ymax := max(ri.ymax, rj.ymax)
 				if (ymax - ymin) >= 255 {
 					continue
 				}
@@ -421,8 +421,8 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 					}
 
 					// Update height bounds.
-					ri.ymin = common.Min(ri.ymin, rj.ymin)
-					ri.ymax = common.Max(ri.ymax, rj.ymax)
+					ri.ymin = min(ri.ymin, rj.ymin)
+					ri.ymax = max(ri.ymax, rj.ymax)
 				}
 			}
 		}
@@ -542,10 +542,10 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 					}
 
 					// Update data bounds.
-					layer.Minx = common.Min(layer.Minx, x)
-					layer.Maxx = common.Max(layer.Maxx, x)
-					layer.Miny = common.Min(layer.Miny, y)
-					layer.Maxy = common.Max(layer.Maxy, y)
+					layer.Minx = min(layer.Minx, x)
+					layer.Maxx = max(layer.Maxx, x)
+					layer.Miny = min(layer.Miny, y)
+					layer.Maxy = max(layer.Maxy, y)
 
 					// Store height and area type.
 					idx := x + y*lw
@@ -570,7 +570,7 @@ func RcBuildHeightfieldLayers(chf *RcCompactHeightfield, borderSize, walkableHei
 								// Update height so that it matches on both sides of the portal.
 								as := chf.Spans[ai]
 								if int32(as.Y) > hmin {
-									layer.Heights[idx] = common.Max(layer.Heights[idx], uint8(int32(as.Y)-hmin))
+									layer.Heights[idx] = max(layer.Heights[idx], uint8(int32(as.Y)-hmin))
 								}
 
 							}

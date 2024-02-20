@@ -166,7 +166,7 @@ func calculateDistanceField(chf *RcCompactHeightfield, src []uint16, maxDist *ui
 
 	*maxDist = 0
 	for i := int32(0); i < chf.SpanCount; i++ {
-		*maxDist = common.Max(src[i], *maxDist)
+		*maxDist = max(src[i], *maxDist)
 	}
 
 }
@@ -807,8 +807,8 @@ func mergeAndFilterLayerRegions(minRegionArea int32, maxRegionId *uint16, chf *R
 
 				reg.spanCount++
 
-				reg.ymin = common.Min(reg.ymin, s.Y)
-				reg.ymax = common.Max(reg.ymax, s.Y)
+				reg.ymin = min(reg.ymin, s.Y)
+				reg.ymax = max(reg.ymax, s.Y)
 
 				// Collect all region layers.
 				lregs.Push(int(ri))
@@ -912,8 +912,8 @@ func mergeAndFilterLayerRegions(minRegionArea int32, maxRegionId *uint16, chf *R
 					addUniqueFloorRegion(root, regn.floors.Index(k))
 				}
 
-				root.ymin = common.Min(root.ymin, regn.ymin)
-				root.ymax = common.Max(root.ymax, regn.ymax)
+				root.ymin = min(root.ymin, regn.ymin)
+				root.ymax = max(root.ymax, regn.ymax)
 				root.spanCount += regn.spanCount
 				regn.spanCount = 0
 				root.connectsToBorder = root.connectsToBorder || regn.connectsToBorder
@@ -1328,14 +1328,14 @@ func RcBuildRegionsMonotone(chf *RcCompactHeightfield,
 	id := uint16(1)
 	srcReg := make([]uint16, chf.SpanCount)
 
-	nsweeps := common.Max(chf.Width, chf.Height)
+	nsweeps := max(chf.Width, chf.Height)
 	sweeps := make([]*rcSweepSpan, nsweeps)
 
 	// Mark border regions.
 	if borderSize > 0 {
 		// Make sure border will not overflow.
-		bw := common.Min(w, borderSize)
-		bh := common.Min(h, borderSize)
+		bw := min(w, borderSize)
+		bh := min(h, borderSize)
 		// Paint regions
 		paintRectRegion(0, bw, 0, h, id|RC_BORDER_REG, chf, srcReg)
 		id++
@@ -1504,8 +1504,8 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 
 	if borderSize > 0 {
 		// Make sure border will not overflow.
-		bw := common.Min(w, borderSize)
-		bh := common.Min(h, borderSize)
+		bw := min(w, borderSize)
+		bh := min(h, borderSize)
 
 		// Paint regions
 		paintRectRegion(0, bw, 0, h, regionId|RC_BORDER_REG, chf, srcReg)
@@ -1584,14 +1584,14 @@ func RcBuildLayerRegions(chf *RcCompactHeightfield, borderSize, minRegionArea in
 	id := uint16(1)
 	srcReg := make([]uint16, chf.SpanCount)
 
-	nsweeps := common.Max(chf.Width, chf.Height)
+	nsweeps := max(chf.Width, chf.Height)
 	sweeps := make([]*rcSweepSpan, nsweeps)
 
 	// Mark border regions.
 	if borderSize > 0 {
 		// Make sure border will not overflow.
-		bw := common.Min(w, borderSize)
-		bh := common.Min(h, borderSize)
+		bw := min(w, borderSize)
+		bh := min(h, borderSize)
 		// Paint regions
 		paintRectRegion(0, bw, 0, h, id|RC_BORDER_REG, chf, srcReg)
 		id++

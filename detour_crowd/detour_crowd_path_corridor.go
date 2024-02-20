@@ -81,7 +81,7 @@ func dtMergeCorridorEndMoved(path []detour.DtPolyRef, npath, maxPath int, visite
 	// Concatenate paths.
 	ppos := furthestPath + 1
 	vpos := furthestVisited + 1
-	count := common.Min(nvisited-vpos, maxPath-ppos)
+	count := min(nvisited-vpos, maxPath-ppos)
 	if ppos+count <= maxPath {
 		panic("")
 	}
@@ -126,7 +126,7 @@ func dtMergeCorridorStartShortcut(path []detour.DtPolyRef, npath, maxPath int32,
 	}
 
 	orig := furthestPath
-	size := common.Max(0, npath-orig)
+	size := max(0, npath-orig)
 	if req+size > maxPath {
 		size = maxPath - req
 	}
@@ -333,7 +333,7 @@ func (d *dtPathCorridor) optimizePathVisibility(next []float32, pathOptimization
 	}
 
 	// Overshoot a little. This helps to optimize open fields in tiled meshes.
-	dist = common.Min(dist+0.01, pathOptimizationRange)
+	dist = min(dist+0.01, pathOptimizationRange)
 
 	// Adjust ray length.
 	delta := make([]float32, 3)

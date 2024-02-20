@@ -406,15 +406,15 @@ func DtCreateNavMeshData(params *DtNavMeshCreateParams) (outData *NavMeshData, o
 		if len(params.DetailVerts) > 0 && params.DetailVertsCount > 0 {
 			for i := int32(0); i < params.DetailVertsCount; i++ {
 				h := params.DetailVerts[i*3+1]
-				hmin = common.Min(hmin, h)
-				hmax = common.Max(hmax, h)
+				hmin = min(hmin, h)
+				hmax = max(hmax, h)
 			}
 		} else {
 			for i := int32(0); i < params.VertCount; i++ {
 				iv := params.Verts[i*3 : i*3+3]
 				h := params.Bmin[1] + float32(iv[1])*params.Ch
-				hmin = common.Min(hmin, h)
-				hmax = common.Max(hmax, h)
+				hmin = min(hmin, h)
+				hmax = max(hmax, h)
 			}
 		}
 		hmin -= params.WalkableClimb

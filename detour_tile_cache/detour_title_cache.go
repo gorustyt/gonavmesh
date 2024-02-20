@@ -920,7 +920,7 @@ func (d *DtTileCache) GetObstacleBounds(ob *DtTileCacheObstacle, bmin, bmax []fl
 	} else if ob.Type == DT_OBSTACLE_ORIENTED_BOX {
 		orientedBox := ob.orientedBox
 
-		maxr := 1.41 * common.Max(orientedBox.halfExtents[0], orientedBox.halfExtents[2])
+		maxr := 1.41 * max(orientedBox.halfExtents[0], orientedBox.halfExtents[2])
 		bmin[0] = orientedBox.center[0] - maxr
 		bmax[0] = orientedBox.center[0] + maxr
 		bmin[1] = orientedBox.center[1] - orientedBox.halfExtents[1]

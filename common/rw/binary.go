@@ -201,6 +201,13 @@ func (w *ReaderWriter) WriteFloat32(v interface{}) {
 	w.rw.Write(w.dataBuf[:4])
 }
 
+func (w *ReaderWriter) WriteString(v string) {
+	_, err := w.rw.WriteString(v)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (w *ReaderWriter) WriteFloat32s(v interface{}) {
 	switch value := v.(type) {
 	case []float32:

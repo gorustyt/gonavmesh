@@ -36,7 +36,7 @@ type RcContour struct {
 	Verts   []int32 ///< The mesh vertices.
 	Nverts  int32   ///< The number of vertices in the simplified contour.
 	Rverts  []int32 ///< Raw contour vertex and connection data. [Size: 4 * #nrverts]
-	Nrverts int     ///< The number of vertices in the raw contour.
+	Nrverts int32   ///< The number of vertices in the raw contour.
 	Reg     uint16  ///< The region id of the contour.
 	Area    uint8   ///< The area id of the contour.
 }

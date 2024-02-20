@@ -65,7 +65,7 @@ func (d *dtLocalBoundary) addSegment(dist float32, s []float32) {
 		}
 
 		tgt := i + 1
-		n := common.Min(d.m_nsegs-i, d.MAX_LOCAL_SEGS-tgt)
+		n := min(d.m_nsegs-i, d.MAX_LOCAL_SEGS-tgt)
 		common.AssertTrue(tgt+n <= d.MAX_LOCAL_SEGS)
 		if n > 0 {
 			copy(d.m_segs[tgt:], d.m_segs[i:i+n])

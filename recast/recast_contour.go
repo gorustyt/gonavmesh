@@ -663,7 +663,7 @@ func RcBuildContours(chf *RcCompactHeightfield,
 	cset.BorderSize = chf.BorderSize
 	cset.MaxError = maxError
 
-	maxContours := common.Max(chf.MaxRegions, 8)
+	maxContours := max(chf.MaxRegions, 8)
 
 	cset.Conts = make([]*RcContour, maxContours)
 	cset.Nconts = 0

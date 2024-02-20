@@ -133,8 +133,8 @@ func rasterizeTri(v0, v1, v2 []float32,
 			spanMin := p1[1]
 			spanMax := p1[1]
 			for vert := int32(1); vert < nv; vert++ {
-				spanMin = common.Min(spanMin, p1[vert*3+1])
-				spanMax = common.Max(spanMax, p1[vert*3+1])
+				spanMin = min(spanMin, p1[vert*3+1])
+				spanMax = max(spanMax, p1[vert*3+1])
 			}
 			spanMin -= heightfieldBBMin[1]
 			spanMax -= heightfieldBBMin[1]
@@ -335,7 +335,7 @@ func addSpan(heightfield *RcHeightfield,
 			// Merge flags.
 			if common.Abs(float64(newSpan.Smax-currentSpan.Smax)) <= float64(flagMergeThreshold) {
 				// Higher area ID numbers indicate higher resolution priority.
-				newSpan.Area = common.Max(newSpan.Area, currentSpan.Area)
+				newSpan.Area = max(newSpan.Area, currentSpan.Area)
 			}
 
 			// Remove the current span since it's now merged with newSpan.

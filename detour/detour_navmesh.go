@@ -98,8 +98,8 @@ func overlapSlabs(amin, amax, bmin, bmax []float32, px, py float32) bool {
 	// Check for horizontal overlap.
 	// The segment is shrunken a little so that slabs which touch
 	// at end points are not connected.
-	minx := common.Max(amin[0]+px, bmin[0]+px)
-	maxx := common.Min(amax[0]-px, bmax[0]-px)
+	minx := max(amin[0]+px, bmin[0]+px)
+	maxx := min(amax[0]-px, bmax[0]-px)
 	if minx > maxx {
 		return false
 	}
@@ -226,8 +226,8 @@ func (mesh *DtNavMesh) FindConnectingPolys(va, vb []float32, tile *DtMeshTile, s
 
 			// Add return value.
 			if n < maxcon {
-				conarea[n*2+0] = common.Max(amin[0], bmin[0])
-				conarea[n*2+1] = common.Min(amax[0], bmax[0])
+				conarea[n*2+0] = max(amin[0], bmin[0])
+				conarea[n*2+1] = min(amax[0], bmax[0])
 				con[n] = DtPolyRef(int32(base) | i)
 				n++
 			}

@@ -65,18 +65,18 @@ func Vsub[T float64 | float32](res, v1, v2 []T) {
 // / @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
 func Vmin[T float64 | float32](mn, v []T) {
-	mn[0] = Min(mn[0], v[0])
-	mn[1] = Min(mn[1], v[1])
-	mn[2] = Min(mn[2], v[2])
+	mn[0] = min(mn[0], v[0])
+	mn[1] = min(mn[1], v[1])
+	mn[2] = min(mn[2], v[2])
 }
 
 // / Selects the maximum value of each element from the specified vectors.
 // / @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
 // / @param[in]		v	A vector. [(x, y, z)]
 func Vmax[T float64 | float32](mx, v []T) {
-	mx[0] = Max(mx[0], v[0])
-	mx[1] = Max(mx[1], v[1])
-	mx[2] = Max(mx[2], v[2])
+	mx[0] = max(mx[0], v[0])
+	mx[1] = max(mx[1], v[1])
+	mx[2] = max(mx[2], v[2])
 }
 
 // / Returns the distance between two points.
@@ -103,33 +103,11 @@ func VdistSqr[T float64 | float32](v1, v2 []T) float64 {
 
 // / Normalizes the vector.
 // / @param[in,out]	v	The vector to normalize. [(x, y, z)]
-func Vnormalize(v []float32) { //向量的单位化
-	d := float32(1.0 / Sqrt(Sqr(float64(v[0]))+Sqr(float64(v[1]))+Sqr(float64(v[2]))))
+func Vnormalize[T float64 | float32](v []T) { //向量的单位化
+	d := T(1.0 / Sqrt(Sqr(float64(v[0]))+Sqr(float64(v[1]))+Sqr(float64(v[2]))))
 	v[0] *= d
 	v[1] *= d
 	v[2] *= d
-}
-
-// / Returns the minimum of two values.
-// / @param[in]		a	Value A
-// / @param[in]		b	Value B
-// / @return The minimum of the two values.
-func Min[T IT](a, b T) T {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// / Returns the maximum of two values.
-// / @param[in]		a	Value A
-// / @param[in]		b	Value B
-// / @return The maximum of the two values.
-func Max[T IT](a, b T) T {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // / Performs a 'sloppy' colocation check of the specified points.
@@ -163,7 +141,7 @@ func Vscale(res []float32, v []float32, t float32) {
 // / @param[out]		dest	The cross product. [(x, y, z)]
 // / @param[in]		v1		A Vector [(x, y, z)]
 // / @param[in]		v2		A vector [(x, y, z)]
-func Vcross(res []float32, v1, v2 []float32) { //求向量的叉集
+func Vcross[T float64 | float32](res []T, v1, v2 []T) { //求向量的叉集
 	res[0] = v1[1]*v2[2] - v1[2]*v2[1]
 	res[1] = v1[2]*v2[0] - v1[0]*v2[2]
 	res[2] = v1[0]*v2[1] - v1[1]*v2[0]

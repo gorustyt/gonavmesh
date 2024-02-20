@@ -255,7 +255,7 @@ func RcBuildCompactHeightfield(walkableHeight, walkableClimb int32,
 							// Mark direction as walkable.
 							layerIndex := k - neighborCell.Index
 							if layerIndex < 0 || int(layerIndex) > MAX_LAYERS {
-								maxLayerIndex = common.Max(maxLayerIndex, int(layerIndex))
+								maxLayerIndex = max(maxLayerIndex, int(layerIndex))
 								continue
 							}
 							rcSetCon(span, dir, int32(layerIndex))

@@ -106,7 +106,7 @@ func dtRandomPointInConvexPoly(pts []float32, npts int32, areas []float32, s, t 
 	areasum := float32(0.0)
 	for i := 2; i < int(npts); i++ {
 		areas[i] = common.TriArea2D(common.GetVert3(pts, 0), common.GetVert3(pts, i-1), common.GetVert3(pts, i))
-		areasum += common.Max(0.001, areas[i])
+		areasum += max(0.001, areas[i])
 	}
 	// Find sub triangle weighted by area.
 	thr := s * areasum
@@ -281,8 +281,8 @@ func projectPoly(axis, poly []float32, npoly int32) (rmin, rmax float32) {
 	rmin = rmax
 	for i := int32(1); i < npoly; i++ {
 		d := common.Vdot2D(axis, poly[i*3:i*3+3])
-		rmin = common.Min(rmin, d)
-		rmax = common.Max(rmax, d)
+		rmin = min(rmin, d)
+		rmax = max(rmax, d)
 	}
 	return rmin, rmax
 }

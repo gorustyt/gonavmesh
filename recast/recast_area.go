@@ -2,6 +2,7 @@ package recast
 
 import (
 	"github.com/gorustyt/gonavmesh/common"
+	"github.com/gorustyt/gonavmesh/common/rw"
 	"sort"
 )
 
@@ -14,6 +15,14 @@ type RcCompactCell struct {
 	Count uint32 ///< Number of spans in the column.
 }
 
+func (c *RcCompactCell) FromBin(r *rw.ReaderWriter) {
+	c.Index = r.ReadUInt32()
+	c.Count = r.ReadUInt32()
+}
+func (c *RcCompactCell) ToBin(w *rw.ReaderWriter) {
+	w.WriteInt32(c.Index)
+	w.WriteInt32(c.Count)
+}
 func newRcCompactCell() *RcCompactCell {
 	return &RcCompactCell{
 		Index: 24,
@@ -29,6 +38,19 @@ type RcCompactSpan struct {
 	H   int32  ///< The height of the span.  (Measured from #y.)
 }
 
+func (s *RcCompactSpan) FromBin(r *rw.ReaderWriter) {
+	s.Y = r.ReadUInt16()
+	s.Reg = r.ReadUInt16()
+
+	s.Con = r.ReadInt32()
+	s.H = r.ReadInt32()
+}
+func (s *RcCompactSpan) ToBin(w *rw.ReaderWriter) {
+	w.WriteInt16(s.Y)
+	w.WriteInt16(s.Reg)
+	w.WriteInt32(s.Con)
+	w.WriteInt32(s.H)
+}
 func newRcCompactSpan() *RcCompactSpan {
 	return &RcCompactSpan{
 		H:   8,
@@ -124,7 +146,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					aY := z + common.GetDirOffsetY(0)
 					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 0)
 					aSpan := compactHeightfield.Spans[aIndex]
-					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
+					newDistance := min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
@@ -134,7 +156,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 						bX := aX + common.GetDirOffsetX(3)
 						bY := aY + common.GetDirOffsetY(3)
 						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 3)
-						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
+						newDistance = min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -146,7 +168,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					aY := z + common.GetDirOffsetY(3)
 					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 3)
 					aSpan := compactHeightfield.Spans[aIndex]
-					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
+					newDistance := min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
@@ -156,7 +178,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 						bX := aX + common.GetDirOffsetX(2)
 						bY := aY + common.GetDirOffsetY(2)
 						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 2)
-						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
+						newDistance := min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -180,7 +202,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					aY := z + common.GetDirOffsetY(2)
 					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 2)
 					aSpan := compactHeightfield.Spans[aIndex]
-					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
+					newDistance := min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
@@ -190,7 +212,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 						bX := aX + common.GetDirOffsetX(1)
 						bY := aY + common.GetDirOffsetY(1)
 						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 1)
-						newDistance = common.Min(distanceToBoundary[bIndex]+3, 255)
+						newDistance = min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}
@@ -202,7 +224,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 					aY := z + common.GetDirOffsetY(1)
 					aIndex := int32(compactHeightfield.Cells[aX+aY*xSize].Index) + rcGetCon(span, 1)
 					aSpan := compactHeightfield.Spans[aIndex]
-					newDistance := common.Min(distanceToBoundary[aIndex]+2, 255)
+					newDistance := min(distanceToBoundary[aIndex]+2, 255)
 					if newDistance < distanceToBoundary[spanIndex] {
 						distanceToBoundary[spanIndex] = newDistance
 					}
@@ -212,7 +234,7 @@ func RcErodeWalkableArea(erosionRadius int, compactHeightfield *RcCompactHeightf
 						bX := aX + common.GetDirOffsetX(0)
 						bY := aY + common.GetDirOffsetY(0)
 						bIndex := int32(compactHeightfield.Cells[bX+bY*xSize].Index) + rcGetCon(aSpan, 0)
-						newDistance := common.Min(distanceToBoundary[bIndex]+3, 255)
+						newDistance := min(distanceToBoundary[bIndex]+3, 255)
 						if newDistance < distanceToBoundary[spanIndex] {
 							distanceToBoundary[spanIndex] = newDistance
 						}

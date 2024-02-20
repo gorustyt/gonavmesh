@@ -2244,7 +2244,7 @@ func (q *DtNavMeshQuery) getPathToNode(endNode *DtNode, path []DtPolyRef, maxPat
 
 	dtAssertTrue(curNode != nil)
 
-	pathCount = common.Min(int32(length), maxPath)
+	pathCount = min(int32(length), maxPath)
 
 	if length > int(maxPath) {
 		return pathCount, DT_SUCCESS | DT_BUFFER_TOO_SMALL

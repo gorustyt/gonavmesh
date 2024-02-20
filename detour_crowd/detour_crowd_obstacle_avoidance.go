@@ -294,7 +294,7 @@ func (d *dtObstacleAvoidanceQuery) processSample(vcand []float32, cs float32,
 		common.Vsub(vab, vab, cir.vel[:])
 
 		// Side
-		side += common.Clamp(common.Min(common.Vdot2D(cir.dp[:], vab)*0.5+0.5, common.Vdot2D(cir.np[:], vab)*2), 0.0, 1.0)
+		side += common.Clamp(min(common.Vdot2D(cir.dp[:], vab)*0.5+0.5, common.Vdot2D(cir.np[:], vab)*2), 0.0, 1.0)
 		nside++
 
 		var htmin = float32(0)
