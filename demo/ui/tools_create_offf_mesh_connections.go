@@ -17,7 +17,7 @@ func NewToolOffMeshConnection(ctx *Context) *ToolOffMeshConnection {
 	}, func(s string) {
 		ctx.Config().ToolsConfig.Bidir = s
 	})
-	c.Selected = config.Bidirectional
+	c.Selected = ctx.Config().ToolsConfig.Bidir
 	return &ToolOffMeshConnection{
 		c: c,
 	}

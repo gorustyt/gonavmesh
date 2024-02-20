@@ -23,7 +23,7 @@ func NewToolsCrowds(ctx *Context) *ToolsCrowds {
 	}, func(s string) {
 		cfg.ToolsConfig.ToolModel = s
 	})
-	group.Selected = config.DescCrowdTool_TOOLMODE_CREATE
+	group.Selected = cfg.ToolsConfig.ToolModel
 	s1 := widget.NewSliderWithData(0, 3, binding.BindFloat(&cfg.ToolsConfig.ObstacleAvoidanceType))
 	s1.Step = 1
 	s2 := widget.NewSliderWithData(0, 20, binding.BindFloat(&cfg.ToolsConfig.SeparationWeight))
@@ -38,12 +38,7 @@ func NewToolsCrowds(ctx *Context) *ToolsCrowds {
 	}, func(strings []string) {
 		cfg.ToolsConfig.ExpandOptions = strings
 	})
-	g.Selected = []string{
-		config.ExpandOptionsOptimizeVisibility,
-		config.ExpandOptionsOptimizeTopology,
-		config.ExpandOptionsAnticipateTurns,
-		config.ExpandOptionsObstacleAvoidance,
-	}
+	g.Selected = cfg.ToolsConfig.ExpandOptions
 	optionsContainer := container.NewVBox(
 		widget.NewLabel("Options"), g,
 		widget.NewLabel("Avoidance Quality"),

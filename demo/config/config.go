@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/data/binding"
+	"github.com/gorustyt/gonavmesh/detour_crowd"
 )
 
 type Config struct {
@@ -11,14 +12,13 @@ type Config struct {
 	PropsConfig *PropsConfig
 }
 
+func (cfg *Config) Reset() {
+	cfg.ToolsConfig.Reset()
+	cfg.PropsConfig.Reset()
+}
 func NewConfig() *Config {
 	c := &Config{
-		ToolsConfig: &ToolsConfig{
-			ObstacleAvoidanceType: 3,
-			SeparationWeight:      2,
-			BoxHeight:             6,
-			BoxDescent:            1,
-		},
+		ToolsConfig: &ToolsConfig{},
 		PropsConfig: &PropsConfig{
 			VertLabelData:                    binding.NewString(),
 			BuildTimeLabel:                   binding.NewString(),
@@ -30,38 +30,9 @@ func NewConfig() *Config {
 			TitleCacheMemoryLabel:            binding.NewString(),
 			TitleCacheNavmeshBuildTimeLabel:  binding.NewString(),
 			TitleCacheBuildPeakMemUsageLabel: binding.NewString(),
-
-			RasterizationCellSize:   0.3,
-			RasterizationCellHeight: 0.2,
-
-			AgentHeight:   2,
-			AgentRadius:   0.6,
-			AgentMaxClimb: 0.9,
-			AgentMaxSlope: 45,
-
-			RegionMinRegionSize:    8,
-			RegionMergedRegionSize: 20,
-
-			PolygonizationMaxEdgeLength: 12,
-			PolygonizationMaxEdgeError:  1.3,
-			PolygonizationVertsPerPoly:  6.,
-
-			DetailMeshSampleDistance:       6,
-			DetailMeshSampleMaxSampleError: 1,
-
-			TileSize: 48,
 		},
 	}
-	c.PropsConfig.SetVertLabelData(0, 0)
-	c.PropsConfig.SetBuildTimeLabelData(0)
-	c.PropsConfig.SetTileSizeLabel(0, 0)
-	c.PropsConfig.SetTileSizeMaxTitlesLabel(0)
-	c.PropsConfig.SetTileSizeMaxPolysLabel(0)
-	c.PropsConfig.SetTitleCacheLayersLabel(0)
-	c.PropsConfig.SetTitleCacheLayerPerTileLabel(0, 0)
-	c.PropsConfig.SetTitleCacheMemoryLabel(0, 0, 0)
-	c.PropsConfig.SetTitleCacheNavmeshBuildTimeLabel(0)
-	c.PropsConfig.SetTitleCacheBuildPeakMemUsageLabel(0)
+	c.Reset()
 	return c
 }
 
@@ -91,6 +62,7 @@ type ToolsConfig struct {
 	//TOOL_CROWD
 	ToolModel               string
 	ExpandOptions           []string
+	ExpandOptionsOnchange   func()
 	ObstacleAvoidanceType   float64
 	SeparationWeight        float64
 	ExpandSelectedDebugDraw []string
@@ -102,6 +74,75 @@ type ToolsConfig struct {
 	OneTempObstaclesRemoveAllClick func()
 	//HighlightTileCache
 	HighlightDrawType string
+}
+
+func (cfg *ToolsConfig) HasExpandOptionsChecked(desc string) bool {
+
+	for _, v := range cfg.ExpandDebugDraw {
+		if v == desc {
+			return true
+		}
+	}
+
+	for _, v := range cfg.ExpandSelectedDebugDraw {
+		if v == desc {
+			return true
+		}
+	}
+
+	for _, v := range cfg.ExpandOptions {
+		if v == desc {
+			return true
+		}
+	}
+	return false
+}
+
+func (cfg *ToolsConfig) GetExpandOptionsUpdateFlags() int {
+	updateFlags := 0
+	for _, v := range cfg.ExpandOptions {
+		switch v {
+		case ExpandOptionsOptimizeVisibility:
+			updateFlags |= detour_crowd.DT_CROWD_OPTIMIZE_VIS
+
+		case ExpandOptionsOptimizeTopology:
+			updateFlags |= detour_crowd.DT_CROWD_OPTIMIZE_TOPO
+
+		case ExpandOptionsAnticipateTurns:
+			updateFlags |= detour_crowd.DT_CROWD_ANTICIPATE_TURNS
+
+		case ExpandOptionsObstacleAvoidance:
+			updateFlags |= detour_crowd.DT_CROWD_OBSTACLE_AVOIDANCE
+		case ExpandOptionsSeparation:
+			updateFlags |= detour_crowd.DT_CROWD_SEPARATION
+
+		}
+	}
+	return updateFlags
+}
+
+func (cfg *ToolsConfig) Reset() {
+	cfg.AreaType = SAMPLE_POLYAREA_GRASS
+	cfg.ExpandOptions = []string{
+		ExpandOptionsOptimizeVisibility,
+		ExpandOptionsOptimizeTopology,
+		ExpandOptionsAnticipateTurns,
+		ExpandOptionsObstacleAvoidance,
+	}
+	cfg.ToolModel = DescCrowdTool_TOOLMODE_CREATE
+	cfg.Bidir = Bidirectional
+	cfg.HighlightDrawType = HighLightTitleCacheDrawAreas
+	cfg.ObstacleAvoidanceType = 3
+	cfg.SeparationWeight = 2
+	cfg.BoxHeight = 6
+	cfg.BoxDescent = 1
+	cfg.PathfindStraight = DT_STRAIGHTPATH_NONE_CROSSINGS
+	cfg.IncludeFlags = []string{
+		DESC_SAMPLE_POLYFLAGS_WALK,
+		DESC_SAMPLE_POLYFLAGS_SWIM,
+		DESC_SAMPLE_POLYFLAGS_DOOR,
+		DESC_SAMPLE_POLYFLAGS_JUMP,
+	}
 }
 
 type PropsConfig struct {
@@ -150,6 +191,45 @@ type PropsConfig struct {
 	DrawMode         string
 }
 
+func (cfg *PropsConfig) Reset() {
+	cfg.Filtering = []string{
+		FilteringLowHangingObstacles,
+		FilteringLedgeSpans,
+		FilteringWalkableLowHeightSpans,
+	}
+	cfg.Partitioning = DescSAMPLE_PARTITION_WATERSHED
+	cfg.SampleType = SampleSoloMesh
+	cfg.ShowLogAndShowTool = []string{ShowTools}
+	cfg.RasterizationCellSize = 0.3
+	cfg.RasterizationCellHeight = 0.2
+
+	cfg.AgentHeight = 2
+	cfg.AgentRadius = 0.6
+	cfg.AgentMaxClimb = 0.9
+	cfg.AgentMaxSlope = 45
+
+	cfg.RegionMinRegionSize = 8
+	cfg.RegionMergedRegionSize = 20
+
+	cfg.PolygonizationMaxEdgeLength = 1
+	cfg.PolygonizationMaxEdgeError = 1.3
+	cfg.PolygonizationVertsPerPoly = 6.
+
+	cfg.DetailMeshSampleDistance = 6
+	cfg.DetailMeshSampleMaxSampleError = 1
+
+	cfg.TileSize = 48
+	cfg.SetVertLabelData(0, 0)
+	cfg.SetBuildTimeLabelData(0)
+	cfg.SetTileSizeLabel(0, 0)
+	cfg.SetTileSizeMaxTitlesLabel(0)
+	cfg.SetTileSizeMaxPolysLabel(0)
+	cfg.SetTitleCacheLayersLabel(0)
+	cfg.SetTitleCacheLayerPerTileLabel(0, 0)
+	cfg.SetTitleCacheMemoryLabel(0, 0, 0)
+	cfg.SetTitleCacheNavmeshBuildTimeLabel(0)
+	cfg.SetTitleCacheBuildPeakMemUsageLabel(0)
+}
 func (cfg *PropsConfig) SetVertLabelData(vertCount, triCount float64) {
 	cfg.VertLabelData.Set(fmt.Sprintf("Verts: %.1fk  Tris: %.1fk", vertCount/1000.0, triCount/1000.0))
 }

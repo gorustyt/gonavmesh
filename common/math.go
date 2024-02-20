@@ -127,7 +127,7 @@ func Vequal(p0 []float32, p1 []float32) bool {
 // /  @param[out]	dest	The result vector. [(x, y, z)]
 // /  @param[in]		v		The vector to scale. [(x, y, z)]
 // /  @param[in]		t		The scaling factor.
-func Vscale(res []float32, v []float32, t float32) {
+func Vscale[T float64 | float32](res []T, v []T, t T) {
 	res[0] = v[0] * t
 	res[1] = v[1] * t
 	res[2] = v[2] * t
@@ -275,7 +275,7 @@ func VlenSqr(v []float32) float32 {
 // /  @param[in]		b		Vertex B. [(x, y, z)]
 // /  @param[in]		c		Vertex C. [(x, y, z)]
 // / @return The signed xz-plane area of the triangle.
-func TriArea2D(a, b, c []float32) float32 {
+func TriArea2D[T float64|float32](a, b, c []T) T{
 	abx := b[0] - a[0]
 	abz := b[2] - a[2]
 	acx := c[0] - a[0]

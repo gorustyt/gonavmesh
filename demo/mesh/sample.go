@@ -1,9 +1,13 @@
 package mesh
 
 import (
+	"fmt"
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/gonavmesh/common/rw"
+	"github.com/gorustyt/gonavmesh/debug_utils"
 	"github.com/gorustyt/gonavmesh/detour"
+	"github.com/gorustyt/gonavmesh/detour_crowd"
+	"github.com/gorustyt/gonavmesh/recast"
 	"io"
 	"log/slog"
 )
@@ -11,11 +15,75 @@ import (
 const NAVMESHSET_MAGIC = 'M'<<24 | 'S'<<16 | 'E'<<8 | 'T' //'MSET';
 const NAVMESHSET_VERSION = 1
 
+/// Tool types.
+
+const (
+	TOOL_NONE = iota
+	TOOL_TILE_EDIT
+	TOOL_TILE_HIGHLIGHT
+	TOOL_TEMP_OBSTACLE
+	TOOL_NAVMESH_TESTER
+	TOOL_NAVMESH_PRUNE
+	TOOL_OFFMESH_CONNECTION
+	TOOL_CONVEX_VOLUME
+	TOOL_CROWD
+	MAX_TOOLS
+)
+
+/// These are just sample areas to use consistent values across the samples.
+/// The use should specify these base on his needs.
+
+const (
+	SAMPLE_POLYAREA_GROUND = iota
+	SAMPLE_POLYAREA_WATER
+	SAMPLE_POLYAREA_ROAD
+	SAMPLE_POLYAREA_DOOR
+	SAMPLE_POLYAREA_GRASS
+	SAMPLE_POLYAREA_JUMP
+)
+
+const (
+	SAMPLE_PARTITION_WATERSHED = iota
+	SAMPLE_PARTITION_MONOTONE
+	SAMPLE_PARTITION_LAYERS
+)
+
 type Sample struct {
+	m_geom     *InputGeom
+	m_navMesh  detour.IDtNavMesh
+	m_navQuery detour.NavMeshQuery
+	m_crowd    *detour_crowd.DtCrowd
+
+	m_navMeshDrawFlags int
+
+	m_cellSize             float64
+	m_cellHeight           float64
+	m_agentHeight          float64
+	m_agentRadius          float64
+	m_agentMaxClimb        float64
+	m_agentMaxSlope        float64
+	m_regionMinSize        float64
+	m_regionMergeSize      float64
+	m_edgeMaxLen           float64
+	m_edgeMaxError         float64
+	m_vertsPerPoly         float64
+	m_detailSampleDist     float64
+	m_detailSampleMaxError float64
+	m_partitionType        int
+
+	m_filterLowHangingObstacles    bool
+	m_filterLedgeSpans             bool
+	m_filterWalkableLowHeightSpans bool
+
+	m_tool       SampleTool
+	m_toolStates [MAX_TOOLS]SampleToolState
+	m_dd         debug_utils.DuDebugDraw
+
+	ctx *Content
 }
 
-func NewSample() *Sample {
-	return &Sample{}
+func NewSample(ctx *Content) *Sample {
+	return &Sample{ctx: ctx}
 }
 
 type NavMeshSetHeader struct {
@@ -141,4 +209,178 @@ func (s *Sample) loadAll(reader fyne.URIReadCloser) detour.IDtNavMesh {
 	}
 	reader.Close()
 	return mesh
+}
+
+func (s *Sample) getInputGeom() *InputGeom             { return s.m_geom }
+func (s *Sample) getNavMesh() detour.IDtNavMesh        { return s.m_navMesh }
+func (s *Sample) getNavMeshQuery() detour.NavMeshQuery { return s.m_navQuery }
+func (s *Sample) getCrowd() *detour_crowd.DtCrowd      { return s.m_crowd }
+func (s *Sample) getAgentRadius() float64              { return s.m_agentRadius }
+func (s *Sample) getAgentHeight() float64              { return s.m_agentHeight }
+func (s *Sample) getAgentClimb() float64               { return s.m_agentMaxClimb }
+
+func (s *Sample) getNavMeshDrawFlags() int                  { return s.m_navMeshDrawFlags }
+func (s *Sample) setNavMeshDrawFlags(flags int)             { s.m_navMeshDrawFlags = flags }
+func (s *Sample) getToolState(Type int) SampleToolState     { return s.m_toolStates[Type] }
+func (s *Sample) setToolState(Type int, ss SampleToolState) { s.m_toolStates[Type] = ss }
+
+func (s *Sample) getDebugDraw() debug_utils.DuDebugDraw { return s.m_dd }
+
+func (s *Sample) handleSettings() {
+}
+func (s *Sample) handleRenderOverlay(proj, model []float64, view []int) {
+}
+func (s *Sample) setTool(tool SampleTool) {
+	s.m_tool = tool
+	if tool != nil {
+		s.m_tool.init(s)
+	}
+
+}
+
+func (s *Sample) handleRender() {
+	if s.m_geom == nil {
+		return
+	}
+
+	// Draw rcMeshLoaderObj
+	debug_utils.DuDebugDrawTriMesh(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
+		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(), []int{}, 1.0)
+	// Draw bounds
+	bmin := s.m_geom.getMeshBoundsMin()
+	bmax := s.m_geom.getMeshBoundsMax()
+	debug_utils.DuDebugDrawBoxWire(s.m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], debug_utils.DuRGBA(255, 255, 255, 128), 1.0)
+}
+
+func (s *Sample) handleMeshChanged(geom *InputGeom) {
+	s.m_geom = geom
+
+	buildSettings := geom.getBuildSettings()
+	if buildSettings != nil {
+		s.m_cellSize = buildSettings.cellSize
+		s.m_cellHeight = buildSettings.cellHeight
+		s.m_agentHeight = buildSettings.agentHeight
+		s.m_agentRadius = buildSettings.agentRadius
+		s.m_agentMaxClimb = buildSettings.agentMaxClimb
+		s.m_agentMaxSlope = buildSettings.agentMaxSlope
+		s.m_regionMinSize = buildSettings.regionMinSize
+		s.m_regionMergeSize = buildSettings.regionMergeSize
+		s.m_edgeMaxLen = buildSettings.edgeMaxLen
+		s.m_edgeMaxError = buildSettings.edgeMaxError
+		s.m_vertsPerPoly = buildSettings.vertsPerPoly
+		s.m_detailSampleDist = buildSettings.detailSampleDist
+		s.m_detailSampleMaxError = buildSettings.detailSampleMaxError
+		s.m_partitionType = buildSettings.partitionType
+	}
+}
+func (s *Sample) collectSettings(settings *BuildSettings) {
+	settings.cellSize = s.m_cellSize
+	settings.cellHeight = s.m_cellHeight
+	settings.agentHeight = s.m_agentHeight
+	settings.agentRadius = s.m_agentRadius
+	settings.agentMaxClimb = s.m_agentMaxClimb
+	settings.agentMaxSlope = s.m_agentMaxSlope
+	settings.regionMinSize = s.m_regionMinSize
+	settings.regionMergeSize = s.m_regionMergeSize
+	settings.edgeMaxLen = s.m_edgeMaxLen
+	settings.edgeMaxError = s.m_edgeMaxError
+	settings.vertsPerPoly = s.m_vertsPerPoly
+	settings.detailSampleDist = s.m_detailSampleDist
+	settings.detailSampleMaxError = s.m_detailSampleMaxError
+	settings.partitionType = s.m_partitionType
+}
+
+func (s *Sample) handleTools() {
+}
+
+func (s *Sample) handleDebugMode() {
+}
+func (s *Sample) handleClick(ss, p []float64, shift bool) {
+	if s.m_tool != nil {
+		s.m_tool.handleClick(ss, p, shift)
+	}
+}
+
+func (s *Sample) handleToggle() {
+	if s.m_tool != nil {
+		s.m_tool.handleToggle()
+	}
+
+}
+
+func (s *Sample) handleStep() {
+	if s.m_tool != nil {
+		s.m_tool.handleStep()
+	}
+
+}
+
+func (s *Sample) handleBuild() bool {
+	return true
+}
+
+func (s *Sample) handleUpdate(dt float64) {
+	if s.m_tool != nil {
+		s.m_tool.handleUpdate(dt)
+	}
+
+	s.updateToolStates(dt)
+}
+
+func (s *Sample) updateToolStates(dt float64) {
+	for i := 0; i < MAX_TOOLS; i++ {
+		if s.m_toolStates[i] != nil {
+			s.m_toolStates[i].handleUpdate(dt)
+		}
+
+	}
+}
+
+func (s *Sample) initToolStates(sample *Sample) {
+	for i := 0; i < MAX_TOOLS; i++ {
+		if s.m_toolStates[i] != nil {
+			s.m_toolStates[i].init(sample)
+		}
+
+	}
+}
+
+func (s *Sample) resetToolStates() {
+	for i := 0; i < MAX_TOOLS; i++ {
+		if s.m_toolStates[i] != nil {
+			s.m_toolStates[i].reset()
+		}
+
+	}
+}
+
+func (s *Sample) renderToolStates() {
+	for i := 0; i < MAX_TOOLS; i++ {
+		if s.m_toolStates[i] != nil {
+			s.m_toolStates[i].handleRender()
+		}
+
+	}
+}
+func (s *Sample) renderOverlayToolStates(proj, model []float64, view []int) {
+	for i := 0; i < MAX_TOOLS; i++ {
+		if s.m_toolStates[i] != nil {
+			s.m_toolStates[i].handleRenderOverlay(proj, model, view)
+		}
+
+	}
+}
+
+func (s *Sample) handleCommonSettings() {
+
+	if s.m_geom != nil {
+		bmin := s.m_geom.getNavMeshBoundsMin()
+		bmax := s.m_geom.getNavMeshBoundsMax()
+		gw := 0
+		gh := 0
+		recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
+		text := fmt.Sprintf("Voxels  %d x %d", gw, gh)
+
+	}
+
 }

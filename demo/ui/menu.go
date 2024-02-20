@@ -34,10 +34,11 @@ type Context struct {
 }
 
 func NewContext(c *config.Config) *Context {
-	return &Context{
+	ctx := &Context{
 		ShowChanges: map[string][]fyne.CanvasObject{},
 		cfg:         c,
 	}
+	return ctx
 }
 
 func (s *Context) AppendShow(sample string, shows ...fyne.CanvasObject) {

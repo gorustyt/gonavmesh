@@ -79,17 +79,6 @@ type RcConfig struct {
 // / recognized by some steps in the build process.
 const RC_WALKABLE_AREA = 63
 
-func RcCalcBounds(verts []float32, numVerts int, minBounds []float32, maxBounds []float32) {
-	// Calculate bounding box.
-	copy(minBounds, verts)
-	copy(maxBounds, verts)
-	for i := 1; i < numVerts; i++ {
-		v := common.GetVert3(verts, i)
-		common.Vmin(minBounds, v)
-		common.Vmax(maxBounds, v)
-	}
-}
-
 func RcCalcGridSize(minBounds, maxBounds []float32, cellSize float32, sizeX, sizeZ *int) {
 	*sizeX = int((maxBounds[0]-minBounds[0])/cellSize + 0.5)
 	*sizeZ = int((maxBounds[2]-minBounds[2])/cellSize + 0.5)

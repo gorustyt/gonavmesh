@@ -616,7 +616,7 @@ func ComputeTileHash(x, y, mask int32) int32 {
 // /  @param[in]		bmax	Maximum bounds of box B. [(x, y, z)]
 // / @return True if the two AABB's overlap.
 // / @see dtOverlapQuantBounds
-func DtOverlapBounds(amin, amax, bmin, bmax []float32) bool {
+func DtOverlapBounds[T float64 | float32](amin, amax, bmin, bmax []T) bool {
 	overlap := true
 	if amin[0] > bmax[0] || amax[0] < bmin[0] {
 		overlap = false
@@ -628,4 +628,15 @@ func DtOverlapBounds(amin, amax, bmin, bmax []float32) bool {
 		overlap = false
 	}
 	return overlap
+}
+
+func RcCalcBounds[T float64 | float32](verts []T, numVerts int, minBounds []T, maxBounds []T) {
+	// Calculate bounding box.
+	copy(minBounds, verts)
+	copy(maxBounds, verts)
+	for i := 1; i < numVerts; i++ {
+		v := GetVert3(verts, i)
+		Vmin(minBounds, v)
+		Vmax(maxBounds, v)
+	}
 }

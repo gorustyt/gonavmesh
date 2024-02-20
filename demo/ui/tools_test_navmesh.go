@@ -22,12 +22,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 	}, func(strings []string) {
 		cfg.ToolsConfig.IncludeFlags = strings
 	})
-	checkGroup1.Selected = []string{
-		config.DESC_SAMPLE_POLYFLAGS_WALK,
-		config.DESC_SAMPLE_POLYFLAGS_SWIM,
-		config.DESC_SAMPLE_POLYFLAGS_DOOR,
-		config.DESC_SAMPLE_POLYFLAGS_JUMP,
-	}
+	checkGroup1.Selected = cfg.ToolsConfig.IncludeFlags
 	checkGroup2 := widget.NewCheckGroup([]string{
 		config.DESC_SAMPLE_POLYFLAGS_WALK,
 		config.DESC_SAMPLE_POLYFLAGS_SWIM,
@@ -50,7 +45,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 	})
 	c1 := container.NewVBox(widget.NewLabel("Vertices at crossings"), group1, widget.NewSeparator())
 	c1.Hide()
-	group1.Selected = config.DT_STRAIGHTPATH_NONE_CROSSINGS
+	group1.Selected = cfg.ToolsConfig.PathfindStraight
 	group := widget.NewRadioGroup([]string{
 		config.Desc_TOOLMODE_PATHFIND_FOLLOW,
 		config.Desc_TOOLMODE_PATHFIND_STRAIGHT,

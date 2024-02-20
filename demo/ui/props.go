@@ -25,7 +25,7 @@ func NewProps(ctx *Context) *Props {
 	}, func(s []string) {
 		ctx.Config().PropsConfig.ShowLogAndShowTool = s
 	})
-	g.Selected = []string{config.ShowTools}
+	g.Selected = ctx.Config().PropsConfig.ShowLogAndShowTool
 	p.c = container.NewVBox(
 		g,
 	)
@@ -86,7 +86,7 @@ func (p *Props) GetSample() (res []fyne.CanvasObject) {
 		p.ctx.Config().PropsConfig.SampleType = s
 		p.ctx.OnSampleChange(s)
 	})
-	s.Selected = config.SampleSoloMesh
+	s.Selected = p.ctx.Config().PropsConfig.SampleType
 	p.ctx.AppendAfterInit(func() {
 		p.ctx.OnSampleChange(s.Selected)
 	})
@@ -189,7 +189,7 @@ func (p *Props) GetPartitioning() (res []fyne.CanvasObject) {
 	}, func(s string) {
 		p.ctx.Config().PropsConfig.Partitioning = s
 	})
-	g.Selected = config.DescSAMPLE_PARTITION_WATERSHED
+	g.Selected = p.ctx.Config().PropsConfig.Partitioning
 	return []fyne.CanvasObject{
 		widget.NewLabel("Partitioning"),
 		g,
@@ -204,11 +204,7 @@ func (p *Props) GetFiltering() (res []fyne.CanvasObject) {
 	}, func(s []string) {
 		p.ctx.Config().PropsConfig.Filtering = s
 	})
-	g.Selected = []string{
-		config.FilteringLowHangingObstacles,
-		config.FilteringLedgeSpans,
-		config.FilteringWalkableLowHeightSpans,
-	}
+	g.Selected = p.ctx.Config().PropsConfig.Filtering
 	return []fyne.CanvasObject{
 		widget.NewLabel("Filtering"),
 		g,

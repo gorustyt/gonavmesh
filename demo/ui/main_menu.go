@@ -76,10 +76,14 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 	})
 	settingMenu := fyne.NewMenu("Settings", themeItem)
 
-	buildItem := fyne.NewMenuItem("build", func() {
+	buildItem := fyne.NewMenuItem("Build", func() {
 		ctx.Config().PropsConfig.OnBuildClick()
+		ctx.Refresh()
 	})
-	runMenu := fyne.NewMenu("Run", buildItem)
+	resetItem := fyne.NewMenuItem("Restore Default", func() {
+		ctx.Config().Reset()
+	})
+	runMenu := fyne.NewMenu("Run", resetItem, buildItem)
 	helpMenu := fyne.NewMenu("Help",
 		fyne.NewMenuItem("Documentation", func() {
 			u, _ := url.Parse("https://github.com/gorustyt/gonavmesh")
