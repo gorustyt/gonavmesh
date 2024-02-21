@@ -37,7 +37,8 @@ func NewConfig() *Config {
 }
 
 type ToolsConfig struct {
-	Uid string
+	Uid         string
+	OnUidChange func()
 	//TOOL_NAVMESH_TESTER
 	PathFindToolMode string
 	PathfindStraight string
@@ -76,6 +77,15 @@ type ToolsConfig struct {
 	HighlightDrawType string
 }
 
+func (cfg *ToolsConfig) GetBidir() bool {
+	if cfg.Bidir == OneWay {
+		return false
+	}
+	if cfg.Bidir == Bidirectional {
+		return true
+	}
+	return false
+}
 func (cfg *ToolsConfig) GetShowCorners() bool {
 	return cfg.HasExpandOptionsChecked(ExpandSelectedDebugDrawShowCorners)
 }
@@ -173,7 +183,7 @@ func (cfg *ToolsConfig) GetExpandOptionsUpdateFlags() int {
 }
 
 func (cfg *ToolsConfig) Reset() {
-	cfg.AreaType = SAMPLE_POLYAREA_GRASS
+	cfg.AreaType = Desc_SAMPLE_POLYAREA_GRASS
 	cfg.ExpandOptions = []string{
 		ExpandOptionsOptimizeVisibility,
 		ExpandOptionsOptimizeTopology,
@@ -200,7 +210,7 @@ type PropsConfig struct {
 	ShowLogAndShowTool []string
 	SampleType         string
 	InputMeshPath      string
-	OnInputMesh func()
+	OnInputMesh        func()
 
 	VertLabelData binding.String
 

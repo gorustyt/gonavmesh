@@ -23,12 +23,12 @@ func NewToolsCreateConvexVolumes(ctx *Context) *ToolsCreateConvexVolumes {
 	s3.Step = 0.1
 	button.Importance = widget.DangerImportance
 	group := widget.NewRadioGroup([]string{
-		config.SAMPLE_POLYAREA_GROUND,
-		config.SAMPLE_POLYAREA_WATER,
-		config.SAMPLE_POLYAREA_ROAD,
-		config.SAMPLE_POLYAREA_DOOR,
-		config.SAMPLE_POLYAREA_GRASS,
-		config.SAMPLE_POLYAREA_JUMP,
+		config.Desc_SAMPLE_POLYAREA_GROUND,
+		config.Desc_SAMPLE_POLYAREA_WATER,
+		config.Desc_SAMPLE_POLYAREA_ROAD,
+		config.Desc_SAMPLE_POLYAREA_DOOR,
+		config.Desc_SAMPLE_POLYAREA_GRASS,
+		config.Desc_SAMPLE_POLYAREA_JUMP,
 	}, func(s string) {
 		cfg.ToolsConfig.AreaType = s
 	})

@@ -3,8 +3,8 @@ package mesh
 import (
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/debug_utils"
+	"github.com/gorustyt/gonavmesh/demo/config"
 	"github.com/gorustyt/gonavmesh/detour"
-	"github.com/gorustyt/gonavmesh/recast"
 	"log"
 	"math"
 )
@@ -35,8 +35,8 @@ var (
 
 type NavMeshTesterTool struct {
 	m_sample         *Sample
-	m_navMesh        recast.IDtNavMesh
-	m_navQuery       recast.NavMeshQuery
+	m_navMesh        detour.IDtNavMesh
+	m_navQuery       detour.NavMeshQuery
 	m_filter         *detour.DtQueryFilter
 	m_pathFindStatus detour.DtStatus
 
@@ -80,8 +80,52 @@ type NavMeshTesterTool struct {
 	m_prevIterPos, m_iterPos, m_steerPos, m_targetPos []float64
 	m_steerPoints                                     []float64
 	m_steerPointCount                                 int
+}
 
-	gs *guiState
+func newNavMeshTesterTool(ctx *Content) *NavMeshTesterTool {
+	m := &NavMeshTesterTool{
+		m_straightPath:      make([]float64, MAX_POLYS*3),
+		m_straightPathFlags: make([]int, MAX_POLYS),
+		m_straightPathPolys: make([]detour.DtPolyRef, MAX_POLYS),
+		m_smoothPath:        make([]float64, MAX_SMOOTH*3),
+		m_randPoints:        make([]float64, MAX_RAND_POINTS*3),
+		m_queryPoly:         make([]float64, 4*3),
+		m_polys:             make([]detour.DtPolyRef, MAX_POLYS),
+		m_parent:            make([]detour.DtPolyRef, MAX_POLYS),
+		m_spos:              make([]float64, 3),
+		m_epos:              make([]float64, 3),
+		m_hitPos:            make([]float64, 3),
+		m_hitNormal:         make([]float64, 3),
+		m_pathIterPolys:     make([]detour.DtPolyRef, MAX_POLYS),
+		m_steerPoints:       make([]float64, MAX_STEER_POINTS*3),
+		m_prevIterPos:       make([]float64, 3),
+		m_iterPos:           make([]float64, 3),
+		m_steerPos:          make([]float64, 3),
+		m_targetPos:         make([]float64, 3),
+		m_polyPickExt:       make([]float64, 3),
+		m_toolMode:          TOOLMODE_PATHFIND_FOLLOW,
+		m_pathFindStatus:    detour.DT_FAILURE,
+	}
+	m.m_filter.SetIncludeFlags(config.SAMPLE_POLYFLAGS_ALL ^ config.SAMPLE_POLYFLAGS_DISABLED)
+	m.m_filter.SetExcludeFlags(0)
+
+	m.m_polyPickExt[0] = 2
+	m.m_polyPickExt[1] = 4
+	m.m_polyPickExt[2] = 2
+
+	m.m_neighbourhoodRadius = 2.5
+	m.m_randomRadius = 5.0
+	ctx.GetConfig().ToolsConfig.OnSetRandomEndClick = func() {
+		if m.m_sposSet {
+			var status detour.DtStatus
+			m.m_startRef, m.m_spos, status = m.m_navQuery.FindRandomPointAroundCircle(m.m_startRef, m.m_spos, m.m_randomRadius, m.m_filter)
+			if status.DtStatusSucceed() {
+				m.m_eposSet = true
+				m.recalc()
+			}
+		}
+	}
+	return m
 }
 
 func (m *NavMeshTesterTool) drawAgent(pos []float64, r, h, c float64, col int) {
@@ -212,7 +256,7 @@ func (m *NavMeshTesterTool) handleRender() {
 			dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
 			for i := 0; i < m.m_nstraightPath-1; i++ {
 				var col int
-				if m.m_straightPathFlags[i]&detour.Dt_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
+				if m.m_straightPathFlags[i]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
 					col = offMeshCol
 				} else {
 					col = spathCol
@@ -225,11 +269,11 @@ func (m *NavMeshTesterTool) handleRender() {
 			dd.Begin(debug_utils.DU_DRAW_POINTS, 6.0)
 			for i := 0; i < m.m_nstraightPath; i++ {
 				var col int
-				if m.m_straightPathFlags[i]&detour.Dt_STRAIGHTPATH_START != 0 {
+				if m.m_straightPathFlags[i]&detour.DT_STRAIGHTPATH_START != 0 {
 					col = startCol
-				} else if m.m_straightPathFlags[i]&detour.Dt_STRAIGHTPATH_END != 0 {
+				} else if m.m_straightPathFlags[i]&detour.DT_STRAIGHTPATH_END != 0 {
 					col = endCol
-				} else if m.m_straightPathFlags[i]&detour.Dt_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
+				} else if m.m_straightPathFlags[i]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
 					col = offMeshCol
 				} else {
 					col = spathCol
@@ -358,18 +402,18 @@ func (m *NavMeshTesterTool) handleRender() {
 				dd.DepthMask(true)
 			}
 
-			MAX_SEGS := detour.Dt_VERTS_PER_POLYGON * 4
+			MAX_SEGS := detour.DT_VERTS_PER_POLYGON * 4
 			segs := make([]float64, MAX_SEGS*6)
 			refs := make([]detour.DtPolyRef, MAX_SEGS)
 			nsegs, _ := m.m_navQuery.GetPolyWallSegments(m.m_polys[i], m.m_filter, segs, refs, MAX_SEGS)
 			dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
-			for j := 0; j < nsegs; j++ {
+			for j := int32(0); j < nsegs; j++ {
 				s := segs[j*6:]
 
 				// Skip too distant segments.
 
 				_, distSqr := detour.DtDistancePtSegSqr2D(m.m_spos, s, s[3:])
-				if distSqr > common.Sqr(m.m_neighbourhoodRadius) {
+				if float64(distSqr) > common.Sqr(m.m_neighbourhoodRadius) {
 					continue
 				}
 
@@ -449,7 +493,7 @@ func (m *NavMeshTesterTool) handleRenderOverlay(proj, model []float64, view []in
 	h := view[3]
 	m.gs.imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB+SHIFT: Set start location  LMB: Set end location", imguiRGBA(255, 255, 255, 192))
 }
-func getPolyCenter(navMesh recast.IDtNavMesh, ref detour.DtPolyRef, center []float64) {
+func getPolyCenter(navMesh detour.IDtNavMesh, ref detour.DtPolyRef, center []float64) {
 	center[0] = 0
 	center[1] = 0
 	center[2] = 0
@@ -459,11 +503,11 @@ func getPolyCenter(navMesh recast.IDtNavMesh, ref detour.DtPolyRef, center []flo
 		return
 	}
 
-	for i := 0; i < poly.VertCount; i++ {
+	for i := 0; i < int(poly.VertCount); i++ {
 		v := tile.Verts[poly.Verts[i]*3:]
-		center[0] += v[0]
-		center[1] += v[1]
-		center[2] += v[2]
+		center[0] += float64(v[0])
+		center[1] += float64(v[1])
+		center[2] += float64(v[2])
 	}
 	s := 1.0 / float64(poly.VertCount)
 	center[0] *= s
@@ -507,7 +551,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 
 			m.m_nsmoothPath = 0
 
-			copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
+			copy(common.GetVert3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
 			m.m_nsmoothPath++
 		}
 	}
@@ -541,11 +585,11 @@ func (m *NavMeshTesterTool) handleToggle() {
 	copy(m.m_steerPos, steerPos)
 
 	endOfPath := false
-	if steerPosFlag&detour.Dt_STRAIGHTPATH_END != 0 {
+	if steerPosFlag&detour.DT_STRAIGHTPATH_END != 0 {
 		endOfPath = true
 	}
 	offMeshConnection := false
-	if steerPosFlag&detour.Dt_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
+	if steerPosFlag&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
 		offMeshConnection = true
 	}
 	// Find movement delta.
@@ -568,7 +612,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 	nvisited := 0
 	m.m_navQuery.MoveAlongSurface(m.m_pathIterPolys[0], m.m_iterPos, moveTgt, m.m_filter,
 		result, visited, &nvisited, 16)
-	m.m_pathIterPolyCount = detour.DtMergeCorridorStartMoved(m.m_pathIterPolys, m.m_pathIterPolyCount,
+	m.m_pathIterPolyCount = detour.DTMergeCorridorStartMoved(m.m_pathIterPolys, m.m_pathIterPolyCount,
 		MAX_POLYS, visited, nvisited)
 	m.m_pathIterPolyCount = fixupShortcuts(m.m_pathIterPolys, m.m_pathIterPolyCount, m.m_navQuery)
 	h, _ := m.m_navQuery.GetPolyHeight(m.m_pathIterPolys[0], result)
@@ -580,7 +624,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 		// Reached end of path.
 		copy(m.m_iterPos, m.m_targetPos)
 		if m.m_nsmoothPath < MAX_SMOOTH {
-			copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
+			copy(common.GetVert3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
 			m.m_nsmoothPath++
 		}
 		return
@@ -607,11 +651,11 @@ func (m *NavMeshTesterTool) handleToggle() {
 		status := m.m_navMesh.GetOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos)
 		if status.DtStatusSucceed() {
 			if m.m_nsmoothPath < MAX_SMOOTH {
-				copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), startPos)
+				copy(common.GetVert3(m.m_smoothPath, m.m_nsmoothPath), startPos)
 				m.m_nsmoothPath++
 				// Hack to make the dotted path not visible during off-rcMeshLoaderObj connection.
 				if m.m_nsmoothPath&1 != 0 {
-					copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), startPos)
+					copy(common.GetVert3(m.m_smoothPath, m.m_nsmoothPath), startPos)
 					m.m_nsmoothPath++
 				}
 			}
@@ -625,50 +669,13 @@ func (m *NavMeshTesterTool) handleToggle() {
 
 	// Store results.
 	if m.m_nsmoothPath < MAX_SMOOTH {
-		copy(common.GetVs3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
+		copy(common.GetVert3(m.m_smoothPath, m.m_nsmoothPath), m.m_iterPos)
 		m.m_nsmoothPath++
 	}
 }
 
 func (m *NavMeshTesterTool) handleStep() {
 
-}
-
-func newNavMeshTesterTool(gs *guiState) *NavMeshTesterTool {
-	m := &NavMeshTesterTool{
-		m_straightPath:      make([]float64, MAX_POLYS*3),
-		m_straightPathFlags: make([]int, MAX_POLYS),
-		m_straightPathPolys: make([]detour.DtPolyRef, MAX_POLYS),
-		m_smoothPath:        make([]float64, MAX_SMOOTH*3),
-		m_randPoints:        make([]float64, MAX_RAND_POINTS*3),
-		m_queryPoly:         make([]float64, 4*3),
-		m_polys:             make([]detour.DtPolyRef, MAX_POLYS),
-		m_parent:            make([]detour.DtPolyRef, MAX_POLYS),
-		m_spos:              make([]float64, 3),
-		m_epos:              make([]float64, 3),
-		m_hitPos:            make([]float64, 3),
-		m_hitNormal:         make([]float64, 3),
-		m_pathIterPolys:     make([]detour.DtPolyRef, MAX_POLYS),
-		m_steerPoints:       make([]float64, MAX_STEER_POINTS*3),
-		m_prevIterPos:       make([]float64, 3),
-		m_iterPos:           make([]float64, 3),
-		m_steerPos:          make([]float64, 3),
-		m_targetPos:         make([]float64, 3),
-		m_polyPickExt:       make([]float64, 3),
-		m_toolMode:          TOOLMODE_PATHFIND_FOLLOW,
-		m_pathFindStatus:    detour.Dt_FAILURE,
-		gs:                  gs,
-	}
-	m.m_filter.SetIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED)
-	m.m_filter.SetExcludeFlags(0)
-
-	m.m_polyPickExt[0] = 2
-	m.m_polyPickExt[1] = 4
-	m.m_polyPickExt[2] = 2
-
-	m.m_neighbourhoodRadius = 2.5
-	m.m_randomRadius = 5.0
-	return m
 }
 
 func (m *NavMeshTesterTool) init(sample *Sample) {
@@ -678,12 +685,12 @@ func (m *NavMeshTesterTool) init(sample *Sample) {
 	m.recalc()
 	if m.m_navQuery != nil {
 		// Change costs.
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_GROUND, 1.0)
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_WATER, 10.0)
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_ROAD, 1.0)
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_DOOR, 1.0)
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_GRASS, 2.0)
-		m.m_filter.SetAreaCost(SAMPLE_POLYAREA_JUMP, 1.5)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_GROUND, 1.0)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_WATER, 10.0)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_ROAD, 1.0)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_DOOR, 1.0)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_GRASS, 2.0)
+		m.m_filter.SetAreaCost(config.SAMPLE_POLYAREA_JUMP, 1.5)
 	}
 	m.m_neighbourhoodRadius = sample.getAgentRadius() * 20.0
 	m.m_randomRadius = sample.getAgentRadius() * 30.0
@@ -705,12 +712,12 @@ func (m *NavMeshTesterTool) handleMenu() {
 			m.m_straightPathOptions = 0
 			m.recalc()
 		}
-		if m.gs.imguiCheck("Area", m.m_straightPathOptions == detour.Dt_STRAIGHTPATH_AREA_CROSSINGS) {
-			m.m_straightPathOptions = detour.Dt_STRAIGHTPATH_AREA_CROSSINGS
+		if m.gs.imguiCheck("Area", m.m_straightPathOptions == detour.DT_STRAIGHTPATH_AREA_CROSSINGS) {
+			m.m_straightPathOptions = detour.DT_STRAIGHTPATH_AREA_CROSSINGS
 			m.recalc()
 		}
-		if m.gs.imguiCheck("All", m.m_straightPathOptions == detour.Dt_STRAIGHTPATH_ALL_CROSSINGS) {
-			m.m_straightPathOptions = detour.Dt_STRAIGHTPATH_ALL_CROSSINGS
+		if m.gs.imguiCheck("All", m.m_straightPathOptions == detour.DT_STRAIGHTPATH_ALL_CROSSINGS) {
+			m.m_straightPathOptions = detour.DT_STRAIGHTPATH_ALL_CROSSINGS
 			m.recalc()
 		}
 
@@ -755,7 +762,7 @@ func (m *NavMeshTesterTool) handleMenu() {
 	m.gs.imguiSeparator()
 
 	if m.gs.imguiButton("Set Random Start") {
-		var status detour.DtStatus
+		var status detour.DTStatus
 		m.m_startRef, m.m_spos, status = m.m_navQuery.FindRandomPoint(m.m_filter)
 		if status.DtStatusSucceed() {
 			m.m_sposSet = true
@@ -763,14 +770,7 @@ func (m *NavMeshTesterTool) handleMenu() {
 		}
 	}
 	if m.gs.imguiButton("Set Random End", m.m_sposSet) {
-		if m.m_sposSet {
-			var status detour.DtStatus
-			m.m_startRef, m.m_spos, status = m.m_navQuery.FindRandomPointAroundCircle(m.m_startRef, m.m_spos, m.m_randomRadius, m.m_filter)
-			if status.DtStatusSucceed() {
-				m.m_eposSet = true
-				m.recalc()
-			}
-		}
+
 	}
 
 	m.gs.imguiSeparator()
@@ -878,10 +878,10 @@ func (m *NavMeshTesterTool) handleUpdate(dt float64) {
 
 				m.m_nstraightPath, _ = m.m_navQuery.FindStraightPath(m.m_spos, epos, m.m_polys, m.m_npolys,
 					m.m_straightPath, m.m_straightPathFlags,
-					m.m_straightPathPolys, MAX_POLYS, detour.Dt_STRAIGHTPATH_ALL_CROSSINGS)
+					m.m_straightPathPolys, MAX_POLYS, detour.DT_STRAIGHTPATH_ALL_CROSSINGS)
 			}
 
-			m.m_pathFindStatus = detour.Dt_FAILURE
+			m.m_pathFindStatus = detour.DT_FAILURE
 		}
 	}
 }
@@ -903,7 +903,7 @@ func (m *NavMeshTesterTool) recalc() {
 		m.m_endRef = 0
 	}
 
-	m.m_pathFindStatus = detour.Dt_FAILURE
+	m.m_pathFindStatus = detour.DT_FAILURE
 
 	if m.m_toolMode == TOOLMODE_PATHFIND_FOLLOW {
 		m.m_pathIterNum = 0
@@ -950,11 +950,11 @@ func (m *NavMeshTesterTool) recalc() {
 					}
 
 					endOfPath := false
-					if steerPosFlag&detour.Dt_STRAIGHTPATH_END != 0 {
+					if steerPosFlag&detour.DT_STRAIGHTPATH_END != 0 {
 						endOfPath = true
 					}
 					offMeshConnection := false
-					if steerPosFlag&detour.Dt_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
+					if steerPosFlag&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0 {
 						offMeshConnection = true
 					}
 					// Find movement delta.
@@ -979,7 +979,7 @@ func (m *NavMeshTesterTool) recalc() {
 					m.m_navQuery.MoveAlongSurface(polys[0], iterPos, moveTgt, m.m_filter,
 						result, visited, &nvisited, 16)
 
-					npolys = detour.DtMergeCorridorStartMoved(polys, npolys, MAX_POLYS, visited, nvisited)
+					npolys = detour.DTMergeCorridorStartMoved(polys, npolys, MAX_POLYS, visited, nvisited)
 					npolys = fixupShortcuts(polys, npolys, m.m_navQuery)
 
 					h, _ := m.m_navQuery.GetPolyHeight(polys[0], result)
@@ -1030,7 +1030,7 @@ func (m *NavMeshTesterTool) recalc() {
 							// Move position at the other side of the off-rcMeshLoaderObj link.
 							copy(iterPos, endPos)
 							eh, _ := m.m_navQuery.GetPolyHeight(polys[0], iterPos)
-							iterPos[1] = eh
+							iterPos[1] = float64(eh)
 						}
 					}
 
@@ -1077,7 +1077,7 @@ func (m *NavMeshTesterTool) recalc() {
 			m.m_npolys = 0
 			m.m_nstraightPath = 0
 
-			m.m_pathFindStatus = m.m_navQuery.InitSlicedFindPath(m.m_startRef, m.m_endRef, m.m_spos, m.m_epos, m.m_filter, detour.Dt_FINDPATH_ANY_ANGLE)
+			m.m_pathFindStatus = m.m_navQuery.InitSlicedFindPath(m.m_startRef, m.m_endRef, m.m_spos, m.m_epos, m.m_filter, detour.DT_FINDPATH_ANY_ANGLE)
 
 		} else {
 			m.m_npolys = 0
@@ -1108,7 +1108,7 @@ func (m *NavMeshTesterTool) recalc() {
 			// Adjust height.
 			if m.m_npolys > 0 {
 				h, _ := m.m_navQuery.GetPolyHeight(m.m_polys[m.m_npolys-1], m.m_hitPos)
-				m.m_hitPos[1] = h
+				m.m_hitPos[1] = float64(h)
 			}
 			copy(m.m_straightPath[3:], m.m_hitPos)
 		}
@@ -1199,7 +1199,7 @@ func (m *NavMeshTesterTool) reset() {
 //	+-S-+-T-+
 //	|:::|   | <-- the step can end up in here, resulting U-turn path.
 //	+---+---+
-func fixupShortcuts(path []detour.DtPolyRef, npath int, navQuery recast.NavMeshQuery) int {
+func fixupShortcuts(path []detour.DtPolyRef, npath int, navQuery detour.NavMeshQuery) int {
 	if npath < 3 {
 		return npath
 	}
@@ -1214,7 +1214,7 @@ func fixupShortcuts(path []detour.DtPolyRef, npath int, navQuery recast.NavMeshQ
 		return npath
 	}
 
-	for k := poly.FirstLink; k != detour.Dt_NULL_LINK; k = tile.Links[k].Next {
+	for k := poly.FirstLink; k != detour.DT_NULL_LINK; k = tile.Links[k].Next {
 		link := tile.Links[k]
 		if link.Ref != 0 {
 			if nneis < maxNeis {
@@ -1249,7 +1249,7 @@ func fixupShortcuts(path []detour.DtPolyRef, npath int, navQuery recast.NavMeshQ
 	return npath
 }
 
-func getSteerTarget(navQuery recast.NavMeshQuery, startPos, endPos []float64,
+func getSteerTarget(navQuery detour.NavMeshQuery, startPos, endPos []float64,
 	minTargetDist float64,
 	path []detour.DtPolyRef, pathSize int,
 	steerPos []float64, steerPosFlag *int, steerPosRef detour.DtPolyRef,
@@ -1268,7 +1268,7 @@ func getSteerTarget(navQuery recast.NavMeshQuery, startPos, endPos []float64,
 	if len(outPoints) > 0 && outPointCount != nil {
 		*outPointCount = nsteerPath
 		for i := 0; i < nsteerPath; i++ {
-			copy(common.GetVs3(outPoints, i), common.GetVs3(steerPath, i))
+			copy(common.GetVert3(outPoints, i), common.GetVert3(steerPath, i))
 		}
 
 	}
@@ -1278,8 +1278,8 @@ func getSteerTarget(navQuery recast.NavMeshQuery, startPos, endPos []float64,
 	for ns < nsteerPath {
 
 		// Stop at Off-Mesh link or when point is further than slop away.
-		if (steerPathFlags[ns]&detour.Dt_STRAIGHTPATH_OFFMESH_CONNECTION != 0) ||
-			!inRange(common.GetVs3(steerPath, ns), startPos, minTargetDist, 1000.0) {
+		if (steerPathFlags[ns]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION != 0) ||
+			!inRange(common.GetVert3(steerPath, ns), startPos, minTargetDist, 1000.0) {
 			break
 		}
 
@@ -1290,7 +1290,7 @@ func getSteerTarget(navQuery recast.NavMeshQuery, startPos, endPos []float64,
 		return false
 	}
 
-	copy(steerPos, common.GetVs3(steerPath, ns))
+	copy(steerPos, common.GetVert3(steerPath, ns))
 	steerPos[1] = startPos[1]
 	*steerPosFlag = steerPathFlags[ns]
 	steerPosRef = steerPathPolys[ns]

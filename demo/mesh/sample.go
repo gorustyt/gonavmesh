@@ -15,38 +15,8 @@ import (
 const NAVMESHSET_MAGIC = 'M'<<24 | 'S'<<16 | 'E'<<8 | 'T' //'MSET';
 const NAVMESHSET_VERSION = 1
 
-/// Tool types.
-
-const (
-	TOOL_NONE = iota
-	TOOL_TILE_EDIT
-	TOOL_TILE_HIGHLIGHT
-	TOOL_TEMP_OBSTACLE
-	TOOL_NAVMESH_TESTER
-	TOOL_NAVMESH_PRUNE
-	TOOL_OFFMESH_CONNECTION
-	TOOL_CONVEX_VOLUME
-	TOOL_CROWD
-	MAX_TOOLS
-)
-
 /// These are just sample areas to use consistent values across the samples.
 /// The use should specify these base on his needs.
-
-const (
-	SAMPLE_POLYAREA_GROUND = iota
-	SAMPLE_POLYAREA_WATER
-	SAMPLE_POLYAREA_ROAD
-	SAMPLE_POLYAREA_DOOR
-	SAMPLE_POLYAREA_GRASS
-	SAMPLE_POLYAREA_JUMP
-)
-
-const (
-	SAMPLE_PARTITION_WATERSHED = iota
-	SAMPLE_PARTITION_MONOTONE
-	SAMPLE_PARTITION_LAYERS
-)
 
 type Sample struct {
 	m_geom     *InputGeom
@@ -114,12 +84,12 @@ func (n *NavMeshSetHeader) Decode(r *rw.ReaderWriter) {
 }
 
 type NavMeshTileHeader struct {
-	TileRef  detour.DtTileRef
+	TileRef  detour.DTTileRef
 	DataSize int
 }
 
 func (n *NavMeshTileHeader) Decode(r *rw.ReaderWriter) {
-	n.TileRef = detour.DtTileRef(r.ReadInt32())
+	n.TileRef = detour.DTTileRef(r.ReadInt32())
 	n.DataSize = int(r.ReadInt32())
 }
 func (n *NavMeshTileHeader) Encode(w *rw.ReaderWriter) {
@@ -284,9 +254,6 @@ func (s *Sample) collectSettings(settings *BuildSettings) {
 	settings.detailSampleDist = s.m_detailSampleDist
 	settings.detailSampleMaxError = s.m_detailSampleMaxError
 	settings.partitionType = s.m_partitionType
-}
-
-func (s *Sample) handleTools() {
 }
 
 func (s *Sample) handleDebugMode() {

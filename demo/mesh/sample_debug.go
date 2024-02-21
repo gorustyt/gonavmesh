@@ -25,9 +25,7 @@ func newSampleDebug() *SampleDebug {
 }
 
 func (s *SampleDebug) handleSettings() {}
-func (s *SampleDebug) handleTools() {
 
-}
 func (s *SampleDebug) handleDebugMode() {
 
 }

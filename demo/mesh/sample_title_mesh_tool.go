@@ -14,31 +14,18 @@ type meshTitleTool struct {
 	cfg         *config.Config
 }
 
-func newMeshTitleTool(ctx*Content) *meshTitleTool {
+func newMeshTitleTool(ctx *Content) *meshTitleTool {
 	t := &meshTitleTool{cfg: ctx.GetConfig()}
+	t.cfg.ToolsConfig.OnCreateTilesRemoveAllClick = t.m_sample.removeAllTiles
+	t.cfg.ToolsConfig.OnCreateTilesCreateAllClick = t.m_sample.buildAllTiles
 	return t
 }
 
 func (m *meshTitleTool) init(sample *Sample) {
-	m.m_sample = newSampleTileMesh(sample, m.gs, newLogger())
+	m.m_sample = newSampleTileMesh(sample)
 }
+
 func (m *meshTitleTool) Type() int { return TOOL_TILE_EDIT }
-func (m *meshTitleTool) reset()    {}
-
-func (m *meshTitleTool) handleMenu() {
-	m.gs.imguiLabel("Create Tiles")
-	if m.gs.imguiButton("Create All") {
-		if m.m_sample != nil {
-			m.m_sample.buildAllTiles()
-		}
-	}
-	if m.gs.imguiButton("Remove All") {
-		if m.m_sample != nil {
-			m.m_sample.removeAllTiles()
-		}
-
-	}
-}
 
 func (m *meshTitleTool) handleClick(s []float64, p []float64, shift bool) {
 	m.m_hitPosSet = true

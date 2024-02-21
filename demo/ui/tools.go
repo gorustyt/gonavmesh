@@ -45,7 +45,9 @@ func NewTools(ctx *Context) *Tools {
 		if v == nil {
 			return
 		}
+
 		ctx.Config().ToolsConfig.Uid = c
+		ctx.Config().ToolsConfig.OnUidChange()
 		t.changeContext(v.GetRenderObjs()...)
 	})
 

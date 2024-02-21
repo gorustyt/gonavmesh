@@ -140,40 +140,7 @@ func (s *Sample_TileMesh) handleSettings() {
 
 	s.gs.imguiSeparator()
 }
-func (s *Sample_TileMesh) handleTools() {
-	tType := s.m_tool.Type()
-	if s.m_tool != nil {
-		tType = TOOL_NONE
-	}
-	if s.gs.imguiCheck("Test Navmesh", tType == TOOL_NAVMESH_TESTER) {
-		s.setTool(newNavMeshTesterTool(s.gs))
-	}
-	if s.gs.imguiCheck("Prune Navmesh", tType == TOOL_NAVMESH_PRUNE) {
-		s.setTool(newNavMeshPruneTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Tiles", tType == TOOL_TILE_EDIT) {
-		s.setTool(newMeshTitleTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Off-Mesh Links", tType == TOOL_OFFMESH_CONNECTION) {
-		s.setTool(newOffMeshConnectionTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Convex Volumes", tType == TOOL_CONVEX_VOLUME) {
-		s.setTool(newConvexVolumeTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Crowds", tType == TOOL_CROWD) {
-		s.setTool(newCrowdTool(s.gs))
-	}
 
-	s.gs.imguiSeparatorLine()
-
-	s.gs.imguiIndent()
-
-	if s.m_tool != nil {
-		s.m_tool.handleMenu()
-	}
-
-	s.gs.imguiUnindent()
-}
 func (s *Sample_TileMesh) handleRender() {}
 func (s *Sample_TileMesh) handleRenderOverlay(proj, model []float64, view []int) {
 	// Draw start and end point labels
@@ -226,7 +193,7 @@ func (s *Sample_TileMesh) handleBuild() bool {
 	params.MaxTiles = s.m_maxTiles
 	params.MaxPolys = s.m_maxPolysPerTile
 
-	var status detour.DtStatus
+	var status detour.DTStatus
 	s.m_navMesh, status = recast.NewDtNavMeshWithParams(&params)
 	if status.DtStatusFailed() {
 		log.Printf("buildTiledNavigation: Could not init navmesh.")
@@ -299,7 +266,7 @@ func (s *Sample_TileMesh) buildTile(pos []float64) {
 	// Add tile, or leave the location empty.
 	if data != nil {
 		// Let the navmesh own the data.
-		s.m_navMesh.AddTile(data, detour.Dt_TILE_FREE_DATA, 0)
+		s.m_navMesh.AddTile(data, detour.DT_TILE_FREE_DATA, 0)
 	}
 
 	s.l.dumpLog("Build Tile (%d,%d):", tx, ty)
@@ -486,7 +453,7 @@ func (s *Sample_TileMesh) buildAllTiles() {
 				// Remove any previous data (navmesh owns and deletes the data).
 				s.m_navMesh.RemoveTile(s.m_navMesh.GetTileRefAt(x, y, 0))
 				// Let the navmesh own the data.
-				s.m_navMesh.AddTile(data, detour.Dt_TILE_FREE_DATA, 0)
+				s.m_navMesh.AddTile(data, detour.DT_TILE_FREE_DATA, 0)
 			}
 		}
 	}
@@ -758,7 +725,7 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 		s.m_chf = nil
 		s.m_cset = nil
 	}
-	if m_cfg.MaxVertsPerPoly <= detour.Dt_VERTS_PER_POLYGON {
+	if m_cfg.MaxVertsPerPoly <= detour.DT_VERTS_PER_POLYGON {
 		if s.m_pmesh.Nverts >= 0xffff {
 			// The vertex indices are ushorts, and cannot point to more than 0xffff vertices.
 			log.Printf("Too many vertices per tile %d (max: %d).", s.m_pmesh.Nverts, 0xffff)
@@ -782,7 +749,7 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 			}
 		}
 
-		params := &detour.DtNavMeshCreateParams{}
+		params := &detour.DTNavMeshCreateParams{}
 		params.Verts = s.m_pmesh.Verts
 		params.VertCount = s.m_pmesh.Nverts
 		params.Polys = s.m_pmesh.Polys
@@ -814,7 +781,7 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 		params.Ch = m_cfg.Ch
 		params.BuildBvTree = true
 		var ok bool
-		data, ok = detour.DtCreateNavMeshData(params)
+		data, ok = detour.DTCreateNavMeshData(params)
 		if !ok {
 			log.Printf("Could not build Detour navmesh.")
 			return

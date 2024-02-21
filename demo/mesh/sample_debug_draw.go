@@ -2,12 +2,12 @@ package mesh
 
 type ISample interface {
 	handleMeshChanged(geom *InputGeom)
+	setTool(tool SampleTool)
 }
 type SampleTool interface {
 	Type() int
 	init(sample *Sample)
 	reset()
-	handleMenu()
 	handleClick(s []float64, p []float64, shift bool)
 	handleRender()
 	handleRenderOverlay(proj, model []float64, view []int)

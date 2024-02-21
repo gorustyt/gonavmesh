@@ -860,7 +860,7 @@ func (c *CrowdTool) handleClick(s []float64, p []float64, shift bool) {
 		nav := c.m_sample.getNavMesh()
 		navquery := c.m_sample.getNavMeshQuery()
 		if nav != nil && navquery != nil {
-			filter := detour.DtQueryFilter{}
+			filter := detour.DTQueryFilter{}
 			halfExtents := crowd.GetQueryExtents()
 			tgt := make([]float64, 3)
 			ref, _ := navquery.FindNearestPoly(common.SliceTToSlice[float64, float32](p), halfExtents, &filter, common.SliceTToSlice[float64, float32](tgt))

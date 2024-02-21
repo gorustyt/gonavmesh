@@ -3,6 +3,7 @@ package mesh
 import (
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/debug_utils"
+	"github.com/gorustyt/gonavmesh/demo/config"
 	"math"
 )
 
@@ -12,13 +13,13 @@ type OffMeshConnectionTool struct {
 	m_hitPosSet bool
 	m_bidir     bool
 	m_oldFlags  int
-	gs          *guiState
+	cfg         *config.Config
 }
 
-func newOffMeshConnectionTool(gs *guiState) *OffMeshConnectionTool {
+func newOffMeshConnectionTool(ctx *Content) *OffMeshConnectionTool {
 	return &OffMeshConnectionTool{
 		m_hitPos: make([]float64, 3),
-		gs:       gs,
+		cfg:      ctx.GetConfig(),
 	}
 }
 
@@ -31,16 +32,7 @@ func (t *OffMeshConnectionTool) init(sample *Sample) {
 	}
 }
 func (t *OffMeshConnectionTool) reset() { t.m_hitPosSet = false }
-func (t *OffMeshConnectionTool) handleMenu() {
-	if t.gs.imguiCheck("One Way", !t.m_bidir) {
-		t.m_bidir = false
-	}
 
-	if t.gs.imguiCheck("Bidirectional", t.m_bidir) {
-		t.m_bidir = true
-	}
-
-}
 func (t *OffMeshConnectionTool) handleClick(s []float64, p []float64, shift bool) {
 	if t.m_sample == nil {
 		return
@@ -57,7 +49,7 @@ func (t *OffMeshConnectionTool) handleClick(s []float64, p []float64, shift bool
 		nearestIndex := -1
 		verts := geom.getOffMeshConnectionVerts()
 		for i := 0; i < geom.getOffMeshConnectionCount()*2; i++ {
-			v := common.GetVs3(verts, i)
+			v := common.GetVert3(verts, i)
 			d := common.VdistSqr(p, v)
 			if d < nearestDist {
 				nearestDist = d
@@ -75,8 +67,8 @@ func (t *OffMeshConnectionTool) handleClick(s []float64, p []float64, shift bool
 			copy(t.m_hitPos, p)
 			t.m_hitPosSet = true
 		} else {
-			area := SAMPLE_POLYAREA_JUMP
-			flags := SAMPLE_POLYFLAGS_JUMP
+			area := config.SAMPLE_POLYAREA_JUMP
+			flags := config.SAMPLE_POLYFLAGS_JUMP
 			tmp := 0
 			if t.m_bidir {
 				tmp = 1

@@ -138,7 +138,7 @@ func (t *TestCase) resetTimes() {
 		iter.findStraightPathTime = 0
 	}
 }
-func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery recast.NavMeshQuery) {
+func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery detour.NavMeshQuery) {
 	if navmesh == nil || navquery == nil {
 		return
 	}
@@ -156,7 +156,7 @@ func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery recast.NavMeshQue
 		iter.straight = nil
 		iter.nstraight = 0
 
-		var filter detour.DtQueryFilter
+		var filter detour.DTQueryFilter
 		filter.SetIncludeFlags(iter.includeFlags)
 		filter.SetExcludeFlags(iter.excludeFlags)
 

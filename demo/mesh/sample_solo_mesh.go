@@ -86,36 +86,6 @@ func (s *SampleSoloMesh) handleSettings() {
 	s.cfg.PropsConfig.SetBuildTimeLabelData(float64(s.m_totalBuildTimeMs))
 }
 
-func (s *SampleSoloMesh) handleTools() {
-	tType := s.m_tool.Type()
-	if s.m_tool == nil {
-		tType = TOOL_NONE
-	}
-
-	if s.gs.imguiCheck("Test Navmesh", tType == TOOL_NAVMESH_TESTER) {
-		s.setTool(newNavMeshTesterTool(s.gs))
-	}
-	if s.gs.imguiCheck("Prune Navmesh", tType == TOOL_NAVMESH_PRUNE) {
-		s.setTool(newNavMeshPruneTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Off-Mesh Connections", tType == TOOL_OFFMESH_CONNECTION) {
-		s.setTool(newOffMeshConnectionTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Convex Volumes", tType == TOOL_CONVEX_VOLUME) {
-		s.setTool(newConvexVolumeTool(s.gs))
-	}
-	if s.gs.imguiCheck("Create Crowds", tType == TOOL_CROWD) {
-		s.setTool(newCrowdTool(s.gs))
-	}
-
-
-	if s.m_tool != nil {
-		s.m_tool.handleMenu()
-	}
-
-
-}
-
 func (s *SampleSoloMesh) handleDebugMode() {
 	// Check which modes are valid.
 	valid := make([]bool, SOLOMESH_MAX_DRAWMODE)
@@ -390,28 +360,28 @@ func (s *SampleSoloMesh) handleBuild() bool {
 
 	// Init build configuration from GUI
 
-	s.m_cfg.Cs = s.m_cellSize
-	s.m_cfg.Ch = s.m_cellHeight
-	s.m_cfg.WalkableSlopeAngle = s.m_agentMaxSlope
-	s.m_cfg.WalkableHeight = int(math.Ceil(s.m_agentHeight / s.m_cfg.Ch))
-	s.m_cfg.WalkableClimb = int(math.Floor(s.m_agentMaxClimb / s.m_cfg.Ch))
-	s.m_cfg.WalkableRadius = int(math.Ceil(s.m_agentRadius / s.m_cfg.Cs))
+	s.m_cfg.Cs = float32(s.m_cellSize)
+	s.m_cfg.Ch = float32(s.m_cellHeight)
+	s.m_cfg.WalkableSlopeAngle = float32(s.m_agentMaxSlope)
+	s.m_cfg.WalkableHeight = int(math.Ceil(s.m_agentHeight / float64(s.m_cfg.Ch)))
+	s.m_cfg.WalkableClimb = int(math.Floor(s.m_agentMaxClimb / float64(s.m_cfg.Ch)))
+	s.m_cfg.WalkableRadius = int(math.Ceil(s.m_agentRadius / float64(s.m_cfg.Cs)))
 	s.m_cfg.MaxEdgeLen = int(s.m_edgeMaxLen / s.m_cellSize)
-	s.m_cfg.MaxSimplificationError = s.m_edgeMaxError
+	s.m_cfg.MaxSimplificationError = float32(s.m_edgeMaxError)
 	s.m_cfg.MinRegionArea = int(common.Sqr(s.m_regionMinSize))     // Note: area = size*size
 	s.m_cfg.MergeRegionArea = int(common.Sqr(s.m_regionMergeSize)) // Note: area = size*size
 	s.m_cfg.MaxVertsPerPoly = int(s.m_vertsPerPoly)
-	s.m_cfg.DetailSampleDist = s.m_cellSize * s.m_detailSampleDist
+	s.m_cfg.DetailSampleDist = float32(s.m_cellSize * s.m_detailSampleDist)
 	if s.m_detailSampleDist < 0.9 {
 		s.m_cfg.DetailSampleDist = 0
 	}
-	s.m_cfg.DetailSampleMaxError = s.m_cellHeight * s.m_detailSampleMaxError
+	s.m_cfg.DetailSampleMaxError = float32(s.m_cellHeight * s.m_detailSampleMaxError)
 	now := time.Now()
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input rcMeshLoaderObj are used, but the
 	// area could be specified by an user defined box, etc.
-	copy(s.m_cfg.Bmin[:], bmin)
-	copy(s.m_cfg.Bmax[:], bmax)
+	copy(s.m_cfg.Bmin[:], common.SliceTToSlice[float64, float32](bmin))
+	copy(s.m_cfg.Bmax[:], common.SliceTToSlice[float64, float32](bmax))
 	recast.RcCalcGridSize(s.m_cfg.Bmin[:], s.m_cfg.Bmax[:], s.m_cfg.Cs, &s.m_cfg.Width, &s.m_cfg.Height)
 
 	log.Printf("Building navigation:")
@@ -423,7 +393,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	//
 
 	// Allocate voxel heightfield where we rasterize our input data to.
-	s.m_solid = recast.RcCreateHeightfield(s.m_cfg.Width, s.m_cfg.Height, s.m_cfg.Bmin[:], s.m_cfg.Bmax[:], s.m_cfg.Cs, s.m_cfg.Ch)
+	s.m_solid = recast.RcCreateHeightfield(int32(s.m_cfg.Width), int32(s.m_cfg.Height), s.m_cfg.Bmin[:], s.m_cfg.Bmax[:], s.m_cfg.Cs, s.m_cfg.Ch)
 	// Allocate array that can hold triangle area types.
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
@@ -432,7 +402,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// If your input data is multiple meshes, you can transform them here, calculate
 	// the are type for each of the meshes and rasterize them.
 	recast.RcMarkWalkableTriangles(s.m_cfg.WalkableSlopeAngle, verts, nverts, tris, ntris, s.m_triareas)
-	if !recast.RcRasterizeTriangles(verts, nverts, tris, s.m_triareas, ntris, s.m_solid, s.m_cfg.WalkableClimb) {
+	if !recast.RcRasterizeTriangles(verts, int32(nverts), tris, s.m_triareas, int32(ntris), s.m_solid, int32(s.m_cfg.WalkableClimb)) {
 		log.Printf("buildNavigation: Could not rasterize triangles.")
 		return false
 	}
@@ -449,15 +419,15 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
 	if s.m_filterLowHangingObstacles {
-		recast.RcFilterLowHangingWalkableObstacles(s.m_cfg.WalkableClimb, s.m_solid)
+		recast.RcFilterLowHangingWalkableObstacles(int32(s.m_cfg.WalkableClimb), s.m_solid)
 	}
 
 	if s.m_filterLedgeSpans {
-		recast.RcFilterLedgeSpans(s.m_cfg.WalkableHeight, s.m_cfg.WalkableClimb, s.m_solid)
+		recast.RcFilterLedgeSpans(int32(s.m_cfg.WalkableHeight), int32(s.m_cfg.WalkableClimb), s.m_solid)
 	}
 
 	if s.m_filterWalkableLowHeightSpans {
-		recast.RcFilterWalkableLowHeightSpans(s.m_cfg.WalkableHeight, s.m_solid)
+		recast.RcFilterWalkableLowHeightSpans(int32(s.m_cfg.WalkableHeight), s.m_solid)
 	}
 
 	//
@@ -469,7 +439,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// between walkable cells will be calculated.
 	s.m_chf = &recast.RcCompactHeightfield{}
 
-	if !recast.RcBuildCompactHeightfield(s.m_cfg.WalkableHeight, s.m_cfg.WalkableClimb, s.m_solid, s.m_chf) {
+	if !recast.RcBuildCompactHeightfield(int32(s.m_cfg.WalkableHeight), int32(s.m_cfg.WalkableClimb), s.m_solid, s.m_chf) {
 		log.Printf("buildNavigation: Could not build compact data.")
 		return false
 	}
@@ -488,7 +458,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// (Optional) Mark areas.
 	vols := s.m_geom.getConvexVolumes()
 	for i := 0; i < s.m_geom.getConvexVolumeCount(); i++ {
-		recast.RcMarkConvexPolyArea(vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax,
+		recast.RcMarkConvexPolyArea(vols[i].verts, int32(vols[i].nverts), vols[i].hmin, vols[i].hmax,
 			vols[i].area, s.m_chf)
 
 	}
@@ -519,7 +489,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	//     if you have large open areas with small obstacles (not a problem if you use tiles)
 	//   * good choice to use for tiled navmesh with medium and small sized tiles
 
-	if s.m_partitionType == SAMPLE_PARTITION_WATERSHED {
+	if s.m_partitionType == config.SAMPLE_PARTITION_WATERSHED {
 		// Prepare for region partitioning, by calculating distance field along the walkable surface.
 		if !recast.RcBuildDistanceField(s.m_chf) {
 			log.Printf("buildNavigation: Could not build distance field.")
@@ -527,21 +497,21 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		}
 
 		// Partition the walkable surface into simple regions without holes.
-		if !recast.RcBuildRegions(s.m_chf, 0, s.m_cfg.MinRegionArea, s.m_cfg.MergeRegionArea) {
+		if !recast.RcBuildRegions(s.m_chf, 0, int32(s.m_cfg.MinRegionArea), int32(s.m_cfg.MergeRegionArea)) {
 			log.Printf("buildNavigation: Could not build watershed regions.")
 			return false
 		}
-	} else if s.m_partitionType == SAMPLE_PARTITION_MONOTONE {
+	} else if s.m_partitionType == config.SAMPLE_PARTITION_MONOTONE {
 		// Partition the walkable surface into simple regions without holes.
 		// Monotone partitioning does not need distancefield.
-		if !recast.RcBuildRegionsMonotone(s.m_chf, 0, s.m_cfg.MinRegionArea, s.m_cfg.MergeRegionArea) {
+		if !recast.RcBuildRegionsMonotone(s.m_chf, 0, int32(s.m_cfg.MinRegionArea), int32(s.m_cfg.MergeRegionArea)) {
 			log.Printf("buildNavigation: Could not build monotone regions.")
 			return false
 		}
 	} else // SAMPLE_PARTITION_LAYERS
 	{
 		// Partition the walkable surface into simple regions without holes.
-		if !recast.RcBuildLayerRegions(s.m_chf, 0, s.m_cfg.MinRegionArea) {
+		if !recast.RcBuildLayerRegions(s.m_chf, 0, int32(s.m_cfg.MinRegionArea)) {
 			log.Printf("buildNavigation: Could not build layer regions.")
 			return false
 		}
@@ -553,7 +523,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 
 	// Create contours.
 	s.m_cset = &recast.RcContourSet{}
-	if !recast.RcBuildContours(s.m_chf, s.m_cfg.MaxSimplificationError, s.m_cfg.MaxEdgeLen, s.m_cset) {
+	if !recast.RcBuildContours(s.m_chf, s.m_cfg.MaxSimplificationError, int32(s.m_cfg.MaxEdgeLen), s.m_cset) {
 		log.Printf("buildNavigation: Could not create contours.")
 		return false
 	}
@@ -565,7 +535,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// Build polygon navmesh from the contours.
 	s.m_pmesh = &recast.RcPolyMesh{}
 
-	if !recast.RcBuildPolyMesh(s.m_cset, s.m_cfg.MaxVertsPerPoly, s.m_pmesh) {
+	if !recast.RcBuildPolyMesh(s.m_cset, int32(s.m_cfg.MaxVertsPerPoly), s.m_pmesh) {
 		log.Printf("buildNavigation: Could not triangulate contours.")
 		return false
 	}
@@ -594,25 +564,25 @@ func (s *SampleSoloMesh) handleBuild() bool {
 
 	// The GUI may allow more max points per polygon than Detour can handle.
 	// Only build the detour navmesh if we do not exceed the limit.
-	if s.m_cfg.MaxVertsPerPoly <= detour.Dt_VERTS_PER_POLYGON {
+	if s.m_cfg.MaxVertsPerPoly <= detour.DT_VERTS_PER_POLYGON {
 		// Update poly flags from are as.
-		for i := 0; i < s.m_pmesh.Npolys; i++ {
+		for i := int32(0); i < s.m_pmesh.Npolys; i++ {
 			if s.m_pmesh.Areas[i] == recast.RC_WALKABLE_AREA {
-				s.m_pmesh.Areas[i] = SAMPLE_POLYAREA_GROUND
+				s.m_pmesh.Areas[i] = config.SAMPLE_POLYAREA_GROUND
 			}
 
-			if s.m_pmesh.Areas[i] == SAMPLE_POLYAREA_GROUND ||
-				s.m_pmesh.Areas[i] == SAMPLE_POLYAREA_GRASS ||
-				s.m_pmesh.Areas[i] == SAMPLE_POLYAREA_ROAD {
-				s.m_pmesh.Flags[i] = SAMPLE_POLYFLAGS_WALK
-			} else if s.m_pmesh.Areas[i] == SAMPLE_POLYAREA_WATER {
-				s.m_pmesh.Flags[i] = SAMPLE_POLYFLAGS_SWIM
-			} else if s.m_pmesh.Areas[i] == SAMPLE_POLYAREA_DOOR {
-				s.m_pmesh.Flags[i] = SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DOOR
+			if s.m_pmesh.Areas[i] == config.SAMPLE_POLYAREA_GROUND ||
+				s.m_pmesh.Areas[i] == config.SAMPLE_POLYAREA_GRASS ||
+				s.m_pmesh.Areas[i] == config.SAMPLE_POLYAREA_ROAD {
+				s.m_pmesh.Flags[i] = config.SAMPLE_POLYFLAGS_WALK
+			} else if s.m_pmesh.Areas[i] == config.SAMPLE_POLYAREA_WATER {
+				s.m_pmesh.Flags[i] = config.SAMPLE_POLYFLAGS_SWIM
+			} else if s.m_pmesh.Areas[i] == config.SAMPLE_POLYAREA_DOOR {
+				s.m_pmesh.Flags[i] = config.SAMPLE_POLYFLAGS_WALK | config.SAMPLE_POLYFLAGS_DOOR
 			}
 		}
 
-		var params detour.DtNavMeshCreateParams
+		var params detour.DTNavMeshCreateParams
 		params.Verts = s.m_pmesh.Verts
 		params.VertCount = s.m_pmesh.Nverts
 		params.Polys = s.m_pmesh.Polys
@@ -641,14 +611,14 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		params.Ch = s.m_cfg.Ch
 		params.BuildBvTree = true
 
-		navData, ok := detour.DtCreateNavMeshData(&params)
+		navData, ok := detour.DTCreateNavMeshData(&params)
 		if !ok {
 			log.Printf("Could not build Detour navmesh.")
 			return false
 		}
 
-		s.m_navMesh, _, _ = recast.NewDtNavMesh(navData, detour.Dt_TILE_FREE_DATA)
-		s.m_navQuery = recast.NewDtNavMeshQuery(s.m_navMesh, 2048)
+		s.m_navMesh, _, _ = detour.NewDtNavMesh(navData, detour.DT_TILE_FREE_DATA)
+		s.m_navQuery = detour.NewDtNavMeshQuery(s.m_navMesh, 2048)
 
 	}
 	// Show performance stats.

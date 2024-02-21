@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-func DtDistancePtSegSqr2D(pt, p, q []float32) (t float32, res float32) {
+func DtDistancePtSegSqr2D[T float64 | float32](pt, p, q []T) (t T, res T) {
 	pqx := q[0] - p[0]
 	pqz := q[2] - p[2]
 	dx := pt[0] - p[0]
