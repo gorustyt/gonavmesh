@@ -3,11 +3,13 @@ package mesh
 import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/gonavmesh/demo/config"
+	"log/slog"
 )
 
 type Content struct {
 	cfg    *config.Config
-	sample *Sample
+	sample ISample
+	geom *InputGeom
 }
 
 func (c *Content) GetConfig() *config.Config {
@@ -53,11 +55,32 @@ func (c *Content) Refresh() {
 
 }
 
+func (c *Content) InputMeshChange(){
+	geom:=newInputGeom()
+	if !geom.load(""){
+		slog.Info("geom load error")
+		return
+	}
+	c.geom=geom
+	if c.sample!=nil{
+		c.sample.handleMeshChanged(geom)
+	}
+}
+
+func (c *Content) SampleChange(sample string){
+	switch sample {
+	case config.SampleSoloMesh:
+		c.sample=newSampleSoloMesh(c)
+	case config.SampleTileMesh:
+		c.sample=newSampleTileMesh(c)
+	case config.SampleTempObstacles:
+		c.sample=newSampleTempObstacles(c)
+	}
+}
 func NewContent() *Content {
 	cfg := config.NewConfig()
 	c := &Content{
 		cfg: cfg}
-	c.sample = NewSample(c)
-	c.cfg.PropsConfig.OnLoadClick = c.sample.Load
+	cfg.PropsConfig.OnInputMesh= c.InputMeshChange
 	return c
 }

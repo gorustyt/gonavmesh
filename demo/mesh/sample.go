@@ -127,7 +127,7 @@ func (n *NavMeshTileHeader) Encode(w *rw.ReaderWriter) {
 	w.WriteInt32(n.DataSize)
 }
 
-func (s *Sample) saveAll(writer fyne.URIWriteCloser, mesh *detour.DtNavMesh) {
+func (s *Sample) saveAll(writer fyne.URIWriteCloser, mesh detour.IDtNavMesh) {
 	if mesh == nil {
 		return
 	}
@@ -165,10 +165,6 @@ func (s *Sample) saveAll(writer fyne.URIWriteCloser, mesh *detour.DtNavMesh) {
 		}
 	}
 	writer.Close()
-}
-
-func (s *Sample) Load(reader fyne.URIReadCloser) {
-	s.loadAll(reader)
 }
 
 func (s *Sample) loadAll(reader fyne.URIReadCloser) detour.IDtNavMesh {

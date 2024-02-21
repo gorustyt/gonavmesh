@@ -49,7 +49,7 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 				return
 			}
 
-			ctx.Config().PropsConfig.OnSaveClick()
+			ctx.Config().PropsConfig.OnSaveClick(writer)
 		}, w)
 		fd.SetFilter(storage.NewExtensionFileFilter([]string{".obj"}))
 		fd.SetFileName("xx.obj")

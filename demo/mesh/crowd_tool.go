@@ -164,7 +164,10 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 	x, y := int(res[0]), int(res[1])
 	// Draw start and end point labels
 	if c.m_targetRef != 0 && len(res) != 0 {
-		c.gs.imguiDrawText(x, y+25, IMGUI_ALIGN_CENTER, "TARGET", imguiRGBA(0, 0, 0, 220))
+		panic("not impl")
+		_ = x
+		_ = y
+		//c.gs.imguiDrawText(x, y+25, IMGUI_ALIGN_CENTER, "TARGET", imguiRGBA(0, 0, 0, 220))
 	}
 	if c.cfg.ToolsConfig.GetShowNodes() {
 		crowd := c.m_sample.getCrowd()
@@ -184,7 +187,8 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 						if len(res) > 0 {
 							heuristic := node.Total // - node.cost;
 							label := fmt.Sprintf("%.2f", heuristic)
-							c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
+							panic(fmt.Sprintf("not imple:%v", label))
+							//c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
 						}
 					}
 				}
@@ -206,7 +210,8 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 				if res := common.GluProject([]float64{float64(pos[0]), float64(pos[1] + h), float64(pos[2])}, model, proj, view); len(res) != 0 {
 					x, y = int(res[0]), int(res[1])
 					label := fmt.Sprintf("%d", i)
-					c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
+					//c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
+					panic(fmt.Sprintf("not imple:%v", label))
 				}
 			}
 		}
@@ -235,7 +240,8 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 						if res := common.GluProject([]float64{float64(nei.Npos[0]), float64(nei.Npos[1]) + float64(radius), float64(nei.Npos[2])}, model, proj, view); len(res) != 0 {
 							x, y = int(res[0]), int(res[1])
 							label := fmt.Sprintf("%.3f", ag.Neis[j].Dist)
-							c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(255, 255, 255, 220))
+							panic(fmt.Sprintf("not imple:%v", label))
+							//c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(255, 255, 255, 220))
 						}
 					}
 				}
@@ -244,16 +250,7 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 	}
 
 	if c.cfg.ToolsConfig.GetShowPerfGraph() {
-		var gp GraphParams
-		gp.setRect(300, 10, 500, 200, 8)
-		gp.setValueRange(0.0, 2.0, 4, "ms")
-
-		gp.drawGraphBackground()
-		gp.drawGraph(&c.m_crowdTotalTime, 1, "Total", imguiRGBA(255, 128, 0, 255))
-
-		gp.setRect(300, 10, 500, 50, 8)
-		gp.setValueRange(0.0, 2000.0, 1, "")
-		gp.drawGraph(&c.m_crowdSampleCount, 0, "Sample Count", imguiRGBA(96, 96, 96, 128))
+		panic("not impl")
 	}
 
 }
@@ -590,9 +587,9 @@ func (c *CrowdToolState) handleRender() {
 }
 
 func (c *CrowdToolState) handleUpdate(dt float64) {
-	if c.m_run {
-		c.updateTick(dt)
-	}
+	//if c.m_run {
+	//	c.updateTick(dt)
+	//}
 
 }
 func (c *CrowdToolState) updateTick(dt float64) {
@@ -625,9 +622,10 @@ func (c *CrowdToolState) updateTick(dt float64) {
 	}
 
 	c.m_agentDebug.Vod.NormalizeSamples()
-
-	c.m_crowdSampleCount.addSample(float64(crowd.GetVelocitySampleCount()))
-	c.m_crowdTotalTime.addSample(float64(endTime.Milliseconds()))
+	_ = endTime
+	//TODO
+	//c.m_crowdSampleCount.addSample(float64(crowd.GetVelocitySampleCount()))
+	//c.m_crowdTotalTime.addSample(float64(endTime.Milliseconds()))
 }
 
 func (c *CrowdToolState) addAgent(p []float64) {
@@ -865,7 +863,7 @@ func (c *CrowdTool) handleClick(s []float64, p []float64, shift bool) {
 			filter := detour.DtQueryFilter{}
 			halfExtents := crowd.GetQueryExtents()
 			tgt := make([]float64, 3)
-			ref, _ := navquery.FindNearestPoly(p, halfExtents, &filter, tgt)
+			ref, _ := navquery.FindNearestPoly(common.SliceTToSlice[float64, float32](p), halfExtents, &filter, common.SliceTToSlice[float64, float32](tgt))
 			if ref != 0 {
 				flags, status := nav.GetPolyFlags(ref)
 				if status.DtStatusSucceed() {
@@ -884,6 +882,4 @@ func (c *CrowdTool) handleStep() {
 
 	dt := 1.0 / 20.0
 	c.m_state.updateTick(dt)
-
-	c.m_state.setRunning(false)
 }

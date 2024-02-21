@@ -10,6 +10,7 @@ import (
 func SetUi(a fyne.App, w fyne.Window) {
 	c := mesh.NewContent()
 	ctx := NewContext(c.GetConfig())
+	ctx.AppendSampleChange(c)
 	InitToolsMap(ctx)
 	root := container.NewBorder(nil, nil, NewTools(ctx).GetRenderObj(), NewProps(ctx).GetRenderObj(), c)
 	ctx.AfterInit()

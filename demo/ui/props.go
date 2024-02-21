@@ -89,6 +89,7 @@ func (p *Props) GetSample() (res []fyne.CanvasObject) {
 	s.Selected = p.ctx.Config().PropsConfig.SampleType
 	p.ctx.AppendAfterInit(func() {
 		p.ctx.OnSampleChange(s.Selected)
+		p.ctx.Config().PropsConfig.OnInputMesh()
 	})
 	return []fyne.CanvasObject{
 		widget.NewLabel("Sample"),

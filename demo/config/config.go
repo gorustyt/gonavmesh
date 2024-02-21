@@ -200,6 +200,7 @@ type PropsConfig struct {
 	ShowLogAndShowTool []string
 	SampleType         string
 	InputMeshPath      string
+	OnInputMesh func()
 
 	VertLabelData binding.String
 
@@ -235,7 +236,7 @@ type PropsConfig struct {
 	TitleCacheBuildPeakMemUsageLabel binding.String
 
 	KeepInterResults []string
-	OnSaveClick      func()
+	OnSaveClick      func(writer fyne.URIWriteCloser)
 	OnLoadClick      func(reader fyne.URIReadCloser)
 	BuildTimeLabel   binding.String
 	OnBuildClick     func()

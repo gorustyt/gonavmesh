@@ -37,6 +37,8 @@ func NewToolsCrowds(ctx *Context) *ToolsCrowds {
 		config.ExpandOptionsSeparation,
 	}, func(strings []string) {
 		cfg.ToolsConfig.ExpandOptions = strings
+		cfg.ToolsConfig.ExpandOptionsOnchange()
+
 	})
 	g.Selected = cfg.ToolsConfig.ExpandOptions
 	optionsContainer := container.NewVBox(
