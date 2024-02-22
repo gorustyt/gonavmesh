@@ -27,7 +27,7 @@ func distancePtLine2d(pt, p, q []float32) float32 {
 	return dx*dx + dz*dz
 }
 
-func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col int, linew float64, inner bool) {
+func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col int, linew float32, inner bool) {
 	const thr = 0.01 * 0.01
 
 	dd.Begin(DU_DRAW_LINES, linew)
@@ -98,8 +98,8 @@ func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col int, linew 
 					}
 
 					if distancePtLine2d(tv[n], v0, v1) < thr && distancePtLine2d(tv[m], v0, v1) < thr {
-						dd.Vertex(common.SliceTToSlice[float32, float64](tv[n]), c)
-						dd.Vertex(common.SliceTToSlice[float32, float64](tv[m]), c)
+						dd.Vertex(common.SliceTToSlice[float32, float32](tv[n]), c)
+						dd.Vertex(common.SliceTToSlice[float32, float32](tv[m]), c)
 					}
 					n = m
 					m++
@@ -143,9 +143,9 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 			t := tile.DetailTris[(pd.TriBase+j)*4:]
 			for k := 0; k < 3; k++ {
 				if t[k] < p.VertCount {
-					dd.Vertex(common.SliceTToSlice[float32, float64](tile.Verts[p.Verts[t[k]]*3:]), col)
+					dd.Vertex(common.SliceTToSlice[float32, float32](tile.Verts[p.Verts[t[k]]*3:]), col)
 				} else {
-					dd.Vertex(common.SliceTToSlice[float32, float64](tile.DetailVerts[(pd.VertBase+uint32(t[k])-uint32(p.VertCount))*3:]), col)
+					dd.Vertex(common.SliceTToSlice[float32, float32](tile.DetailVerts[(pd.VertBase+uint32(t[k])-uint32(p.VertCount))*3:]), col)
 				}
 
 			}
@@ -175,8 +175,8 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 			}
 
 			con := tile.OffMeshCons[i-tile.Header.OffMeshBase]
-			va := common.SliceTToSlice[float32, float64](tile.Verts[p.Verts[0]*3:])
-			vb := common.SliceTToSlice[float32, float64](tile.Verts[p.Verts[1]*3:])
+			va := common.SliceTToSlice[float32, float32](tile.Verts[p.Verts[0]*3:])
+			vb := common.SliceTToSlice[float32, float32](tile.Verts[p.Verts[1]*3:])
 
 			// Check to see if start and end end-points have links.
 			startSet := false
@@ -194,34 +194,34 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 
 			// End points and their on-mesh locations.
 			dd.Vertex1(va[0], va[1], va[2], col)
-			dd.Vertex1(float64(con.Pos[0]), float64(con.Pos[1]), float64(con.Pos[2]), col)
+			dd.Vertex1(float32(con.Pos[0]), float32(con.Pos[1]), float32(con.Pos[2]), col)
 			col2 = DuRGBA(220, 32, 16, 196)
 			if startSet {
 				col2 = col
 			}
-			DuAppendCircle(dd, float64(con.Pos[0]), float64(con.Pos[1]+0.1), float64(con.Pos[2]), float64(con.Rad), col2)
+			DuAppendCircle(dd, float32(con.Pos[0]), float32(con.Pos[1]+0.1), float32(con.Pos[2]), float32(con.Rad), col2)
 
 			dd.Vertex1(vb[0], vb[1], vb[2], col)
-			dd.Vertex1(float64(con.Pos[3]), float64(con.Pos[4]), float64(con.Pos[5]), col)
+			dd.Vertex1(float32(con.Pos[3]), float32(con.Pos[4]), float32(con.Pos[5]), col)
 			col2 = DuRGBA(220, 32, 16, 196)
 			if endSet {
 				col2 = col
 			}
-			DuAppendCircle(dd, float64(con.Pos[3]), float64(con.Pos[4]+0.1), float64(con.Pos[5]), float64(con.Rad), col2)
+			DuAppendCircle(dd, float32(con.Pos[3]), float32(con.Pos[4]+0.1), float32(con.Pos[5]), float32(con.Rad), col2)
 
 			// End point vertices.
-			dd.Vertex1(float64(con.Pos[0]), float64(con.Pos[1]), float64(con.Pos[2]), DuRGBA(0, 48, 64, 196))
-			dd.Vertex1(float64(con.Pos[0]), float64(con.Pos[1]+0.2), float64(con.Pos[2]), DuRGBA(0, 48, 64, 196))
+			dd.Vertex1(float32(con.Pos[0]), float32(con.Pos[1]), float32(con.Pos[2]), DuRGBA(0, 48, 64, 196))
+			dd.Vertex1(float32(con.Pos[0]), float32(con.Pos[1]+0.2), float32(con.Pos[2]), DuRGBA(0, 48, 64, 196))
 
-			dd.Vertex1(float64(con.Pos[3]), float64(con.Pos[4]), float64(con.Pos[5]), DuRGBA(0, 48, 64, 196))
-			dd.Vertex1(float64(con.Pos[3]), float64(con.Pos[4]+0.2), float64(con.Pos[5]), DuRGBA(0, 48, 64, 196))
+			dd.Vertex1(float32(con.Pos[3]), float32(con.Pos[4]), float32(con.Pos[5]), DuRGBA(0, 48, 64, 196))
+			dd.Vertex1(float32(con.Pos[3]), float32(con.Pos[4]+0.2), float32(con.Pos[5]), DuRGBA(0, 48, 64, 196))
 
 			// Connection arc.
 			a := 0.0
 			if con.Flags&1 != 0 {
 				a = 0.6
 			}
-			DuAppendArc(dd, float64(con.Pos[0]), float64(con.Pos[1]), float64(con.Pos[2]), float64(con.Pos[3]), float64(con.Pos[4]), float64(con.Pos[5]), 0.25,
+			DuAppendArc(dd, float32(con.Pos[0]), float32(con.Pos[1]), float32(con.Pos[2]), float32(con.Pos[3]), float32(con.Pos[4]), float32(con.Pos[5]), 0.25,
 				a, 0.6, col)
 		}
 		dd.End()
@@ -231,7 +231,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 	dd.Begin(DU_DRAW_POINTS, 3.0)
 	for i := int32(0); i < tile.Header.VertCount; i++ {
 		v := tile.Verts[i*3:]
-		dd.Vertex1(float64(v[0]), float64(v[1]), float64(v[2]), vcol)
+		dd.Vertex1(float32(v[0]), float32(v[1]), float32(v[2]), vcol)
 	}
 	dd.End()
 
@@ -286,7 +286,7 @@ func DuDebugDrawNavMeshNodes(dd DuDebugDraw, query detour.NavMeshQuery) {
 				if node == nil {
 					continue
 				}
-				dd.Vertex1(float64(node.Pos[0]), float64(node.Pos[1])+off, float64(node.Pos[2]), DuRGBA(255, 192, 0, 255))
+				dd.Vertex1(float32(node.Pos[0]), float32(node.Pos[1])+off, float32(node.Pos[2]), DuRGBA(255, 192, 0, 255))
 			}
 		}
 		dd.End()
@@ -305,8 +305,8 @@ func DuDebugDrawNavMeshNodes(dd DuDebugDraw, query detour.NavMeshQuery) {
 				if parent == nil {
 					continue
 				}
-				dd.Vertex1(float64(node.Pos[0]), float64(node.Pos[1])+off, float64(node.Pos[2]), DuRGBA(255, 192, 0, 128))
-				dd.Vertex1(float64(parent.Pos[0]), float64(parent.Pos[1])+off, float64(parent.Pos[2]), DuRGBA(255, 192, 0, 128))
+				dd.Vertex1(float32(node.Pos[0]), float32(node.Pos[1])+off, float32(node.Pos[2]), DuRGBA(255, 192, 0, 128))
+				dd.Vertex1(float32(parent.Pos[0]), float32(parent.Pos[1])+off, float32(parent.Pos[2]), DuRGBA(255, 192, 0, 128))
 			}
 		}
 		dd.End()
@@ -315,7 +315,7 @@ func DuDebugDrawNavMeshNodes(dd DuDebugDraw, query detour.NavMeshQuery) {
 
 func DrawMeshTileBVTree(dd DuDebugDraw, tile *detour.DtMeshTile) {
 	// Draw BV nodes.
-	cs := 1.0 / float64(tile.Header.BvQuantFactor)
+	cs := 1.0 / float32(tile.Header.BvQuantFactor)
 	dd.Begin(DU_DRAW_LINES, 1.0)
 	for i := 0; i < int(tile.Header.BvNodeCount); i++ {
 		n := tile.BvTree[i]
@@ -323,12 +323,12 @@ func DrawMeshTileBVTree(dd DuDebugDraw, tile *detour.DtMeshTile) {
 			continue
 		} // Leaf indices are positive.
 
-		DuAppendBoxWire(dd, float64(tile.Header.Bmin[0])+float64(n.Bmin[0])*cs,
-			float64(tile.Header.Bmin[1])+float64(n.Bmin[1])*cs,
-			float64(tile.Header.Bmin[2])+float64(n.Bmin[2])*cs,
-			float64(tile.Header.Bmin[0])+float64(n.Bmin[0])*cs,
-			float64(tile.Header.Bmin[1])+float64(n.Bmin[1])*cs,
-			float64(tile.Header.Bmin[2])+float64(n.Bmin[2])*cs,
+		DuAppendBoxWire(dd, float32(tile.Header.Bmin[0])+float32(n.Bmin[0])*cs,
+			float32(tile.Header.Bmin[1])+float32(n.Bmin[1])*cs,
+			float32(tile.Header.Bmin[2])+float32(n.Bmin[2])*cs,
+			float32(tile.Header.Bmin[0])+float32(n.Bmin[0])*cs,
+			float32(tile.Header.Bmin[1])+float32(n.Bmin[1])*cs,
+			float32(tile.Header.Bmin[2])+float32(n.Bmin[2])*cs,
 			DuRGBA(255, 255, 255, 128))
 	}
 	dd.End()
@@ -378,41 +378,41 @@ func drawMeshTilePortal(dd DuDebugDraw, tile *detour.DtMeshTile) {
 					if side == 0 {
 						col = DuRGBA(128, 0, 0, 128)
 					}
-					x := float64(va[0]) + padx
+					x := float32(va[0]) + padx
 					if side == 0 {
-						x = float64(va[0]) - padx
+						x = float32(va[0]) - padx
 					}
-					dd.Vertex1(x, float64(va[1]-pady), float64(va[2]), col)
-					dd.Vertex1(x, float64(va[1]+pady), float64(va[2]), col)
+					dd.Vertex1(x, float32(va[1]-pady), float32(va[2]), col)
+					dd.Vertex1(x, float32(va[1]+pady), float32(va[2]), col)
 
-					dd.Vertex1(x, float64(va[1]+pady), float64(va[2]), col)
-					dd.Vertex1(x, float64(vb[1]+pady), float64(vb[2]), col)
+					dd.Vertex1(x, float32(va[1]+pady), float32(va[2]), col)
+					dd.Vertex1(x, float32(vb[1]+pady), float32(vb[2]), col)
 
-					dd.Vertex1(x, float64(vb[1]+pady), float64(vb[2]), col)
-					dd.Vertex1(x, float64(vb[1]-pady), float64(vb[2]), col)
+					dd.Vertex1(x, float32(vb[1]+pady), float32(vb[2]), col)
+					dd.Vertex1(x, float32(vb[1]-pady), float32(vb[2]), col)
 
-					dd.Vertex1(x, float64(vb[1]-pady), float64(vb[2]), col)
-					dd.Vertex1(x, float64(va[1]-pady), float64(va[2]), col)
+					dd.Vertex1(x, float32(vb[1]-pady), float32(vb[2]), col)
+					dd.Vertex1(x, float32(va[1]-pady), float32(va[2]), col)
 				} else if side == 2 || side == 6 {
 					col := DuRGBA(0, 128, 128, 128)
 					if side == 2 {
 						col = DuRGBA(0, 128, 0, 128)
 					}
-					z := float64(va[2]) + padx
+					z := float32(va[2]) + padx
 					if side == 2 {
-						z = float64(va[2]) - padx
+						z = float32(va[2]) - padx
 					}
-					dd.Vertex1(float64(va[0]), float64(va[1]-pady), z, col)
-					dd.Vertex1(float64(va[0]), float64(va[1]+pady), z, col)
+					dd.Vertex1(float32(va[0]), float32(va[1]-pady), z, col)
+					dd.Vertex1(float32(va[0]), float32(va[1]+pady), z, col)
 
-					dd.Vertex1(float64(va[0]), float64(va[1]+pady), z, col)
-					dd.Vertex1(float64(vb[0]), float64(vb[1]+pady), z, col)
+					dd.Vertex1(float32(va[0]), float32(va[1]+pady), z, col)
+					dd.Vertex1(float32(vb[0]), float32(vb[1]+pady), z, col)
 
-					dd.Vertex1(float64(vb[0]), float64(vb[1]+pady), z, col)
-					dd.Vertex1(float64(vb[0]), float64(vb[1]-pady), z, col)
+					dd.Vertex1(float32(vb[0]), float32(vb[1]+pady), z, col)
+					dd.Vertex1(float32(vb[0]), float32(vb[1]-pady), z, col)
 
-					dd.Vertex1(float64(vb[0]), float64(vb[1]-pady), z, col)
-					dd.Vertex1(float64(va[0]), float64(va[1]-pady), z, col)
+					dd.Vertex1(float32(vb[0]), float32(vb[1]-pady), z, col)
+					dd.Vertex1(float32(va[0]), float32(va[1]-pady), z, col)
 				}
 
 			}
@@ -483,7 +483,7 @@ func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.D
 		if con.Flags&1 != 0 {
 			as0 = 0.6
 		}
-		DuAppendArc(dd, float64(con.Pos[0]), float64(con.Pos[1]), float64(con.Pos[2]), float64(con.Pos[3]), float64(con.Pos[4]), float64(con.Pos[5]), 0.25,
+		DuAppendArc(dd, float32(con.Pos[0]), float32(con.Pos[1]), float32(con.Pos[2]), float32(con.Pos[3]), float32(con.Pos[4]), float32(con.Pos[5]), 0.25,
 			as0, 0.6, c)
 
 		dd.End()
@@ -495,9 +495,9 @@ func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.D
 			t := tile.DetailTris[(pd.TriBase+i)*4:]
 			for j := 0; j < 3; j++ {
 				if t[j] < poly.VertCount {
-					dd.Vertex(common.SliceTToSlice[float32, float64](tile.Verts[poly.Verts[t[j]]*3:]), c)
+					dd.Vertex(common.SliceTToSlice[float32, float32](tile.Verts[poly.Verts[t[j]]*3:]), c)
 				} else {
-					dd.Vertex(common.SliceTToSlice[float32, float64](tile.DetailVerts[(pd.VertBase+uint32(t[j])-uint32(poly.VertCount))*3:]), c)
+					dd.Vertex(common.SliceTToSlice[float32, float32](tile.DetailVerts[(pd.VertBase+uint32(t[j])-uint32(poly.VertCount))*3:]), c)
 				}
 
 			}
@@ -509,7 +509,7 @@ func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.D
 
 }
 
-func DebugDrawTileCachePortals(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float64) {
+func DebugDrawTileCachePortals(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float32) {
 	w := layer.Header.Width
 	h := layer.Header.Height
 	bmin := layer.Header.Bmin
@@ -532,12 +532,12 @@ func DebugDrawTileCachePortals(dd DuDebugDraw, layer *detour_tile_cache.DtTileCa
 			for dir := 0; dir < 4; dir++ {
 				if layer.Cons[idx]&(1<<(dir+4)) != 0 {
 					seg := segs[dir*4:]
-					ax := float64(bmin[0]) + float64(x+seg[0])*cs
-					ay := float64(bmin[1]) + float64(lh+2)*ch
-					az := float64(bmin[2]) + float64(y+seg[1])*cs
-					bx := float64(bmin[0]) + float64(x+seg[2])*cs
-					by := float64(bmin[1]) + float64(lh+2)*ch
-					bz := float64(bmin[2]) + float64(y+seg[3])*cs
+					ax := float32(bmin[0]) + float32(x+seg[0])*cs
+					ay := float32(bmin[1]) + float32(lh+2)*ch
+					az := float32(bmin[2]) + float32(y+seg[1])*cs
+					bx := float32(bmin[0]) + float32(x+seg[2])*cs
+					by := float32(bmin[1]) + float32(lh+2)*ch
+					bz := float32(bmin[2]) + float32(y+seg[3])*cs
 					dd.Vertex1(ax, ay, az, pcol)
 					dd.Vertex1(bx, by, bz, pcol)
 				}
@@ -547,7 +547,7 @@ func DebugDrawTileCachePortals(dd DuDebugDraw, layer *detour_tile_cache.DtTileCa
 	dd.End()
 }
 
-func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float64) {
+func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float32) {
 	w := layer.Header.Width
 	h := layer.Header.Height
 	bmin := layer.Header.Bmin
@@ -557,14 +557,14 @@ func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtT
 	color := DuIntToCol(idx+1, 255)
 
 	// Layer bounds
-	lbmin := make([]float64, 3)
-	lbmax := make([]float64, 3)
-	lbmin[0] = float64(bmin[0]) + float64(layer.Header.Minx)*cs
-	lbmin[1] = float64(bmin[1])
-	lbmin[2] = float64(bmin[2]) + float64(layer.Header.Miny)*cs
-	lbmax[0] = float64(bmin[0]) + float64(layer.Header.Maxx+1)*cs
-	lbmax[1] = float64(bmax[1])
-	lbmax[2] = float64(bmin[2]) + float64(layer.Header.Maxy+1)*cs
+	lbmin := make([]float32, 3)
+	lbmax := make([]float32, 3)
+	lbmin[0] = float32(bmin[0]) + float32(layer.Header.Minx)*cs
+	lbmin[1] = float32(bmin[1])
+	lbmin[2] = float32(bmin[2]) + float32(layer.Header.Miny)*cs
+	lbmax[0] = float32(bmin[0]) + float32(layer.Header.Maxx+1)*cs
+	lbmax[1] = float32(bmax[1])
+	lbmax[2] = float32(bmin[2]) + float32(layer.Header.Maxy+1)*cs
 	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
@@ -587,14 +587,14 @@ func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtT
 				col = DuLerpCol(color, dd.AreaToCol(area), 32)
 			}
 
-			fx := float64(bmin[0]) + float64(x)*cs
-			fy := float64(bmin[1]) + float64(lh+1)*ch
-			fz := float64(bmin[2]) + float64(y)*cs
+			fx := float32(bmin[0]) + float32(x)*cs
+			fy := float32(bmin[1]) + float32(lh+1)*ch
+			fz := float32(bmin[2]) + float32(y)*cs
 
-			dd.Vertex1(float64(fx), fy, float64(fz), col)
-			dd.Vertex1(float64(fx), float64(fy), float64(fz+cs), col)
-			dd.Vertex1(float64(fx+cs), float64(fy), float64(fz+cs), col)
-			dd.Vertex1(float64(fx+cs), float64(fy), float64(fz), col)
+			dd.Vertex1(float32(fx), fy, float32(fz), col)
+			dd.Vertex1(float32(fx), float32(fy), float32(fz+cs), col)
+			dd.Vertex1(float32(fx+cs), float32(fy), float32(fz+cs), col)
+			dd.Vertex1(float32(fx+cs), float32(fy), float32(fz), col)
 		}
 	}
 	dd.End()
@@ -602,7 +602,7 @@ func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtT
 	DebugDrawTileCachePortals(dd, layer, cs, ch)
 }
 
-func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float64) {
+func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *detour_tile_cache.DtTileCacheLayer, cs, ch float32) {
 	w := layer.Header.Width
 	h := layer.Header.Height
 	bmin := layer.Header.Bmin
@@ -612,14 +612,14 @@ func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *detour_tile_cache.D
 	color := DuIntToCol(idx+1, 255)
 
 	// Layer bounds
-	lbmin := make([]float64, 3)
-	lbmax := make([]float64, 3)
-	lbmin[0] = float64(bmin[0]) + float64(layer.Header.Minx)*cs
-	lbmin[1] = float64(bmin[1])
-	lbmin[2] = float64(bmin[2]) + float64(layer.Header.Miny)*cs
-	lbmax[0] = float64(bmin[0]) + float64(layer.Header.Maxx+1)*cs
-	lbmax[1] = float64(bmax[1])
-	lbmax[2] = float64(bmin[2]) + float64(layer.Header.Maxy+1)*cs
+	lbmin := make([]float32, 3)
+	lbmax := make([]float32, 3)
+	lbmin[0] = float32(bmin[0]) + float32(layer.Header.Minx)*cs
+	lbmin[1] = float32(bmin[1])
+	lbmin[2] = float32(bmin[2]) + float32(layer.Header.Miny)*cs
+	lbmax[0] = float32(bmin[0]) + float32(layer.Header.Maxx+1)*cs
+	lbmax[1] = float32(bmax[1])
+	lbmax[2] = float32(bmin[2]) + float32(layer.Header.Maxy+1)*cs
 	DuDebugDrawBoxWire(dd, lbmin[0], lbmin[1], lbmin[2], lbmax[0], lbmax[1], lbmax[2], DuTransCol(color, 128), 2.0)
 
 	// Layer height
@@ -635,9 +635,9 @@ func DuDebugDrawTileCacheLayerRegions(dd DuDebugDraw, layer *detour_tile_cache.D
 
 			col := DuLerpCol(color, DuIntToCol(reg, 255), 192)
 
-			fx := float64(bmin[0]) + float64(x)*cs
-			fy := float64(bmin[1]) + float64(lh+1)*ch
-			fz := float64(bmin[2]) + float64(y)*cs
+			fx := float32(bmin[0]) + float32(x)*cs
+			fy := float32(bmin[1]) + float32(lh+1)*ch
+			fz := float32(bmin[2]) + float32(y)*cs
 
 			dd.Vertex1(fx, fy, fz, col)
 			dd.Vertex1(fx, fy, fz+cs, col)
@@ -665,14 +665,14 @@ struct dtTileCacheContourSet
 };*/
 
 func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTileCacheContourSet,
-	orig []float64, cs, ch float64) {
+	orig []float32, cs, ch float32) {
 	if dd == nil {
 		return
 	}
 
 	a := 255 // (unsigned char)(alpha*255.0f);
 
-	offs := [2 * 4]float64{-1, 0, 0, 1, 1, 0, 0, -1}
+	offs := [2 * 4]float32{-1, 0, 0, 1, 1, 0, 0, -1}
 
 	dd.Begin(DU_DRAW_LINES, 2.0)
 
@@ -686,12 +686,12 @@ func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTil
 			k := (j + 1) % c.Nverts
 			va := c.Verts[j*4:]
 			vb := c.Verts[k*4:]
-			ax := orig[0] + float64(va[0])*cs
-			ay := orig[1] + float64(va[1]+1+(i&1))*ch
-			az := orig[2] + float64(va[2])*cs
-			bx := orig[0] + float64(vb[0])*cs
-			by := orig[1] + float64(vb[1]+1+(i&1))*ch
-			bz := orig[2] + float64(vb[2])*cs
+			ax := orig[0] + float32(va[0])*cs
+			ay := orig[1] + float32(va[1]+1+(i&1))*ch
+			az := orig[2] + float32(va[2])*cs
+			bx := orig[0] + float32(vb[0])*cs
+			by := orig[1] + float32(vb[1]+1+(i&1))*ch
+			bz := orig[2] + float32(vb[2])*cs
 			col := color
 			if (va[3] & 0xf) != 0xf {
 				// Portal segment
@@ -730,9 +730,9 @@ func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTil
 				color = DuRGBA(255, 0, 0, 255)
 			}
 
-			fx := orig[0] + float64(va[0])*cs
-			fy := orig[1] + float64(va[1]+1+(i&1))*ch
-			fz := orig[2] + float64(va[2])*cs
+			fx := orig[0] + float32(va[0])*cs
+			fy := orig[1] + float32(va[1]+1+(i&1))*ch
+			fz := orig[2] + float32(va[2])*cs
 			dd.Vertex1(fx, fy, fz, color)
 		}
 	}
@@ -740,14 +740,14 @@ func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTil
 }
 
 func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTileCachePolyMesh,
-	orig []float64, cs, ch float64) {
+	orig []float32, cs, ch float32) {
 	if dd == nil {
 		return
 	}
 
 	nvp := lmesh.Nvp
 
-	offs := [2 * 4]float64{-1, 0, 0, 1, 1, 0, 0, -1}
+	offs := [2 * 4]float32{-1, 0, 0, 1, 1, 0, 0, -1}
 
 	dd.Begin(DU_DRAW_TRIS)
 
@@ -774,9 +774,9 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 			vi[2] = p[j]
 			for k := 0; k < 3; k++ {
 				v := lmesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch
-				z := orig[2] + float64(v[2])*cs
+				x := orig[0] + float32(v[0])*cs
+				y := orig[1] + float32(v[1]+1)*ch
+				z := orig[2] + float32(v[2])*cs
 				dd.Vertex1(x, y, z, color)
 			}
 		}
@@ -803,9 +803,9 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 
 			for k := 0; k < 2; k++ {
 				v := lmesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch + 0.1
-				z := orig[2] + float64(v[2])*cs
+				x := orig[0] + float32(v[0])*cs
+				y := orig[1] + float32(v[1]+1)*ch + 0.1
+				z := orig[2] + float32(v[2])*cs
 				dd.Vertex1(x, y, z, coln)
 			}
 		}
@@ -835,12 +835,12 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 				va := lmesh.Verts[vi[0]*3:]
 				vb := lmesh.Verts[vi[1]*3:]
 
-				ax := orig[0] + float64(va[0])*cs
-				ay := orig[1] + float64(va[1]+1+(i&1))*ch
-				az := orig[2] + float64(va[2])*cs
-				bx := orig[0] + float64(vb[0])*cs
-				by := orig[1] + float64(vb[1]+1+(i&1))*ch
-				bz := orig[2] + float64(vb[2])*cs
+				ax := orig[0] + float32(va[0])*cs
+				ay := orig[1] + float32(va[1]+1+(i&1))*ch
+				az := orig[2] + float32(va[2])*cs
+				bx := orig[0] + float32(vb[0])*cs
+				by := orig[1] + float32(vb[1]+1+(i&1))*ch
+				bz := orig[2] + float32(vb[2])*cs
 
 				cx := (ax + bx) * 0.5
 				cy := (ay + by) * 0.5
@@ -860,9 +860,9 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 
 			for k := 0; k < 2; k++ {
 				v := lmesh.Verts[vi[k]*3:]
-				x := orig[0] + float64(v[0])*cs
-				y := orig[1] + float64(v[1]+1)*ch + 0.1
-				z := orig[2] + float64(v[2])*cs
+				x := orig[0] + float32(v[0])*cs
+				y := orig[1] + float32(v[1]+1)*ch + 0.1
+				z := orig[2] + float32(v[2])*cs
 				dd.Vertex1(x, y, z, col)
 			}
 		}
@@ -873,9 +873,9 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 	colv := DuRGBA(0, 0, 0, 220)
 	for i := 0; i < lmesh.Nverts; i++ {
 		v := lmesh.Verts[i*3:]
-		x := orig[0] + float64(v[0])*cs
-		y := orig[1] + float64(v[1]+1)*ch + 0.1
-		z := orig[2] + float64(v[2])*cs
+		x := orig[0] + float32(v[0])*cs
+		y := orig[1] + float32(v[1]+1)*ch + 0.1
+		z := orig[2] + float32(v[2])*cs
 		dd.Vertex1(x, y, z, colv)
 	}
 	dd.End()

@@ -11,14 +11,14 @@ import (
 	"time"
 )
 
-func isectSegAABB(sp, sq []float64,
-	amin, amax []float64,
-	tmin, tmax float64) bool {
+func isectSegAABB(sp, sq []float32,
+	amin, amax []float32,
+	tmin, tmax float32) bool {
 	EPS := 1e-6
-	d := make([]float64, 3)
+	d := make([]float32, 3)
 	common.Vsub(d, sq, sp)
 	tmin = 0               // set to -FLT_MAX to get first hit on line
-	tmax = math.MaxFloat64 // set to max distance ray can travel (for segment)
+	tmax = math.Maxfloat32 // set to max distance ray can travel (for segment)
 
 	// For all three slabs
 	for i := 0; i < 3; i++ {
@@ -54,10 +54,10 @@ func isectSegAABB(sp, sq []float64,
 	return true
 }
 
-func getAgentBounds(ag *detour_crowd.DtCrowdAgent, bmin, bmax []float64) {
-	p := common.SliceTToSlice[float32, float64](ag.Npos[:])
-	r := float64(ag.Params.Radius)
-	h := float64(ag.Params.Height)
+func getAgentBounds(ag *detour_crowd.DtCrowdAgent, bmin, bmax []float32) {
+	p := common.SliceTToSlice[float32, float32](ag.Npos[:])
+	r := float32(ag.Params.Radius)
+	h := float32(ag.Params.Height)
 	bmin[0] = p[0] - r
 	bmin[1] = p[1]
 	bmin[2] = p[2] - r
@@ -72,7 +72,7 @@ const (
 )
 
 type AgentTrail struct {
-	trail  [AGENT_MAX_TRAIL * 3]float64
+	trail  [AGENT_MAX_TRAIL * 3]float32
 	htrail int
 }
 
@@ -82,7 +82,7 @@ type CrowdToolState struct {
 	m_sample    *Sample
 	m_nav       detour.IDtNavMesh
 	m_crowd     *detour_crowd.DtCrowd
-	m_targetPos []float64
+	m_targetPos []float32
 	m_targetRef detour.DtPolyRef
 
 	m_agentDebug *detour_crowd.DtCrowdAgentDebugInfo
@@ -97,7 +97,7 @@ type CrowdToolState struct {
 func newCrowdToolState(ctx *Content) *CrowdToolState {
 	d := &CrowdToolState{
 		m_trails:    make([]AgentTrail, MAX_AGENTS),
-		m_targetPos: make([]float64, 3),
+		m_targetPos: make([]float32, 3),
 		cfg:         ctx.GetConfig(),
 	}
 	d.m_vod = detour_crowd.NewDtObstacleAvoidanceDebugData(2048)
@@ -159,8 +159,8 @@ func (c *CrowdToolState) init(sample *Sample) {
 func (c *CrowdToolState) reset() {
 }
 
-func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) {
-	res := common.GluProject([]float64{c.m_targetPos[0], c.m_targetPos[1], c.m_targetPos[2]}, model, proj, view)
+func (c *CrowdToolState) handleRenderOverlay(proj, model []float32, view []int) {
+	res := common.GluProject([]float32{c.m_targetPos[0], c.m_targetPos[1], c.m_targetPos[2]}, model, proj, view)
 	x, y := int(res[0]), int(res[1])
 	// Draw start and end point labels
 	if c.m_targetRef != 0 && len(res) != 0 {
@@ -182,7 +182,7 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 						if node == nil {
 							continue
 						}
-						res = common.GluProject([]float64{float64(node.Pos[0]), float64(node.Pos[1]) + off, float64(node.Pos[2])}, model, proj, view)
+						res = common.GluProject([]float32{float32(node.Pos[0]), float32(node.Pos[1]) + off, float32(node.Pos[2])}, model, proj, view)
 						x, y = int(res[0]), int(res[1])
 						if len(res) > 0 {
 							heuristic := node.Total // - node.cost;
@@ -207,7 +207,7 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 				pos := ag.Npos
 				h := ag.Params.Height
 
-				if res := common.GluProject([]float64{float64(pos[0]), float64(pos[1] + h), float64(pos[2])}, model, proj, view); len(res) != 0 {
+				if res := common.GluProject([]float32{float32(pos[0]), float32(pos[1] + h), float32(pos[2])}, model, proj, view); len(res) != 0 {
 					x, y = int(res[0]), int(res[1])
 					label := fmt.Sprintf("%d", i)
 					//c.gs.imguiDrawText(x, y+15, IMGUI_ALIGN_CENTER, label, imguiRGBA(0, 0, 0, 220))
@@ -237,7 +237,7 @@ func (c *CrowdToolState) handleRenderOverlay(proj, model []float64, view []int) 
 							continue
 						}
 
-						if res := common.GluProject([]float64{float64(nei.Npos[0]), float64(nei.Npos[1]) + float64(radius), float64(nei.Npos[2])}, model, proj, view); len(res) != 0 {
+						if res := common.GluProject([]float32{float32(nei.Npos[0]), float32(nei.Npos[1]) + float32(radius), float32(nei.Npos[2])}, model, proj, view); len(res) != 0 {
 							x, y = int(res[0]), int(res[1])
 							label := fmt.Sprintf("%.3f", ag.Neis[j].Dist)
 							panic(fmt.Sprintf("not imple:%v", label))
@@ -301,21 +301,21 @@ func (c *CrowdToolState) handleRender() {
 
 	// Occupancy grid.
 	if c.cfg.ToolsConfig.GetShowGrid() {
-		gridy := math.SmallestNonzeroFloat64
+		gridy := math.SmallestNonzerofloat32
 		for i := 0; i < crowd.GetAgentCount(); i++ {
 			ag := crowd.GetAgent(i)
 			if !ag.Active {
 				continue
 			}
 			pos := ag.Corridor.GetPos()
-			gridy = max(gridy, float64(pos[1]))
+			gridy = max(gridy, float32(pos[1]))
 		}
 		gridy += 1.0
 
 		dd.Begin(debug_utils.DU_DRAW_QUADS)
 		grid := crowd.GetGrid()
 		bounds := grid.GetBounds()
-		cs := float64(grid.GetCellSize())
+		cs := float32(grid.GetCellSize())
 		for y := bounds[1]; y <= bounds[3]; y++ {
 			for x := bounds[0]; x <= bounds[2]; x++ {
 				count := grid.GetItemCountAt(int(x), int(y))
@@ -323,10 +323,10 @@ func (c *CrowdToolState) handleRender() {
 					continue
 				}
 				col := debug_utils.DuRGBA(128, 0, 0, min(count*40, 255))
-				dd.Vertex1(float64(x)*cs, gridy, float64(y)*cs, col)
-				dd.Vertex1(float64(x)*cs, gridy, float64(y)*cs+cs, col)
-				dd.Vertex1(float64(x)*cs+cs, gridy, float64(y)*cs+cs, col)
-				dd.Vertex1(float64(x)*cs+cs, gridy, float64(y)*cs, col)
+				dd.Vertex1(float32(x)*cs, gridy, float32(y)*cs, col)
+				dd.Vertex1(float32(x)*cs, gridy, float32(y)*cs+cs, col)
+				dd.Vertex1(float32(x)*cs+cs, gridy, float32(y)*cs+cs, col)
+				dd.Vertex1(float32(x)*cs+cs, gridy, float32(y)*cs, col)
 			}
 		}
 		dd.End()
@@ -343,13 +343,13 @@ func (c *CrowdToolState) handleRender() {
 		pos := ag.Npos
 
 		dd.Begin(debug_utils.DU_DRAW_LINES, 3.0)
-		prev := make([]float64, 3)
+		prev := make([]float32, 3)
 		preva := 1.0
-		copy(prev, common.SliceTToSlice[float32, float64](pos[:]))
+		copy(prev, common.SliceTToSlice[float32, float32](pos[:]))
 		for j := 0; j < AGENT_MAX_TRAIL-1; j++ {
 			idx := (trail.htrail + AGENT_MAX_TRAIL - j) % AGENT_MAX_TRAIL
 			v := common.GetVert3(trail.trail[:], idx)
-			a := float64(1-j) / AGENT_MAX_TRAIL
+			a := float32(1-j) / AGENT_MAX_TRAIL
 			dd.Vertex1(prev[0], prev[1]+0.1, prev[2], debug_utils.DuRGBA(0, 0, 0, (int)(128*preva)))
 			dd.Vertex1(v[0], v[1]+0.1, v[2], debug_utils.DuRGBA(0, 0, 0, (int)(128*a)))
 			preva = a
@@ -370,24 +370,24 @@ func (c *CrowdToolState) handleRender() {
 			continue
 		}
 
-		radius := float64(ag.Params.Radius)
-		pos := common.SliceTToSlice[float32, float64](ag.Npos[:])
+		radius := float32(ag.Params.Radius)
+		pos := common.SliceTToSlice[float32, float32](ag.Npos[:])
 
 		if c.cfg.ToolsConfig.GetShowCorners() {
 			if ag.Ncorners != 0 {
 				dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
 				for j := int32(0); j < ag.Ncorners; j++ {
 
-					va := common.SliceTToSlice[float32, float64](ag.CornerVerts[(j-1)*3:])
+					va := common.SliceTToSlice[float32, float32](ag.CornerVerts[(j-1)*3:])
 					if j == 0 {
 						va = pos[:]
 					}
-					vb := common.SliceTToSlice[float32, float64](ag.CornerVerts[j*3:])
+					vb := common.SliceTToSlice[float32, float32](ag.CornerVerts[j*3:])
 					dd.Vertex1(va[0], va[1]+radius, va[2], debug_utils.DuRGBA(128, 0, 0, 192))
 					dd.Vertex1(vb[0], vb[1]+radius, vb[2], debug_utils.DuRGBA(128, 0, 0, 192))
 				}
 				if ag.Ncorners > 0 && ag.CornerFlags[ag.Ncorners-1]&detour.DT_STRAIGHTPATH_OFFMESH_CONNECTION > 0 {
-					v := common.SliceTToSlice[float32, float64](common.GetVert3(
+					v := common.SliceTToSlice[float32, float32](common.GetVert3(
 						ag.CornerVerts[:], (ag.Ncorners - 1)))
 					dd.Vertex1(v[0], v[1], v[2], debug_utils.DuRGBA(192, 0, 0, 192))
 					dd.Vertex1(v[0], v[1]+radius*2, v[2], debug_utils.DuRGBA(192, 0, 0, 192))
@@ -421,15 +421,15 @@ func (c *CrowdToolState) handleRender() {
 
 		if c.cfg.ToolsConfig.GetShowCollisionSegments() {
 			tmp := ag.Boundary.GetCenter()
-			center := common.SliceTToSlice[float32, float64](tmp[:])
+			center := common.SliceTToSlice[float32, float32](tmp[:])
 			debug_utils.DuDebugDrawCross(dd, center[0], center[1]+radius, center[2], 0.2, debug_utils.DuRGBA(192, 0, 128, 255), 2.0)
-			debug_utils.DuDebugDrawCircle(dd, center[0], center[1]+radius, center[2], float64(ag.Params.CollisionQueryRange),
+			debug_utils.DuDebugDrawCircle(dd, center[0], center[1]+radius, center[2], float32(ag.Params.CollisionQueryRange),
 				debug_utils.DuRGBA(192, 0, 128, 128), 2.0)
 
 			dd.Begin(debug_utils.DU_DRAW_LINES, 3.0)
 			for j := 0; j < ag.Boundary.GetSegmentCount(); j++ {
 				tmp := ag.Boundary.GetSegment(j)
-				s := common.SliceTToSlice[float32, float64](tmp[:])
+				s := common.SliceTToSlice[float32, float32](tmp[:])
 				col := debug_utils.DuRGBA(192, 0, 128, 192)
 				if common.TriArea2D(pos[:], s[:3], s[3:]) < 0.0 {
 					col = debug_utils.DuDarkenCol(col)
@@ -441,7 +441,7 @@ func (c *CrowdToolState) handleRender() {
 		}
 
 		if c.cfg.ToolsConfig.GetShowNeis() {
-			debug_utils.DuDebugDrawCircle(dd, pos[0], pos[1]+radius, pos[2], float64(ag.Params.CollisionQueryRange),
+			debug_utils.DuDebugDrawCircle(dd, pos[0], pos[1]+radius, pos[2], float32(ag.Params.CollisionQueryRange),
 				debug_utils.DuRGBA(0, 192, 128, 128), 2.0)
 
 			dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
@@ -451,7 +451,7 @@ func (c *CrowdToolState) handleRender() {
 				nei := crowd.GetAgent(ag.Neis[j].Idx)
 				if nei != nil {
 					dd.Vertex1(pos[0], pos[1]+radius, pos[2], debug_utils.DuRGBA(0, 192, 128, 128))
-					dd.Vertex1(float64(nei.Npos[0]), float64(nei.Npos[1])+radius, float64(nei.Npos[2]), debug_utils.DuRGBA(0, 192, 128, 128))
+					dd.Vertex1(float32(nei.Npos[0]), float32(nei.Npos[1])+radius, float32(nei.Npos[2]), debug_utils.DuRGBA(0, 192, 128, 128))
 				}
 			}
 			dd.End()
@@ -459,8 +459,8 @@ func (c *CrowdToolState) handleRender() {
 
 		if c.cfg.ToolsConfig.GetShowOpt() {
 			dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
-			dd.Vertex1(float64(c.m_agentDebug.OptStart[0]), float64(c.m_agentDebug.OptStart[1]+0.3), float64(c.m_agentDebug.OptStart[2]), debug_utils.DuRGBA(0, 128, 0, 192))
-			dd.Vertex1(float64(c.m_agentDebug.OptEnd[0]), float64(c.m_agentDebug.OptEnd[1]+0.3), float64(c.m_agentDebug.OptEnd[2]), debug_utils.DuRGBA(0, 128, 0, 192))
+			dd.Vertex1(float32(c.m_agentDebug.OptStart[0]), float32(c.m_agentDebug.OptStart[1]+0.3), float32(c.m_agentDebug.OptStart[2]), debug_utils.DuRGBA(0, 128, 0, 192))
+			dd.Vertex1(float32(c.m_agentDebug.OptEnd[0]), float32(c.m_agentDebug.OptEnd[1]+0.3), float32(c.m_agentDebug.OptEnd[2]), debug_utils.DuRGBA(0, 128, 0, 192))
 			dd.End()
 		}
 	}
@@ -472,8 +472,8 @@ func (c *CrowdToolState) handleRender() {
 			continue
 		}
 
-		radius := float64(ag.Params.Radius)
-		pos := common.SliceTToSlice[float32, float64](ag.Npos[:])
+		radius := float32(ag.Params.Radius)
+		pos := common.SliceTToSlice[float32, float32](ag.Npos[:])
 
 		col := debug_utils.DuRGBA(0, 0, 0, 32)
 		if int(c.m_agentDebug.Idx) == i {
@@ -489,9 +489,9 @@ func (c *CrowdToolState) handleRender() {
 			continue
 		}
 
-		height := float64(ag.Params.Height)
-		radius := float64(ag.Params.Radius)
-		pos := common.SliceTToSlice[float32, float64](ag.Npos[:])
+		height := float32(ag.Params.Height)
+		radius := float32(ag.Params.Radius)
+		pos := common.SliceTToSlice[float32, float32](ag.Npos[:])
 
 		col := debug_utils.DuRGBA(220, 220, 220, 128)
 		if ag.TargetState == detour_crowd.DT_CROWDAGENT_TARGET_REQUESTING || ag.TargetState == detour_crowd.DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE {
@@ -522,16 +522,16 @@ func (c *CrowdToolState) handleRender() {
 			// Draw detail about agent sela
 			vod := c.m_agentDebug.Vod
 
-			dx := float64(ag.Npos[0])
-			dy := float64(ag.Npos[1] + ag.Params.Height)
-			dz := float64(ag.Npos[2])
+			dx := float32(ag.Npos[0])
+			dy := float32(ag.Npos[1] + ag.Params.Height)
+			dz := float32(ag.Npos[2])
 
-			debug_utils.DuDebugDrawCircle(dd, dx, dy, dz, float64(ag.Params.MaxSpeed), debug_utils.DuRGBA(255, 255, 255, 64), 2.0)
+			debug_utils.DuDebugDrawCircle(dd, dx, dy, dz, float32(ag.Params.MaxSpeed), debug_utils.DuRGBA(255, 255, 255, 64), 2.0)
 
 			dd.Begin(debug_utils.DU_DRAW_QUADS)
 			for j := 0; j < vod.GetSampleCount(); j++ {
-				p := common.SliceTToSlice[float32, float64](vod.GetSampleVelocity(j))
-				sr := float64(vod.GetSampleSize(j))
+				p := common.SliceTToSlice[float32, float32](vod.GetSampleVelocity(j))
+				sr := float32(vod.GetSampleSize(j))
 				pen := vod.GetSamplePenalty(j)
 				pen2 := vod.GetSamplePreferredSidePenalty(j)
 				col := debug_utils.DuLerpCol(debug_utils.DuRGBA(255, 255, 255, 220), debug_utils.DuRGBA(128, 96, 0, 220), (int)(pen*255))
@@ -552,11 +552,11 @@ func (c *CrowdToolState) handleRender() {
 			continue
 		}
 
-		radius := float64(ag.Params.Radius)
-		height := float64(ag.Params.Height)
-		pos := common.SliceTToSlice[float32, float64](ag.Npos[:])
-		vel := common.SliceTToSlice[float32, float64](ag.Vel[:])
-		dvel := common.SliceTToSlice[float32, float64](ag.Dvel[:])
+		radius := float32(ag.Params.Radius)
+		height := float32(ag.Params.Height)
+		pos := common.SliceTToSlice[float32, float32](ag.Npos[:])
+		vel := common.SliceTToSlice[float32, float32](ag.Vel[:])
+		dvel := common.SliceTToSlice[float32, float32](ag.Dvel[:])
 
 		col := debug_utils.DuRGBA(220, 220, 220, 192)
 		if ag.TargetState == detour_crowd.DT_CROWDAGENT_TARGET_REQUESTING || ag.TargetState == detour_crowd.DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE {
@@ -586,13 +586,13 @@ func (c *CrowdToolState) handleRender() {
 	dd.DepthMask(true)
 }
 
-func (c *CrowdToolState) handleUpdate(dt float64) {
+func (c *CrowdToolState) handleUpdate(dt float32) {
 	//if c.m_run {
 	//	c.updateTick(dt)
 	//}
 
 }
-func (c *CrowdToolState) updateTick(dt float64) {
+func (c *CrowdToolState) updateTick(dt float32) {
 	if c.m_sample == nil {
 		return
 	}
@@ -618,17 +618,17 @@ func (c *CrowdToolState) updateTick(dt float64) {
 
 		// Update agent movement trail.
 		trail.htrail = (trail.htrail + 1) % AGENT_MAX_TRAIL
-		copy(common.GetVert3(trail.trail[:], trail.htrail), common.SliceTToSlice[float32, float64](ag.Npos[:]))
+		copy(common.GetVert3(trail.trail[:], trail.htrail), common.SliceTToSlice[float32, float32](ag.Npos[:]))
 	}
 
 	c.m_agentDebug.Vod.NormalizeSamples()
 	_ = endTime
 	//TODO
-	//c.m_crowdSampleCount.addSample(float64(crowd.GetVelocitySampleCount()))
-	//c.m_crowdTotalTime.addSample(float64(endTime.Milliseconds()))
+	//c.m_crowdSampleCount.addSample(float32(crowd.GetVelocitySampleCount()))
+	//c.m_crowdTotalTime.addSample(float32(endTime.Milliseconds()))
 }
 
-func (c *CrowdToolState) addAgent(p []float64) {
+func (c *CrowdToolState) addAgent(p []float32) {
 	if c.m_sample == nil {
 		return
 	}
@@ -646,10 +646,10 @@ func (c *CrowdToolState) addAgent(p []float64) {
 	ap.ObstacleAvoidanceType = int(c.cfg.ToolsConfig.ObstacleAvoidanceType)
 	ap.SeparationWeight = float32(c.cfg.ToolsConfig.SeparationWeight)
 
-	idx := crowd.AddAgent(common.SliceTToSlice[float64, float32](p), ap)
+	idx := crowd.AddAgent(common.SliceTToSlice[float32, float32](p), ap)
 	if idx != -1 {
 		if c.m_targetRef != 0 {
-			crowd.RequestMoveTarget(idx, c.m_targetRef, common.SliceTToSlice[float64, float32](c.m_targetPos))
+			crowd.RequestMoveTarget(idx, c.m_targetRef, common.SliceTToSlice[float32, float32](c.m_targetPos))
 		}
 
 		// Init trail
@@ -678,14 +678,14 @@ func (c *CrowdToolState) hilightAgent(idx int) {
 	c.m_agentDebug.Idx = int32(idx)
 }
 
-func calcVel(vel, pos, tgt []float64, speed float64) {
+func calcVel(vel, pos, tgt []float32, speed float32) {
 	common.Vsub(vel, tgt, pos)
 	vel[1] = 0.0
 	common.Vnormalize(vel)
 	common.Vscale(vel, vel, speed)
 }
 
-func (c *CrowdToolState) setMoveTarget(p []float64, adjust bool) {
+func (c *CrowdToolState) setMoveTarget(p []float32, adjust bool) {
 	if c.m_sample == nil {
 		return
 	}
@@ -697,13 +697,13 @@ func (c *CrowdToolState) setMoveTarget(p []float64, adjust bool) {
 	halfExtents := crowd.GetQueryExtents()
 
 	if adjust {
-		vel := make([]float64, 3)
+		vel := make([]float32, 3)
 		// Request velocity
 		if c.m_agentDebug.Idx != -1 {
 			ag := crowd.GetAgent(int(c.m_agentDebug.Idx))
 			if ag != nil && ag.Active {
-				calcVel(vel, common.SliceTToSlice[float32, float64](ag.Npos[:]), p, float64(ag.Params.MaxSpeed))
-				crowd.RequestMoveVelocity(int(c.m_agentDebug.Idx), common.SliceTToSlice[float64, float32](vel))
+				calcVel(vel, common.SliceTToSlice[float32, float32](ag.Npos[:]), p, float32(ag.Params.MaxSpeed))
+				crowd.RequestMoveVelocity(int(c.m_agentDebug.Idx), common.SliceTToSlice[float32, float32](vel))
 			}
 		} else {
 			for i := 0; i < crowd.GetAgentCount(); i++ {
@@ -711,17 +711,17 @@ func (c *CrowdToolState) setMoveTarget(p []float64, adjust bool) {
 				if !ag.Active {
 					continue
 				}
-				calcVel(vel, common.SliceTToSlice[float32, float64](ag.Npos[:]), p, float64(ag.Params.MaxSpeed))
-				crowd.RequestMoveVelocity(i, common.SliceTToSlice[float64, float32](vel))
+				calcVel(vel, common.SliceTToSlice[float32, float32](ag.Npos[:]), p, float32(ag.Params.MaxSpeed))
+				crowd.RequestMoveVelocity(i, common.SliceTToSlice[float32, float32](vel))
 			}
 		}
 	} else {
-		c.m_targetRef, _ = navquery.FindNearestPoly(common.SliceTToSlice[float64, float32](p), halfExtents, filter, common.SliceTToSlice[float64, float32](c.m_targetPos))
+		c.m_targetRef, _ = navquery.FindNearestPoly(common.SliceTToSlice[float32, float32](p), halfExtents, filter, common.SliceTToSlice[float32, float32](c.m_targetPos))
 
 		if c.m_agentDebug.Idx != -1 {
 			ag := crowd.GetAgent(int(c.m_agentDebug.Idx))
 			if ag != nil && ag.Active {
-				crowd.RequestMoveTarget(int(c.m_agentDebug.Idx), c.m_targetRef, common.SliceTToSlice[float64, float32](c.m_targetPos))
+				crowd.RequestMoveTarget(int(c.m_agentDebug.Idx), c.m_targetRef, common.SliceTToSlice[float32, float32](c.m_targetPos))
 			}
 
 		} else {
@@ -730,30 +730,30 @@ func (c *CrowdToolState) setMoveTarget(p []float64, adjust bool) {
 				if !ag.Active {
 					continue
 				}
-				crowd.RequestMoveTarget(i, c.m_targetRef, common.SliceTToSlice[float64, float32](c.m_targetPos))
+				crowd.RequestMoveTarget(i, c.m_targetRef, common.SliceTToSlice[float32, float32](c.m_targetPos))
 			}
 		}
 	}
 }
 
-func (c *CrowdToolState) hitTestAgents(s, p []float64) int {
+func (c *CrowdToolState) hitTestAgents(s, p []float32) int {
 	if c.m_sample == nil {
 		return -1
 	}
 	crowd := c.m_sample.getCrowd()
 
 	isel := -1
-	tsel := math.MaxFloat64
+	tsel := math.Maxfloat32
 
 	for i := 0; i < crowd.GetAgentCount(); i++ {
 		ag := crowd.GetAgent(i)
 		if !ag.Active {
 			continue
 		}
-		bmin := make([]float64, 3)
-		bmax := make([]float64, 3)
+		bmin := make([]float32, 3)
+		bmax := make([]float32, 3)
 		getAgentBounds(ag, bmin, bmax)
-		var tmin, tmax float64
+		var tmin, tmax float32
 		if isectSegAABB(s, p, bmin, bmax, tmin, tmax) {
 			if tmin > 0 && tmin < tsel {
 				isel = i
@@ -822,7 +822,7 @@ func (c *CrowdTool) init(sample *Sample) {
 	c.m_state.init(sample)
 }
 
-func (c *CrowdTool) handleClick(s []float64, p []float64, shift bool) {
+func (c *CrowdTool) handleClick(s []float32, p []float32, shift bool) {
 	if c.m_sample == nil {
 		return
 	}
@@ -862,8 +862,8 @@ func (c *CrowdTool) handleClick(s []float64, p []float64, shift bool) {
 		if nav != nil && navquery != nil {
 			filter := detour.DTQueryFilter{}
 			halfExtents := crowd.GetQueryExtents()
-			tgt := make([]float64, 3)
-			ref, _ := navquery.FindNearestPoly(common.SliceTToSlice[float64, float32](p), halfExtents, &filter, common.SliceTToSlice[float64, float32](tgt))
+			tgt := make([]float32, 3)
+			ref, _ := navquery.FindNearestPoly(common.SliceTToSlice[float32, float32](p), halfExtents, &filter, common.SliceTToSlice[float32, float32](tgt))
 			if ref != 0 {
 				flags, status := nav.GetPolyFlags(ref)
 				if status.DtStatusSucceed() {

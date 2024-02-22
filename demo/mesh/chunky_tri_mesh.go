@@ -6,8 +6,8 @@ import (
 )
 
 type rcChunkyTriMeshNode struct {
-	bmin [2]float64
-	bmax [2]float64
+	bmin [2]float32
+	bmax [2]float32
 	i    int
 	n    int
 }
@@ -25,8 +25,8 @@ func newRcChunkyTriMesh() *rcChunkyTriMesh {
 }
 
 type BoundsItem struct {
-	bmin [2]float64
-	bmax [2]float64
+	bmin [2]float32
+	bmax [2]float32
 	i    int
 }
 
@@ -56,7 +56,7 @@ func compareItemY(a, b *BoundsItem) int {
 	return 0
 }
 
-func calcExtends(items []*BoundsItem, nitems int, imin, imax int, bmin, bmax []float64) {
+func calcExtends(items []*BoundsItem, nitems int, imin, imax int, bmin, bmax []float32) {
 	bmin[0] = items[imin].bmin[0]
 	bmin[1] = items[imin].bmin[1]
 
@@ -141,14 +141,14 @@ func subdivide(items []*BoundsItem, nitems, imin, imax, trisPerChunk int,
 		node.i = -iescape
 	}
 }
-func longestAxis(x, y float64) int {
+func longestAxis(x, y float32) int {
 	if y > x {
 		return 1
 	}
 	return 0
 }
 
-func rcCreateChunkyTriMesh(verts []float64, tris []int, ntris int,
+func rcCreateChunkyTriMesh(verts []float32, tris []int, ntris int,
 	trisPerChunk int, cm *rcChunkyTriMesh) bool {
 	nchunks := (ntris + trisPerChunk - 1) / trisPerChunk
 
@@ -209,7 +209,7 @@ func rcCreateChunkyTriMesh(verts []float64, tris []int, ntris int,
 }
 
 func checkOverlapRect(amin, amax,
-	bmin, bmax [2]float64) bool {
+	bmin, bmax [2]float32) bool {
 	overlap := true
 	if amin[0] > bmax[0] || amax[0] < bmin[0] {
 		overlap = false
@@ -221,7 +221,7 @@ func checkOverlapRect(amin, amax,
 }
 
 func rcGetChunksOverlappingRect(cm *rcChunkyTriMesh,
-	bmin, bmax [2]float64,
+	bmin, bmax [2]float32,
 	ids []int, maxIds int) int {
 	// Traverse tree
 	i := 0
@@ -249,12 +249,12 @@ func rcGetChunksOverlappingRect(cm *rcChunkyTriMesh,
 	return n
 }
 
-func checkOverlapSegment(p, q, bmin, bmax [2]float64) bool {
+func checkOverlapSegment(p, q, bmin, bmax [2]float32) bool {
 	EPSILON := 1e-6
 
 	var tmin = 0.0
 	var tmax = 1.0
-	var d [2]float64
+	var d [2]float32
 	d[0] = q[0] - p[0]
 	d[1] = q[1] - p[1]
 
@@ -290,7 +290,7 @@ func checkOverlapSegment(p, q, bmin, bmax [2]float64) bool {
 }
 
 func rcGetChunksOverlappingSegment(cm *rcChunkyTriMesh,
-	p, q [2]float64,
+	p, q [2]float32,
 	ids []int, maxIds int) int {
 	// Traverse tree
 	i := 0

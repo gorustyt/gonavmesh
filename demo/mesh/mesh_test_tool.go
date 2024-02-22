@@ -50,59 +50,59 @@ type NavMeshTesterTool struct {
 	m_straightPathOptions int
 
 	m_npolys            int
-	m_straightPath      []float64
+	m_straightPath      []float32
 	m_straightPathFlags []int
 	m_straightPathPolys []detour.DtPolyRef
 	m_nstraightPath     int
-	m_polyPickExt       []float64
-	m_smoothPath        []float64
+	m_polyPickExt       []float32
+	m_smoothPath        []float32
 	m_nsmoothPath       int
-	m_queryPoly         []float64
+	m_queryPoly         []float32
 
-	m_randPoints         []float64
+	m_randPoints         []float32
 	m_nrandPoints        int
 	m_randPointsInCircle bool
 
-	m_spos                []float64
-	m_epos                []float64
-	m_hitPos              []float64
-	m_hitNormal           []float64
+	m_spos                []float32
+	m_epos                []float32
+	m_hitPos              []float32
+	m_hitNormal           []float32
 	m_hitResult           bool
-	m_distanceToWall      float64
-	m_neighbourhoodRadius float64
-	m_randomRadius        float64
+	m_distanceToWall      float32
+	m_neighbourhoodRadius float32
+	m_randomRadius        float32
 	m_sposSet             bool
 	m_eposSet             bool
 
 	m_pathIterNum                                     int
 	m_pathIterPolys                                   []detour.DtPolyRef
 	m_pathIterPolyCount                               int
-	m_prevIterPos, m_iterPos, m_steerPos, m_targetPos []float64
-	m_steerPoints                                     []float64
+	m_prevIterPos, m_iterPos, m_steerPos, m_targetPos []float32
+	m_steerPoints                                     []float32
 	m_steerPointCount                                 int
 }
 
 func newNavMeshTesterTool(ctx *Content) *NavMeshTesterTool {
 	m := &NavMeshTesterTool{
-		m_straightPath:      make([]float64, MAX_POLYS*3),
+		m_straightPath:      make([]float32, MAX_POLYS*3),
 		m_straightPathFlags: make([]int, MAX_POLYS),
 		m_straightPathPolys: make([]detour.DtPolyRef, MAX_POLYS),
-		m_smoothPath:        make([]float64, MAX_SMOOTH*3),
-		m_randPoints:        make([]float64, MAX_RAND_POINTS*3),
-		m_queryPoly:         make([]float64, 4*3),
+		m_smoothPath:        make([]float32, MAX_SMOOTH*3),
+		m_randPoints:        make([]float32, MAX_RAND_POINTS*3),
+		m_queryPoly:         make([]float32, 4*3),
 		m_polys:             make([]detour.DtPolyRef, MAX_POLYS),
 		m_parent:            make([]detour.DtPolyRef, MAX_POLYS),
-		m_spos:              make([]float64, 3),
-		m_epos:              make([]float64, 3),
-		m_hitPos:            make([]float64, 3),
-		m_hitNormal:         make([]float64, 3),
+		m_spos:              make([]float32, 3),
+		m_epos:              make([]float32, 3),
+		m_hitPos:            make([]float32, 3),
+		m_hitNormal:         make([]float32, 3),
 		m_pathIterPolys:     make([]detour.DtPolyRef, MAX_POLYS),
-		m_steerPoints:       make([]float64, MAX_STEER_POINTS*3),
-		m_prevIterPos:       make([]float64, 3),
-		m_iterPos:           make([]float64, 3),
-		m_steerPos:          make([]float64, 3),
-		m_targetPos:         make([]float64, 3),
-		m_polyPickExt:       make([]float64, 3),
+		m_steerPoints:       make([]float32, MAX_STEER_POINTS*3),
+		m_prevIterPos:       make([]float32, 3),
+		m_iterPos:           make([]float32, 3),
+		m_steerPos:          make([]float32, 3),
+		m_targetPos:         make([]float32, 3),
+		m_polyPickExt:       make([]float32, 3),
 		m_toolMode:          TOOLMODE_PATHFIND_FOLLOW,
 		m_pathFindStatus:    detour.DT_FAILURE,
 	}
@@ -125,10 +125,92 @@ func newNavMeshTesterTool(ctx *Content) *NavMeshTesterTool {
 			}
 		}
 	}
+	ctx.GetConfig().ToolsConfig.OnSetRandomStartClick = func() {
+		var status detour.DtStatus
+		m.m_startRef, m.m_spos, status = m.m_navQuery.FindRandomPoint(m.m_filter)
+		if status.DtStatusSucceed() {
+			m.m_sposSet = true
+			m.recalc()
+		}
+	}
+	ctx.GetConfig().ToolsConfig.OnMakeRandomPointsClick = func() {
+		m.m_randPointsInCircle = false
+		m.m_nrandPoints = 0
+		for i := 0; i < MAX_RAND_POINTS; i++ {
+			_, pt, status := m.m_navQuery.FindRandomPoint(m.m_filter)
+			if status.DtStatusSucceed() {
+				copy(m.m_randPoints[m.m_nrandPoints*3:], pt)
+				m.m_nrandPoints++
+			}
+		}
+	}
+	ctx.GetConfig().ToolsConfig.OnMakeRandomPointsAroundClick = func() {
+		if m.m_sposSet {
+			m.m_nrandPoints = 0
+			m.m_randPointsInCircle = true
+			for i := 0; i < MAX_RAND_POINTS; i++ {
+				_, pt, status := m.m_navQuery.FindRandomPointAroundCircle(m.m_startRef, m.m_spos, m.m_randomRadius, m.m_filter)
+				if status.DtStatusSucceed() {
+					copy(m.m_randPoints[m.m_nrandPoints*3:], pt)
+					m.m_nrandPoints++
+				}
+			}
+		}
+	}
+	ctx.GetConfig().ToolsConfig.OnToolModelChange = m.recalc
+	ctx.GetConfig().ToolsConfig.OnFlagsChange = func() {
+		for _, v := range ctx.GetConfig().ToolsConfig.IncludeFlags {
+			switch v {
+			case config.DESC_SAMPLE_POLYFLAGS_WALK:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_WALK != 0 {
+					m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_WALK)
+					m.recalc()
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_SWIM:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_SWIM != 0 {
+					m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_SWIM)
+					m.recalc()
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_DOOR:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_DOOR != 0 {
+					m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_DOOR)
+					m.recalc()
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_JUMP:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_JUMP != 0 {
+					m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_JUMP)
+					m.recalc()
+				}
+			}
+		}
+		for _, v := range ctx.GetConfig().ToolsConfig.ExcludeFlags {
+			switch v {
+			case config.DESC_SAMPLE_POLYFLAGS_WALK:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_WALK != 0 {
+					m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_WALK)
+					m.recalc()
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_SWIM:
+				if m.m_filter.GetExcludeFlags()&config.SAMPLE_POLYFLAGS_SWIM != 0 {
+					m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_SWIM)
+					m.recalc()
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_DOOR:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_DOOR != 0 {
+					m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_DOOR)
+				}
+			case config.DESC_SAMPLE_POLYFLAGS_JUMP:
+				if m.m_filter.GetIncludeFlags()&config.SAMPLE_POLYFLAGS_JUMP != 0 {
+					m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ config.SAMPLE_POLYFLAGS_JUMP)
+				}
+			}
+		}
+		m.recalc()
+	}
 	return m
 }
 
-func (m *NavMeshTesterTool) drawAgent(pos []float64, r, h, c float64, col int) {
+func (m *NavMeshTesterTool) drawAgent(pos []float32, r, h, c float32, col int) {
 	dd := m.m_sample.getDebugDraw()
 
 	dd.DepthMask(false)
@@ -335,8 +417,8 @@ func (m *NavMeshTesterTool) handleRender() {
 			debug_utils.DuDebugDrawNavMeshPoly(dd, m.m_navMesh, m.m_polys[i], pathCol)
 			dd.DepthMask(false)
 			if m.m_parent[i] != 0 {
-				p0 := make([]float64, 3)
-				p1 := make([]float64, 3)
+				p0 := make([]float32, 3)
+				p1 := make([]float32, 3)
 				dd.DepthMask(false)
 				getPolyCenter(m.m_navMesh, m.m_parent[i], p0)
 				getPolyCenter(m.m_navMesh, m.m_polys[i], p1)
@@ -359,8 +441,8 @@ func (m *NavMeshTesterTool) handleRender() {
 			debug_utils.DuDebugDrawNavMeshPoly(dd, m.m_navMesh, m.m_polys[i], pathCol)
 			dd.DepthMask(false)
 			if m.m_parent[i] != 0 {
-				p0 := make([]float64, 3)
-				p1 := make([]float64, 3)
+				p0 := make([]float32, 3)
+				p1 := make([]float32, 3)
 				dd.DepthMask(false)
 				getPolyCenter(m.m_navMesh, m.m_parent[i], p0)
 				getPolyCenter(m.m_navMesh, m.m_polys[i], p1)
@@ -393,8 +475,8 @@ func (m *NavMeshTesterTool) handleRender() {
 			dd.DepthMask(false)
 			if m.m_parent[i] != 0 {
 
-				p0 := make([]float64, 3)
-				p1 := make([]float64, 3)
+				p0 := make([]float32, 3)
+				p1 := make([]float32, 3)
 				dd.DepthMask(false)
 				getPolyCenter(m.m_navMesh, m.m_parent[i], p0)
 				getPolyCenter(m.m_navMesh, m.m_polys[i], p1)
@@ -403,7 +485,7 @@ func (m *NavMeshTesterTool) handleRender() {
 			}
 
 			MAX_SEGS := detour.DT_VERTS_PER_POLYGON * 4
-			segs := make([]float64, MAX_SEGS*6)
+			segs := make([]float32, MAX_SEGS*6)
 			refs := make([]detour.DtPolyRef, MAX_SEGS)
 			nsegs, _ := m.m_navQuery.GetPolyWallSegments(m.m_polys[i], m.m_filter, segs, refs, MAX_SEGS)
 			dd.Begin(debug_utils.DU_DRAW_LINES, 2.0)
@@ -413,14 +495,14 @@ func (m *NavMeshTesterTool) handleRender() {
 				// Skip too distant segments.
 
 				_, distSqr := detour.DtDistancePtSegSqr2D(m.m_spos, s, s[3:])
-				if float64(distSqr) > common.Sqr(m.m_neighbourhoodRadius) {
+				if float32(distSqr) > common.Sqr(m.m_neighbourhoodRadius) {
 					continue
 				}
 
-				delta := make([]float64, 3)
-				norm := make([]float64, 3)
-				p0 := make([]float64, 3)
-				p1 := make([]float64, 3)
+				delta := make([]float32, 3)
+				norm := make([]float32, 3)
+				p0 := make([]float32, 3)
+				p1 := make([]float32, 3)
 				common.Vsub(delta, s[3:], s)
 				common.Vmad(p0, s, delta, 0.5)
 				norm[0] = delta[2]
@@ -473,16 +555,16 @@ func (m *NavMeshTesterTool) handleRender() {
 	}
 }
 
-func (m *NavMeshTesterTool) handleRenderOverlay(proj, model []float64, view []int) {
+func (m *NavMeshTesterTool) handleRenderOverlay(proj, model []float32, view []int) {
 
-	res := common.GluProject([]float64{m.m_spos[0], m.m_spos[1], m.m_spos[2]},
+	res := common.GluProject([]float32{m.m_spos[0], m.m_spos[1], m.m_spos[2]},
 		model, proj, view)
 	x, y := res[0], res[1]
 	// Draw start and end point labels
 	if m.m_sposSet && len(res) != 0 {
 		m.gs.imguiDrawText(int(x), int(y-25), IMGUI_ALIGN_CENTER, "Start", imguiRGBA(0, 0, 0, 220))
 	}
-	res = common.GluProject([]float64{m.m_epos[0], m.m_epos[1], m.m_epos[2]},
+	res = common.GluProject([]float32{m.m_epos[0], m.m_epos[1], m.m_epos[2]},
 		model, proj, view)
 	x, y = res[0], res[1]
 	if m.m_eposSet && len(res) != 0 {
@@ -493,7 +575,8 @@ func (m *NavMeshTesterTool) handleRenderOverlay(proj, model []float64, view []in
 	h := view[3]
 	m.gs.imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB+SHIFT: Set start location  LMB: Set end location", imguiRGBA(255, 255, 255, 192))
 }
-func getPolyCenter(navMesh detour.IDtNavMesh, ref detour.DtPolyRef, center []float64) {
+
+func getPolyCenter(navMesh detour.IDtNavMesh, ref detour.DtPolyRef, center []float32) {
 	center[0] = 0
 	center[1] = 0
 	center[2] = 0
@@ -505,16 +588,16 @@ func getPolyCenter(navMesh detour.IDtNavMesh, ref detour.DtPolyRef, center []flo
 
 	for i := 0; i < int(poly.VertCount); i++ {
 		v := tile.Verts[poly.Verts[i]*3:]
-		center[0] += float64(v[0])
-		center[1] += float64(v[1])
-		center[2] += float64(v[2])
+		center[0] += float32(v[0])
+		center[1] += float32(v[1])
+		center[2] += float32(v[2])
 	}
-	s := 1.0 / float64(poly.VertCount)
+	s := 1.0 / float32(poly.VertCount)
 	center[0] *= s
 	center[1] *= s
 	center[2] *= s
 }
-func inRange(v1, v2 []float64, r, h float64) bool {
+func inRange(v1, v2 []float32, r, h float32) bool {
 	dx := v2[0] - v1[0]
 	dy := v2[1] - v1[1]
 	dz := v2[2] - v1[2]
@@ -572,7 +655,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 	// when ran out of memory to store the path.
 
 	// Find location to steer towards.
-	steerPos := make([]float64, 3)
+	steerPos := make([]float32, 3)
 	var steerPosFlag int
 	var steerPosRef detour.DtPolyRef
 
@@ -593,7 +676,7 @@ func (m *NavMeshTesterTool) handleToggle() {
 		offMeshConnection = true
 	}
 	// Find movement delta.
-	delta := make([]float64, 3)
+	delta := make([]float32, 3)
 	common.Vsub(delta, steerPos, m.m_iterPos)
 	length := math.Sqrt(common.Vdot(delta, delta))
 	// If the steer target is end of path or off-rcMeshLoaderObj link, do not move past the location.
@@ -603,11 +686,11 @@ func (m *NavMeshTesterTool) handleToggle() {
 		length = STEP_SIZE / length
 	}
 
-	moveTgt := make([]float64, 3)
+	moveTgt := make([]float32, 3)
 	common.Vmad(moveTgt, m.m_iterPos, delta, length)
 
 	// Move
-	result := make([]float64, 3)
+	result := make([]float32, 3)
 	visited := make([]detour.DtPolyRef, 16)
 	nvisited := 0
 	m.m_navQuery.MoveAlongSurface(m.m_pathIterPolys[0], m.m_iterPos, moveTgt, m.m_filter,
@@ -630,8 +713,8 @@ func (m *NavMeshTesterTool) handleToggle() {
 		return
 	} else if offMeshConnection && inRange(m.m_iterPos, steerPos, SLOP, 1.0) {
 		// Reached off-rcMeshLoaderObj connection.
-		startPos := make([]float64, 3)
-		endPos := make([]float64, 3)
+		startPos := make([]float32, 3)
+		endPos := make([]float32, 3)
 		// Advance the path up to and over the off-rcMeshLoaderObj connection.
 		var prevRef detour.DtPolyRef
 		polyRef := m.m_pathIterPolys[0]
@@ -696,159 +779,7 @@ func (m *NavMeshTesterTool) init(sample *Sample) {
 	m.m_randomRadius = sample.getAgentRadius() * 30.0
 }
 
-func (m *NavMeshTesterTool) handleMenu() {
-	if m.gs.imguiCheck("Pathfind Follow", m.m_toolMode == TOOLMODE_PATHFIND_FOLLOW) {
-		m.m_toolMode = TOOLMODE_PATHFIND_FOLLOW
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Pathfind Straight", m.m_toolMode == TOOLMODE_PATHFIND_STRAIGHT) {
-		m.m_toolMode = TOOLMODE_PATHFIND_STRAIGHT
-		m.recalc()
-	}
-	if m.m_toolMode == TOOLMODE_PATHFIND_STRAIGHT {
-		m.gs.imguiIndent()
-		m.gs.imguiLabel("Vertices at crossings")
-		if m.gs.imguiCheck("None", m.m_straightPathOptions == 0) {
-			m.m_straightPathOptions = 0
-			m.recalc()
-		}
-		if m.gs.imguiCheck("Area", m.m_straightPathOptions == detour.DT_STRAIGHTPATH_AREA_CROSSINGS) {
-			m.m_straightPathOptions = detour.DT_STRAIGHTPATH_AREA_CROSSINGS
-			m.recalc()
-		}
-		if m.gs.imguiCheck("All", m.m_straightPathOptions == detour.DT_STRAIGHTPATH_ALL_CROSSINGS) {
-			m.m_straightPathOptions = detour.DT_STRAIGHTPATH_ALL_CROSSINGS
-			m.recalc()
-		}
-
-		m.gs.imguiUnindent()
-	}
-	if m.gs.imguiCheck("Pathfind Sliced", m.m_toolMode == TOOLMODE_PATHFIND_SLICED) {
-		m.m_toolMode = TOOLMODE_PATHFIND_SLICED
-		m.recalc()
-	}
-
-	m.gs.imguiSeparator()
-
-	if m.gs.imguiCheck("Distance to Wall", m.m_toolMode == TOOLMODE_DISTANCE_TO_WALL) {
-		m.m_toolMode = TOOLMODE_DISTANCE_TO_WALL
-		m.recalc()
-	}
-
-	m.gs.imguiSeparator()
-
-	if m.gs.imguiCheck("Raycast", m.m_toolMode == TOOLMODE_RAYCAST) {
-		m.m_toolMode = TOOLMODE_RAYCAST
-		m.recalc()
-	}
-
-	m.gs.imguiSeparator()
-	if m.gs.imguiCheck("Find Polys in Circle", m.m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE) {
-		m.m_toolMode = TOOLMODE_FIND_POLYS_IN_CIRCLE
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Find Polys in Shape", m.m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE) {
-		m.m_toolMode = TOOLMODE_FIND_POLYS_IN_SHAPE
-		m.recalc()
-	}
-
-	m.gs.imguiSeparator()
-
-	if m.gs.imguiCheck("Find Local Neighbourhood", m.m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD) {
-		m.m_toolMode = TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD
-		m.recalc()
-	}
-
-	m.gs.imguiSeparator()
-
-	if m.gs.imguiButton("Set Random Start") {
-		var status detour.DTStatus
-		m.m_startRef, m.m_spos, status = m.m_navQuery.FindRandomPoint(m.m_filter)
-		if status.DtStatusSucceed() {
-			m.m_sposSet = true
-			m.recalc()
-		}
-	}
-	if m.gs.imguiButton("Set Random End", m.m_sposSet) {
-
-	}
-
-	m.gs.imguiSeparator()
-
-	if m.gs.imguiButton("Make Random Points") {
-		m.m_randPointsInCircle = false
-		m.m_nrandPoints = 0
-		for i := 0; i < MAX_RAND_POINTS; i++ {
-			_, pt, status := m.m_navQuery.FindRandomPoint(m.m_filter)
-			if status.DtStatusSucceed() {
-				copy(m.m_randPoints[m.m_nrandPoints*3:], pt)
-				m.m_nrandPoints++
-			}
-		}
-	}
-	if m.gs.imguiButton("Make Random Points Around", m.m_sposSet) {
-		if m.m_sposSet {
-			m.m_nrandPoints = 0
-			m.m_randPointsInCircle = true
-			for i := 0; i < MAX_RAND_POINTS; i++ {
-				_, pt, status := m.m_navQuery.FindRandomPointAroundCircle(m.m_startRef, m.m_spos, m.m_randomRadius, m.m_filter)
-				if status.DtStatusSucceed() {
-					copy(m.m_randPoints[m.m_nrandPoints*3:], pt)
-					m.m_nrandPoints++
-				}
-			}
-		}
-	}
-
-	m.gs.imguiSeparator()
-
-	m.gs.imguiLabel("Include Flags")
-
-	m.gs.imguiIndent()
-	if m.gs.imguiCheck("Walk", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_WALK) != 0) {
-		m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_WALK)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Swim", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_SWIM) != 0) {
-		m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_SWIM)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Door", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_DOOR) != 0) {
-		m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_DOOR)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Jump", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_JUMP) != 0) {
-		m.m_filter.SetIncludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_JUMP)
-		m.recalc()
-	}
-	m.gs.imguiUnindent()
-
-	m.gs.imguiSeparator()
-	m.gs.imguiLabel("Exclude Flags")
-
-	m.gs.imguiIndent()
-	if m.gs.imguiCheck("Walk", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_WALK) != 0) {
-		m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_WALK)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Swim", (m.m_filter.GetExcludeFlags()&SAMPLE_POLYFLAGS_SWIM) != 0) {
-		m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_SWIM)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Door", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_DOOR) != 0) {
-		m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_DOOR)
-		m.recalc()
-	}
-	if m.gs.imguiCheck("Jump", (m.m_filter.GetIncludeFlags()&SAMPLE_POLYFLAGS_JUMP) != 0) {
-		m.m_filter.SetExcludeFlags(m.m_filter.GetIncludeFlags() ^ SAMPLE_POLYFLAGS_JUMP)
-		m.recalc()
-	}
-	m.gs.imguiUnindent()
-
-	m.gs.imguiSeparator()
-
-}
-func (m *NavMeshTesterTool) handleClick(s, p []float64, shift bool) {
+func (m *NavMeshTesterTool) handleClick(s, p []float32, shift bool) {
 	if shift {
 		m.m_sposSet = true
 		copy(m.m_spos, p)
@@ -859,7 +790,7 @@ func (m *NavMeshTesterTool) handleClick(s, p []float64, shift bool) {
 	m.recalc()
 }
 
-func (m *NavMeshTesterTool) handleUpdate(dt float64) {
+func (m *NavMeshTesterTool) handleUpdate(dt float32) {
 	if m.m_toolMode == TOOLMODE_PATHFIND_SLICED {
 		if m.m_pathFindStatus.DtStatusInProgress() {
 			_, m.m_pathFindStatus = m.m_navQuery.UpdateSlicedFindPath(1)
@@ -869,7 +800,7 @@ func (m *NavMeshTesterTool) handleUpdate(dt float64) {
 			m.m_nstraightPath = 0
 			if m.m_npolys != 0 {
 				// In case of partial path, make sure the end point is clamped to the last polygon.
-				epos := make([]float64, 3)
+				epos := make([]float32, 3)
 				copy(epos, m.m_epos)
 				if m.m_polys[m.m_npolys-1] != m.m_endRef {
 					var tmp bool
@@ -892,13 +823,13 @@ func (m *NavMeshTesterTool) recalc() {
 	}
 
 	if m.m_sposSet {
-		m.m_startRef, _ = m.m_navQuery.FindNearestPoly(m.m_spos, m.m_polyPickExt, m.m_filter, []float64{})
+		m.m_startRef, _ = m.m_navQuery.FindNearestPoly(m.m_spos, m.m_polyPickExt, m.m_filter, []float32{})
 	} else {
 		m.m_startRef = 0
 	}
 
 	if m.m_eposSet {
-		m.m_endRef, _ = m.m_navQuery.FindNearestPoly(m.m_epos, m.m_polyPickExt, m.m_filter, []float64{})
+		m.m_endRef, _ = m.m_navQuery.FindNearestPoly(m.m_epos, m.m_polyPickExt, m.m_filter, []float32{})
 	} else {
 		m.m_endRef = 0
 	}
@@ -923,8 +854,8 @@ func (m *NavMeshTesterTool) recalc() {
 				copy(polys, m.m_polys[:m.m_npolys])
 				npolys := m.m_npolys
 
-				iterPos := make([]float64, 3)
-				targetPos := make([]float64, 3)
+				iterPos := make([]float32, 3)
+				targetPos := make([]float32, 3)
 				tmp := false
 				m.m_navQuery.ClosestPointOnPoly(m.m_startRef, m.m_spos, iterPos, &tmp)
 				m.m_navQuery.ClosestPointOnPoly(polys[npolys-1], m.m_epos, targetPos, &tmp)
@@ -941,11 +872,11 @@ func (m *NavMeshTesterTool) recalc() {
 				// when ran out of memory to store the path.
 				for npolys > 0 && m.m_nsmoothPath < MAX_SMOOTH {
 					// Find location to steer towards.
-					steerPos := make([]float64, 3)
+					steerPos := make([]float32, 3)
 					var steerPosFlag int
 					var steerPosRef detour.DtPolyRef
 
-					if !getSteerTarget(m.m_navQuery, iterPos, targetPos, SLOP, polys, npolys, steerPos, &steerPosFlag, steerPosRef, []float64{}, nil) {
+					if !getSteerTarget(m.m_navQuery, iterPos, targetPos, SLOP, polys, npolys, steerPos, &steerPosFlag, steerPosRef, []float32{}, nil) {
 						break
 					}
 
@@ -958,8 +889,8 @@ func (m *NavMeshTesterTool) recalc() {
 						offMeshConnection = true
 					}
 					// Find movement delta.
-					delta := make([]float64, 3)
-					var length float64
+					delta := make([]float32, 3)
+					var length float32
 					common.Vsub(delta, steerPos, iterPos)
 					length = math.Sqrt(common.Vdot(delta, delta))
 					// If the steer target is end of path or off-rcMeshLoaderObj link, do not move past the location.
@@ -969,11 +900,11 @@ func (m *NavMeshTesterTool) recalc() {
 						length = STEP_SIZE / length
 					}
 
-					moveTgt := make([]float64, 3)
+					moveTgt := make([]float32, 3)
 					common.Vmad(moveTgt, iterPos, delta, length)
 
 					// Move
-					result := make([]float64, 3)
+					result := make([]float32, 3)
 					visited := make([]detour.DtPolyRef, 16)
 					nvisited := 0
 					m.m_navQuery.MoveAlongSurface(polys[0], iterPos, moveTgt, m.m_filter,
@@ -997,8 +928,8 @@ func (m *NavMeshTesterTool) recalc() {
 						break
 					} else if offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.0) {
 						// Reached off-rcMeshLoaderObj connection.
-						startPos := make([]float64, 3)
-						endPos := make([]float64, 3)
+						startPos := make([]float32, 3)
+						endPos := make([]float32, 3)
 
 						// Advance the path up to and over the off-rcMeshLoaderObj connection.
 						var prevRef detour.DtPolyRef
@@ -1030,7 +961,7 @@ func (m *NavMeshTesterTool) recalc() {
 							// Move position at the other side of the off-rcMeshLoaderObj link.
 							copy(iterPos, endPos)
 							eh, _ := m.m_navQuery.GetPolyHeight(polys[0], iterPos)
-							iterPos[1] = float64(eh)
+							iterPos[1] = float32(eh)
 						}
 					}
 
@@ -1055,7 +986,7 @@ func (m *NavMeshTesterTool) recalc() {
 			m.m_nstraightPath = 0
 			if m.m_npolys != 0 {
 				// In case of partial path, make sure the end point is clamped to the last polygon.
-				epos := make([]float64, 3)
+				epos := make([]float32, 3)
 				copy(epos, m.m_epos)
 				if m.m_polys[m.m_npolys-1] != m.m_endRef {
 					tmp := false
@@ -1108,7 +1039,7 @@ func (m *NavMeshTesterTool) recalc() {
 			// Adjust height.
 			if m.m_npolys > 0 {
 				h, _ := m.m_navQuery.GetPolyHeight(m.m_polys[m.m_npolys-1], m.m_hitPos)
-				m.m_hitPos[1] = float64(h)
+				m.m_hitPos[1] = float32(h)
 			}
 			copy(m.m_straightPath[3:], m.m_hitPos)
 		}
@@ -1130,7 +1061,7 @@ func (m *NavMeshTesterTool) recalc() {
 				m.m_spos[0], m.m_spos[1], m.m_spos[2], dist,
 				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
 			m.m_navQuery.FindPolysAroundCircle(m.m_startRef, m.m_spos, dist, m.m_filter,
-				m.m_polys, m.m_parent, []float64{}, &m.m_npolys, MAX_POLYS)
+				m.m_polys, m.m_parent, []float32{}, &m.m_npolys, MAX_POLYS)
 
 		}
 	} else if m.m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE {
@@ -1163,7 +1094,7 @@ func (m *NavMeshTesterTool) recalc() {
 				m.m_queryPoly[9], m.m_queryPoly[10], m.m_queryPoly[11],
 				m.m_filter.GetIncludeFlags(), m.m_filter.GetExcludeFlags())
 			m.m_npolys, _ = m.m_navQuery.FindPolysAroundShape(m.m_startRef, m.m_queryPoly, 4, m.m_filter,
-				m.m_polys, m.m_parent, []float64{}, MAX_POLYS)
+				m.m_polys, m.m_parent, []float32{}, MAX_POLYS)
 		}
 	} else if m.m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD {
 		if m.m_sposSet && m.m_startRef != 0 {
@@ -1182,8 +1113,8 @@ func (m *NavMeshTesterTool) reset() {
 	m.m_npolys = 0
 	m.m_nstraightPath = 0
 	m.m_nsmoothPath = 0
-	m.m_hitPos = make([]float64, len(m.m_hitPos))
-	m.m_hitNormal = make([]float64, len(m.m_hitNormal))
+	m.m_hitPos = make([]float32, len(m.m_hitPos))
+	m.m_hitNormal = make([]float32, len(m.m_hitNormal))
 	m.m_distanceToWall = 0
 }
 
@@ -1249,14 +1180,14 @@ func fixupShortcuts(path []detour.DtPolyRef, npath int, navQuery detour.NavMeshQ
 	return npath
 }
 
-func getSteerTarget(navQuery detour.NavMeshQuery, startPos, endPos []float64,
-	minTargetDist float64,
+func getSteerTarget(navQuery detour.NavMeshQuery, startPos, endPos []float32,
+	minTargetDist float32,
 	path []detour.DtPolyRef, pathSize int,
-	steerPos []float64, steerPosFlag *int, steerPosRef detour.DtPolyRef,
-	outPoints []float64, outPointCount *int) bool {
+	steerPos []float32, steerPosFlag *int, steerPosRef detour.DtPolyRef,
+	outPoints []float32, outPointCount *int) bool {
 	// Find steer target.
 	MAX_STEER_POINTS := 3
-	steerPath := make([]float64, MAX_STEER_POINTS*3)
+	steerPath := make([]float32, MAX_STEER_POINTS*3)
 	steerPathFlags := make([]int, MAX_STEER_POINTS)
 	steerPathPolys := make([]detour.DtPolyRef, MAX_STEER_POINTS)
 	nsteerPath, _ := navQuery.FindStraightPath(startPos, endPos, path, pathSize,

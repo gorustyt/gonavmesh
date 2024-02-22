@@ -276,13 +276,13 @@ func DuReadCompactHeightfield(chf *recast.RcCompactHeightfield, r *rw.ReaderWrit
 	return true
 }
 
-func logLine(name string, pc float64) {
+func logLine(name string, pc float32) {
 	t := 0.
 	slog.Info("%s:\t%.2fms\t(%.1f%%)", name, t/1000.0, t*pc)
 }
 
 func DuLogBuildTimes(totalTimeUsec int) {
-	pc := 100.0 / float64(totalTimeUsec)
+	pc := 100.0 / float32(totalTimeUsec)
 
 	slog.Info("Build Times")
 	logLine("- Rasterize", pc)

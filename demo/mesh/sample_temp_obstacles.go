@@ -32,7 +32,7 @@ func drawTiles(dd debug_utils.DuDebugDraw, tc *detour_tile_cache.DtTileCache) {
 
 		col := debug_utils.DuIntToCol(i, 64)
 		debug_utils.DuCalcBoxColors(fcol, col, col)
-		debug_utils.DuDebugDrawBox(dd, float64(bmin[0]), float64(bmin[1]), float64(bmin[2]), float64(bmax[0]), float64(bmax[1]), float64(bmax[2]), fcol)
+		debug_utils.DuDebugDrawBox(dd, float32(bmin[0]), float32(bmin[1]), float32(bmin[2]), float32(bmax[0]), float32(bmax[1]), float32(bmax[2]), fcol)
 	}
 
 	for i := 0; i < tc.GetTileCount(); i++ {
@@ -45,13 +45,13 @@ func drawTiles(dd debug_utils.DuDebugDraw, tc *detour_tile_cache.DtTileCache) {
 
 		col := debug_utils.DuIntToCol(i, 255)
 		pad := tc.GetParams().Cs * 0.1
-		debug_utils.DuDebugDrawBoxWire(dd, float64(bmin[0]-pad), float64(bmin[1]-pad), float64(bmin[2]-pad),
-			float64(bmax[0]+pad), float64(bmax[1]+pad), float64(bmax[2]+pad), col, 2.0)
+		debug_utils.DuDebugDrawBoxWire(dd, float32(bmin[0]-pad), float32(bmin[1]-pad), float32(bmin[2]-pad),
+			float32(bmax[0]+pad), float32(bmax[1]+pad), float32(bmax[2]+pad), col, 2.0)
 	}
 
 }
-func hitTestObstacle(tc *detour_tile_cache.DtTileCache, sp, sq []float64) detour_tile_cache.DtObstacleRef {
-	tmin := math.MaxFloat64
+func hitTestObstacle(tc *detour_tile_cache.DtTileCache, sp, sq []float32) detour_tile_cache.DtObstacleRef {
+	tmin := math.Maxfloat32
 	var obmin *detour_tile_cache.DtTileCacheObstacle
 	for i := 0; i < tc.GetObstacleCount(); i++ {
 		ob := tc.GetObstacle(i)
@@ -59,9 +59,9 @@ func hitTestObstacle(tc *detour_tile_cache.DtTileCache, sp, sq []float64) detour
 			continue
 		}
 
-		bmin := make([]float64, 3)
-		bmax := make([]float64, 3)
-		var t0, t1 float64
+		bmin := make([]float32, 3)
+		bmax := make([]float32, 3)
+		var t0, t1 float32
 		tc.GetObstacleBounds(ob, bmin, bmax)
 
 		if isectSegAABB(sp, sq, bmin, bmax, t0, t1) {
@@ -73,8 +73,8 @@ func hitTestObstacle(tc *detour_tile_cache.DtTileCache, sp, sq []float64) detour
 	}
 	return tc.GetObstacleRef(obmin)
 }
-func drawDetailOverlay(gs *guiState, tc *detour.DTTileCache, tx, ty int, proj, model []float64, view []int) {
-	tiles := make([]detour.DTCompressedTileRef, MAX_LAYERS)
+func drawDetailOverlay(gs *guiState, tc *detour_tile_cache.DtTileCache, tx, ty int, proj, model []float32, view []int) {
+	tiles := make([]detour_tile_cache.DtCompressedTileRef, MAX_LAYERS)
 	ntiles := tc.GetTilesAt(tx, ty, tiles, MAX_LAYERS)
 	if ntiles == 0 {
 		return
@@ -82,12 +82,12 @@ func drawDetailOverlay(gs *guiState, tc *detour.DTTileCache, tx, ty int, proj, m
 	for i := 0; i < ntiles; i++ {
 		tile := tc.GetTileByRef(tiles[i])
 
-		pos := make([]float64, 3)
+		pos := make([]float32, 3)
 		pos[0] = (tile.Header.Bmin[0] + tile.Header.Bmax[0]) / 2.0
 		pos[1] = tile.Header.Bmin[1]
 		pos[2] = (tile.Header.Bmin[2] + tile.Header.Bmax[2]) / 2.0
 
-		res := common.GluProject([]float64{pos[0], pos[1], pos[2]}, model, proj, view)
+		res := common.GluProject([]float32{pos[0], pos[1], pos[2]}, model, proj, view)
 
 		if len(res) != 0 {
 			x, y := int(res[0]), int(res[1])
@@ -101,23 +101,23 @@ func drawDetailOverlay(gs *guiState, tc *detour.DTTileCache, tx, ty int, proj, m
 	}
 }
 
-func drawObstacles(dd debug_utils.DuDebugDraw, tc *detour.DTTileCache) {
+func drawObstacles(dd debug_utils.DuDebugDraw, tc *detour_tile_cache.DtTileCache) {
 	// Draw obstacles
 	for i := 0; i < tc.GetObstacleCount(); i++ {
 		ob := tc.GetObstacle(i)
-		if ob.State == detour.DT_OBSTACLE_EMPTY {
+		if ob.State == detour_tile_cache.DT_OBSTACLE_EMPTY {
 			continue
 		}
-		bmin := make([]float64, 3)
-		bmax := make([]float64, 3)
+		bmin := make([]float32, 3)
+		bmax := make([]float32, 3)
 		tc.GetObstacleBounds(ob, bmin, bmax)
 
 		var col int
-		if ob.State == detour.DT_OBSTACLE_PROCESSING {
+		if ob.State == detour_tile_cache.DT_OBSTACLE_PROCESSING {
 			col = debug_utils.DuRGBA(255, 255, 0, 128)
-		} else if ob.State == detour.DT_OBSTACLE_PROCESSED {
+		} else if ob.State == detour_tile_cache.DT_OBSTACLE_PROCESSED {
 			col = debug_utils.DuRGBA(255, 192, 0, 192)
-		} else if ob.State == detour.DT_OBSTACLE_REMOVING {
+		} else if ob.State == detour_tile_cache.DT_OBSTACLE_REMOVING {
 			col = debug_utils.DuRGBA(220, 0, 0, 128)
 		}
 
@@ -243,7 +243,7 @@ type SampleTempObstacles struct {
 
 	m_maxTiles        int
 	m_maxPolysPerTile int
-	m_tileSize        float64
+	m_tileSize        float32
 
 	cfg *config.Config
 }
@@ -299,18 +299,18 @@ func (s *SampleTempObstacles) handleSettings() {
 
 	s.gs.imguiLabel("Tile Cache")
 
-	//compressionRatio := float64(s.m_cacheCompressedSize) / float64(s.m_cacheRawSize+1)
+	//compressionRatio := float32(s.m_cacheCompressedSize) / float32(s.m_cacheRawSize+1)
 
 	msg := fmt.Sprintf("Layers  %d", s.m_cacheLayerCount)
 	s.gs.imguiValue(msg)
-	msg = fmt.Sprintf("Layers (per tile)  %.1f", float64(s.m_cacheLayerCount)/float64(gridSize))
+	msg = fmt.Sprintf("Layers (per tile)  %.1f", float32(s.m_cacheLayerCount)/float32(gridSize))
 	s.gs.imguiValue(msg)
 
-	//msg = fmt.Sprintf("Memory  %.1f kB / %.1f kB (%.1f%%)", float64(s.m_cacheCompressedSize)/1024.0, float64(s.m_cacheRawSize)/1024.0, compressionRatio*100.0)
+	//msg = fmt.Sprintf("Memory  %.1f kB / %.1f kB (%.1f%%)", float32(s.m_cacheCompressedSize)/1024.0, float32(s.m_cacheRawSize)/1024.0, compressionRatio*100.0)
 	s.gs.imguiValue(msg)
 	msg = fmt.Sprintf("Navmesh Build Time  %.1f ms", s.m_cacheBuildTimeMs)
 	s.gs.imguiValue(msg)
-	msg = fmt.Sprintf("Build Peak Mem Usage  %.1f kB", float64(s.m_cacheBuildMemUsage)/1024.0)
+	msg = fmt.Sprintf("Build Peak Mem Usage  %.1f kB", float32(s.m_cacheBuildMemUsage)/1024.0)
 	s.gs.imguiValue(msg)
 
 	s.gs.imguiSeparator()
@@ -401,6 +401,7 @@ func (s *SampleTempObstacles) handleDebugMode() {
 		s.gs.imguiValue("more debug mode options.")
 	}
 }
+
 func (s *SampleTempObstacles) handleRender() {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil {
 		return
@@ -436,9 +437,9 @@ func (s *SampleTempObstacles) handleRender() {
 	gw := 0
 	gh := 0
 	recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
-	tw := int((float64(gw) + s.m_tileSize - 1) / s.m_tileSize)
-	th := int((float64(gh) + s.m_tileSize - 1) / s.m_tileSize)
-	ss := float64(s.m_tileSize) * float64(s.m_cellSize)
+	tw := int((float32(gw) + s.m_tileSize - 1) / s.m_tileSize)
+	th := int((float32(gh) + s.m_tileSize - 1) / s.m_tileSize)
+	ss := float32(s.m_tileSize) * float32(s.m_cellSize)
 	debug_utils.DuDebugDrawGridXZ(s.m_dd, bmin[0], bmin[1], bmin[2], tw, th, ss, debug_utils.DuRGBA(0, 0, 0, 64), 1.0)
 
 	if s.m_navMesh != nil && s.m_navQuery != nil &&
@@ -463,7 +464,7 @@ func (s *SampleTempObstacles) handleRender() {
 			debug_utils.DuDebugDrawNavMeshNodes(s.m_dd, s.m_navQuery)
 		}
 
-		debug_utils.DuDebugDrawNavMeshPolysWithFlags(s.m_dd, s.m_navMesh, SAMPLE_POLYFLAGS_DISABLED, debug_utils.DuRGBA(0, 0, 0, 128))
+		debug_utils.DuDebugDrawNavMeshPolysWithFlags(s.m_dd, s.m_navMesh, config.SAMPLE_POLYFLAGS_DISABLED, debug_utils.DuRGBA(0, 0, 0, 128))
 	}
 
 	gl.DepthMask(true)
@@ -478,7 +479,7 @@ func (s *SampleTempObstacles) handleRender() {
 
 	gl.DepthMask(true)
 }
-func (s *SampleTempObstacles) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *SampleTempObstacles) handleRenderOverlay(proj, model []float32, view []int) {
 	if s.m_tool != nil {
 		s.m_tool.handleRenderOverlay(proj, model, view)
 	}
@@ -567,7 +568,7 @@ func (s *SampleTempObstacles) handleBuild() bool {
 	copy(cfg.Bmax[:], bmax)
 
 	// Tile cache params.
-	var tcparams detour.DTTileCacheParams
+	var tcparams detour_tile_cache.DtTileCacheParams
 	copy(tcparams.Orig[:], bmin)
 	tcparams.Cs = s.m_cellSize
 	tcparams.Ch = s.m_cellHeight
@@ -579,7 +580,7 @@ func (s *SampleTempObstacles) handleBuild() bool {
 	tcparams.MaxSimplificationError = s.m_edgeMaxError
 	tcparams.MaxTiles = tw * th * EXPECTED_LAYERS_PER_TILE
 	tcparams.MaxObstacles = 128
-	s.m_tileCache = &detour.DTTileCache{}
+	s.m_tileCache = &detour_tile_cache.DtTileCache{}
 	if s.m_tileCache == nil {
 		log.Printf("buildTiledNavigation: Could not allocate tile cache.")
 		return false
@@ -590,20 +591,20 @@ func (s *SampleTempObstacles) handleBuild() bool {
 		return false
 	}
 
-	var params recast.NavMeshParams
+	var params detour.NavMeshParams
 	copy(params.Orig[:], bmin)
 	params.TileWidth = s.m_tileSize * s.m_cellSize
 	params.TileHeight = s.m_tileSize * s.m_cellSize
 	params.MaxTiles = s.m_maxTiles
 	params.MaxPolys = s.m_maxPolysPerTile
 
-	s.m_navMesh, status = recast.NewDtNavMeshWithParams(&params)
+	s.m_navMesh, status = detour.NewDtNavMeshWithParams(&params)
 	if status.DtStatusFailed() {
 		log.Printf("buildTiledNavigation: Could not init navmesh.")
 		return false
 	}
 
-	s.m_navQuery = recast.NewDtNavMeshQuery(s.m_navMesh, 2048)
+	s.m_navQuery = detour.NewDtNavMeshQuery(s.m_navMesh, 2048)
 	// Preprocess tiles.
 	s.m_cacheLayerCount = 0
 	for y := 0; y < th; y++ {
@@ -612,7 +613,7 @@ func (s *SampleTempObstacles) handleBuild() bool {
 
 			for i := 0; i < len(tiles); i++ {
 				tile := tiles[i]
-				status = s.m_tileCache.AddTile(tile, detour.DT_COMPRESSEDTILE_FREE_DATA, nil)
+				status = s.m_tileCache.AddTile(tile, detour_tile_cache.Dt_COMPRESSEDTILE_FREE_DATA, nil)
 				if status.DtStatusFailed() {
 					continue
 				}
@@ -639,7 +640,7 @@ func (s *SampleTempObstacles) handleBuild() bool {
 	return true
 }
 
-func (s *SampleTempObstacles) handleUpdate(dt float64) {
+func (s *SampleTempObstacles) handleUpdate(dt float32) {
 	s.Sample.handleUpdate(dt)
 
 	if s.m_navMesh == nil {
@@ -653,7 +654,7 @@ func (s *SampleTempObstacles) handleUpdate(dt float64) {
 	s.m_tileCache.Update(dt, s.m_navMesh)
 }
 
-func (s *SampleTempObstacles) getTilePos(pos []float64, tx, ty *int) {
+func (s *SampleTempObstacles) getTilePos(pos []float32, tx, ty *int) {
 	if s.m_geom == nil {
 		return
 	}
@@ -671,24 +672,24 @@ func (s *SampleTempObstacles) renderCachedTile(tx, ty, Type int) {
 	}
 
 }
-func (s *SampleTempObstacles) renderCachedTileOverlay(tx, ty int, proj, model []float64, view []int) {
+func (s *SampleTempObstacles) renderCachedTileOverlay(tx, ty int, proj, model []float32, view []int) {
 	if s.m_tileCache != nil {
 		drawDetailOverlay(s.gs, s.m_tileCache, tx, ty, proj, model, view)
 	}
 
 }
 
-func (s *SampleTempObstacles) addTempObstacle(pos []float64) {
+func (s *SampleTempObstacles) addTempObstacle(pos []float32) {
 	if s.m_tileCache == nil {
 		return
 	}
 
-	p := make([]float64, 3)
+	p := make([]float32, 3)
 	copy(p, pos)
 	p[1] -= 0.5
 	s.m_tileCache.AddObstacle(p, 1.0, 2.0, nil)
 }
-func (s *SampleTempObstacles) removeTempObstacle(sp, sq []float64) {
+func (s *SampleTempObstacles) removeTempObstacle(sp, sq []float32) {
 	if s.m_tileCache == nil {
 		return
 	}
@@ -704,7 +705,7 @@ func (s *SampleTempObstacles) clearAllTempObstacles() {
 
 	for i := 0; i < s.m_tileCache.GetObstacleCount(); i++ {
 		ob := s.m_tileCache.GetObstacle(i)
-		if ob.State == detour.DT_OBSTACLE_EMPTY {
+		if ob.State == detour_tile_cache.DT_OBSTACLE_EMPTY {
 			continue
 		}
 		s.m_tileCache.RemoveObstacle(s.m_tileCache.GetObstacleRef(ob))
@@ -719,12 +720,12 @@ type RasterizationContext struct {
 	triareas []int
 	lset     *recast.RcHeightfieldLayerSet
 	chf      *recast.RcCompactHeightfield
-	tiles    []*recast.DetourTitleCacheLayerData
+	tiles    []*detour_tile_cache.DetourTitleCacheLayerData
 }
 
 func newRasterizationContext() *RasterizationContext {
 	return &RasterizationContext{
-		tiles: make([]*recast.DetourTitleCacheLayerData, MAX_LAYERS),
+		tiles: make([]*detour_tile_cache.DetourTitleCacheLayerData, MAX_LAYERS),
 	}
 }
 
@@ -751,19 +752,19 @@ func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConf
 	chunkyMesh := s.m_geom.getChunkyMesh()
 
 	// Tile bounds.
-	tcs := float64(cfg.TileSize) * cfg.Cs
+	tcs := float32(cfg.TileSize) * cfg.Cs
 
 	var tcfg recast.RcConfig
-	tcfg.Bmin[0] = cfg.Bmin[0] + float64(tx)*tcs
+	tcfg.Bmin[0] = cfg.Bmin[0] + float32(tx)*tcs
 	tcfg.Bmin[1] = cfg.Bmin[1]
-	tcfg.Bmin[2] = cfg.Bmin[2] + float64(ty)*tcs
-	tcfg.Bmax[0] = cfg.Bmin[0] + float64(tx+1)*tcs
+	tcfg.Bmin[2] = cfg.Bmin[2] + float32(ty)*tcs
+	tcfg.Bmax[0] = cfg.Bmin[0] + float32(tx+1)*tcs
 	tcfg.Bmax[1] = cfg.Bmax[1]
-	tcfg.Bmax[2] = cfg.Bmin[2] + float64(ty+1)*tcs
-	tcfg.Bmin[0] -= float64(tcfg.BorderSize) * tcfg.Cs
-	tcfg.Bmin[2] -= float64(tcfg.BorderSize) * tcfg.Cs
-	tcfg.Bmax[0] += float64(tcfg.BorderSize) * tcfg.Cs
-	tcfg.Bmax[2] += float64(tcfg.BorderSize) * tcfg.Cs
+	tcfg.Bmax[2] = cfg.Bmin[2] + float32(ty+1)*tcs
+	tcfg.Bmin[0] -= float32(tcfg.BorderSize) * tcfg.Cs
+	tcfg.Bmin[2] -= float32(tcfg.BorderSize) * tcfg.Cs
+	tcfg.Bmax[0] += float32(tcfg.BorderSize) * tcfg.Cs
+	tcfg.Bmax[2] += float32(tcfg.BorderSize) * tcfg.Cs
 
 	// Allocate voxel heightfield where we rasterize our input data to.
 	rc.solid = recast.RcCreateHeightfield(tcfg.Width, tcfg.Height, tcfg.Bmin[:], tcfg.Bmax[:], tcfg.Cs, tcfg.Ch)
@@ -771,8 +772,8 @@ func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConf
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
 	rc.triareas = make([]int, chunkyMesh.maxTrisPerChunk)
-	var tbmin [2]float64
-	var tbmax [2]float64
+	var tbmin [2]float32
+	var tbmax [2]float32
 	tbmin[0] = tcfg.Bmin[0]
 	tbmin[1] = tcfg.Bmin[2]
 	tbmax[0] = tcfg.Bmax[0]
@@ -841,9 +842,9 @@ func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConf
 		layer := rc.lset.Layers[i]
 
 		// Store header
-		var header detour.DTTileCacheLayerHeader
-		header.Magic = detour.DT_TILECACHE_MAGIC
-		header.Version = detour.DT_TILECACHE_VERSION
+		var header detour_tile_cache.DtTileCacheLayerHeader
+		header.Magic = detour_tile_cache.DT_TILECACHE_MAGIC
+		header.Version = detour_tile_cache.DT_TILECACHE_VERSION
 
 		// Tile layer location in the navmesh.
 		header.Tx = tx
@@ -861,7 +862,7 @@ func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConf
 		header.Maxy = layer.Maxy
 		header.Hmin = layer.Hmin
 		header.Hmax = layer.Hmax
-		rc.tiles = append(rc.tiles, detour.DTBuildTileCacheLayer(comp, &header, layer.Heights, layer.Areas, layer.Cons))
+		rc.tiles = append(rc.tiles, detour_tile_cache.DtBuildTileCacheLayer(comp, &header, layer.Heights, layer.Areas, layer.Cons))
 	}
 
 	// Transfer ownsership of tile data from build context to the caller.
@@ -869,7 +870,7 @@ func (s *SampleTempObstacles) rasterizeTileLayers(tx, ty int, cfg *recast.RcConf
 	for i := 0; i < min(len(rc.tiles), maxTiles); i++ {
 
 		datas = append(datas, rc.tiles[i])
-		rc.tiles[i] = &recast.DetourTitleCacheLayerData{}
+		rc.tiles[i] = &detour_tile_cache.DetourTitleCacheLayerData{}
 	}
 
 	return datas
@@ -882,10 +883,10 @@ type MeshProcess struct {
 func newMeshProcess(m_geom *InputGeom) *MeshProcess {
 	return &MeshProcess{m_geom: m_geom}
 }
-func (p *MeshProcess) Process(params *detour.DTNavMeshCreateParams, polyAreas []int, polyFlags []int) {
+func (p *MeshProcess) Process(params *detour.DtNavMeshCreateParams, polyAreas []int, polyFlags []int) {
 	// Update poly flags from areas.
 	for i := 0; i < params.PolyCount; i++ {
-		if polyAreas[i] == detour.DT_TILECACHE_WALKABLE_AREA {
+		if polyAreas[i] == detour_tile_cache.Dt_TILECACHE_WALKABLE_AREA {
 			polyAreas[i] = SAMPLE_POLYAREA_GROUND
 
 			if polyAreas[i] == SAMPLE_POLYAREA_GROUND ||
@@ -916,7 +917,7 @@ const MAX_LAYERS = 32
 
 type TempObstacleHilightTool struct {
 	m_sample    *SampleTempObstacles
-	m_hitPos    []float64
+	m_hitPos    []float32
 	m_hitPosSet bool
 	m_drawType  int
 	ctx         *Content
@@ -925,7 +926,7 @@ type TempObstacleHilightTool struct {
 func newTempObstacleHilightTool(ctx *Content) *TempObstacleHilightTool {
 	return &TempObstacleHilightTool{
 		ctx:        ctx,
-		m_hitPos:   make([]float64, 3),
+		m_hitPos:   make([]float32, 3),
 		m_drawType: DRAWDETAIL_AREAS,
 		m_sample:   newSampleTempObstacles(ctx),
 	}
@@ -936,7 +937,7 @@ func (s *TempObstacleHilightTool) init(sample *Sample) {
 	s.m_sample.Sample = sample
 }
 
-func (s *TempObstacleHilightTool) handleClick(ss, p []float64, shift bool) {
+func (s *TempObstacleHilightTool) handleClick(ss, p []float32, shift bool) {
 	s.m_hitPosSet = true
 	copy(s.m_hitPos[:], p)
 }
@@ -945,7 +946,7 @@ func (s *TempObstacleHilightTool) handleToggle() {}
 
 func (s *TempObstacleHilightTool) handleStep() {}
 
-func (s *TempObstacleHilightTool) handleUpdate(dt float64) {}
+func (s *TempObstacleHilightTool) handleUpdate(dt float32) {}
 
 func (s *TempObstacleHilightTool) handleRender() {
 	if s.m_hitPosSet && s.m_sample != nil {
@@ -969,7 +970,7 @@ func (s *TempObstacleHilightTool) handleRender() {
 	}
 }
 
-func (s *TempObstacleHilightTool) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *TempObstacleHilightTool) handleRenderOverlay(proj, model []float32, view []int) {
 	if s.m_hitPosSet {
 		if s.m_sample != nil {
 			tx := 0
@@ -996,7 +997,7 @@ func (s *TempObstacleCreateTool) init(sample *Sample) {
 	s.m_sample.Sample = sample
 }
 
-func (s *TempObstacleCreateTool) handleClick(ss, p []float64, shift bool) {
+func (s *TempObstacleCreateTool) handleClick(ss, p []float32, shift bool) {
 	if s.m_sample != nil {
 		if shift {
 			s.m_sample.removeTempObstacle(ss, p)
@@ -1009,6 +1010,6 @@ func (s *TempObstacleCreateTool) handleClick(ss, p []float64, shift bool) {
 
 func (s *TempObstacleCreateTool) handleToggle()                                         {}
 func (s *TempObstacleCreateTool) handleStep()                                           {}
-func (s *TempObstacleCreateTool) handleUpdate(dt float64)                               {}
+func (s *TempObstacleCreateTool) handleUpdate(dt float32)                               {}
 func (s *TempObstacleCreateTool) handleRender()                                         {}
-func (s *TempObstacleCreateTool) handleRenderOverlay(proj, model []float64, view []int) {}
+func (s *TempObstacleCreateTool) handleRenderOverlay(proj, model []float32, view []int) {}

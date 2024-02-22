@@ -10,7 +10,7 @@ import (
 // Quick and dirty convex hull.
 
 // Returns true if 'c' is left of line 'a'-'b'.
-func left(a, b, c []float64) bool {
+func left(a, b, c []float32) bool {
 	u1 := b[0] - a[0]
 	v1 := b[2] - a[2]
 	u2 := c[0] - a[0]
@@ -19,7 +19,7 @@ func left(a, b, c []float64) bool {
 }
 
 // Returns true if 'a' is more lower-left than 'b'.
-func cmppt(a, b []float64) bool {
+func cmppt(a, b []float32) bool {
 	if a[0] < b[0] {
 		return true
 	}
@@ -38,7 +38,7 @@ func cmppt(a, b []float64) bool {
 // Calculates convex hull on xz-plane of points on 'pts',
 // stores the indices of the resulting hull in 'out' and
 // returns number of points on hull.
-func convexhull(pts []float64, npts int, out []int) int {
+func convexhull(pts []float32, npts int, out []int) int {
 	// Find lower-leftmost point.
 	hull := 0
 	for i := 1; i < npts; i++ {
@@ -69,7 +69,7 @@ func convexhull(pts []float64, npts int, out []int) int {
 	return i
 }
 
-func pointInPoly(nvert int, verts []float64, p []float64) int {
+func pointInPoly(nvert int, verts []float32, p []float32) int {
 	var i, j, c int
 	i = 0
 	j = nvert - 1
@@ -93,11 +93,11 @@ const (
 type ConvexVolumeTool struct {
 	m_sample     *Sample
 	m_areaType   int
-	m_polyOffset float64
-	m_boxHeight  float64
-	m_boxDescent float64
+	m_polyOffset float32
+	m_boxHeight  float32
+	m_boxDescent float32
 
-	m_pts   []float64
+	m_pts   []float32
 	m_npts  int
 	m_hull  []int
 	m_nhull int
@@ -108,7 +108,7 @@ type ConvexVolumeTool struct {
 func newConvexVolumeTool(ctx *Content) *ConvexVolumeTool {
 	c := &ConvexVolumeTool{
 		ctx:    ctx,
-		m_pts:  make([]float64, MAX_PTS*3),
+		m_pts:  make([]float32, MAX_PTS*3),
 		m_hull: make([]int, MAX_PTS),
 	}
 	ctx.GetConfig().ToolsConfig.OnClearShapeClick = func() {
@@ -124,7 +124,7 @@ func (c *ConvexVolumeTool) reset() {
 	c.m_nhull = 0
 }
 
-func (c *ConvexVolumeTool) handleClick(s []float64, p []float64, shift bool) {
+func (c *ConvexVolumeTool) handleClick(s []float32, p []float32, shift bool) {
 	if c.m_sample == nil {
 		return
 	}
@@ -154,12 +154,12 @@ func (c *ConvexVolumeTool) handleClick(s []float64, p []float64, shift bool) {
 		if c.m_npts != 0 && common.VdistSqr(p, c.m_pts[(c.m_npts-1)*3:]) < common.Sqr(0.2) {
 			if c.m_nhull > 2 {
 				// Create shape.
-				verts := make([]float64, MAX_PTS*3)
+				verts := make([]float32, MAX_PTS*3)
 				for i := 0; i < c.m_nhull; i++ {
 					copy(common.GetVert3(verts, i), common.GetVert3(c.m_pts, c.m_hull[i]))
 				}
 
-				minh := math.MaxFloat64
+				minh := math.Maxfloat32
 				maxh := 0.0
 				for i := 0; i < c.m_nhull; i++ {
 					minh = min(minh, verts[i*3+1])
@@ -169,7 +169,7 @@ func (c *ConvexVolumeTool) handleClick(s []float64, p []float64, shift bool) {
 				maxh = minh + c.m_boxHeight
 
 				if c.m_polyOffset > 0.01 {
-					offset := make([]float64, MAX_PTS*2*3)
+					offset := make([]float32, MAX_PTS*2*3)
 					noffset := recast.RcOffsetPoly(verts, c.m_nhull, c.m_polyOffset, offset, MAX_PTS*2)
 					if noffset > 0 {
 						geom.addConvexVolume(offset, noffset, minh, maxh, c.m_areaType)
@@ -201,7 +201,7 @@ func (c *ConvexVolumeTool) handleRender() {
 	dd := c.m_sample.getDebugDraw()
 
 	// Find height extent of the shape.
-	minh := math.MaxFloat64
+	minh := math.Maxfloat32
 	maxh := 0.0
 	for i := 0; i < c.m_npts; i++ {
 		minh = min(minh, c.m_pts[i*3+1])

@@ -26,19 +26,19 @@ type Sample struct {
 
 	m_navMeshDrawFlags int
 
-	m_cellSize             float64
-	m_cellHeight           float64
-	m_agentHeight          float64
-	m_agentRadius          float64
-	m_agentMaxClimb        float64
-	m_agentMaxSlope        float64
-	m_regionMinSize        float64
-	m_regionMergeSize      float64
-	m_edgeMaxLen           float64
-	m_edgeMaxError         float64
-	m_vertsPerPoly         float64
-	m_detailSampleDist     float64
-	m_detailSampleMaxError float64
+	m_cellSize             float32
+	m_cellHeight           float32
+	m_agentHeight          float32
+	m_agentRadius          float32
+	m_agentMaxClimb        float32
+	m_agentMaxSlope        float32
+	m_regionMinSize        float32
+	m_regionMergeSize      float32
+	m_edgeMaxLen           float32
+	m_edgeMaxError         float32
+	m_vertsPerPoly         float32
+	m_detailSampleDist     float32
+	m_detailSampleMaxError float32
 	m_partitionType        int
 
 	m_filterLowHangingObstacles    bool
@@ -181,9 +181,9 @@ func (s *Sample) getInputGeom() *InputGeom             { return s.m_geom }
 func (s *Sample) getNavMesh() detour.IDtNavMesh        { return s.m_navMesh }
 func (s *Sample) getNavMeshQuery() detour.NavMeshQuery { return s.m_navQuery }
 func (s *Sample) getCrowd() *detour_crowd.DtCrowd      { return s.m_crowd }
-func (s *Sample) getAgentRadius() float64              { return s.m_agentRadius }
-func (s *Sample) getAgentHeight() float64              { return s.m_agentHeight }
-func (s *Sample) getAgentClimb() float64               { return s.m_agentMaxClimb }
+func (s *Sample) getAgentRadius() float32              { return s.m_agentRadius }
+func (s *Sample) getAgentHeight() float32              { return s.m_agentHeight }
+func (s *Sample) getAgentClimb() float32               { return s.m_agentMaxClimb }
 
 func (s *Sample) getNavMeshDrawFlags() int                  { return s.m_navMeshDrawFlags }
 func (s *Sample) setNavMeshDrawFlags(flags int)             { s.m_navMeshDrawFlags = flags }
@@ -194,7 +194,7 @@ func (s *Sample) getDebugDraw() debug_utils.DuDebugDraw { return s.m_dd }
 
 func (s *Sample) handleSettings() {
 }
-func (s *Sample) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *Sample) handleRenderOverlay(proj, model []float32, view []int) {
 }
 func (s *Sample) setTool(tool SampleTool) {
 	s.m_tool = tool
@@ -258,7 +258,7 @@ func (s *Sample) collectSettings(settings *BuildSettings) {
 
 func (s *Sample) handleDebugMode() {
 }
-func (s *Sample) handleClick(ss, p []float64, shift bool) {
+func (s *Sample) handleClick(ss, p []float32, shift bool) {
 	if s.m_tool != nil {
 		s.m_tool.handleClick(ss, p, shift)
 	}
@@ -282,7 +282,7 @@ func (s *Sample) handleBuild() bool {
 	return true
 }
 
-func (s *Sample) handleUpdate(dt float64) {
+func (s *Sample) handleUpdate(dt float32) {
 	if s.m_tool != nil {
 		s.m_tool.handleUpdate(dt)
 	}
@@ -290,7 +290,7 @@ func (s *Sample) handleUpdate(dt float64) {
 	s.updateToolStates(dt)
 }
 
-func (s *Sample) updateToolStates(dt float64) {
+func (s *Sample) updateToolStates(dt float32) {
 	for i := 0; i < MAX_TOOLS; i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleUpdate(dt)
@@ -325,7 +325,7 @@ func (s *Sample) renderToolStates() {
 
 	}
 }
-func (s *Sample) renderOverlayToolStates(proj, model []float64, view []int) {
+func (s *Sample) renderOverlayToolStates(proj, model []float32, view []int) {
 	for i := 0; i < MAX_TOOLS; i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleRenderOverlay(proj, model, view)

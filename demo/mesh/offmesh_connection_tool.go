@@ -9,7 +9,7 @@ import (
 
 type OffMeshConnectionTool struct {
 	m_sample    *Sample
-	m_hitPos    []float64
+	m_hitPos    []float32
 	m_hitPosSet bool
 	m_bidir     bool
 	m_oldFlags  int
@@ -18,7 +18,7 @@ type OffMeshConnectionTool struct {
 
 func newOffMeshConnectionTool(ctx *Content) *OffMeshConnectionTool {
 	return &OffMeshConnectionTool{
-		m_hitPos: make([]float64, 3),
+		m_hitPos: make([]float32, 3),
 		cfg:      ctx.GetConfig(),
 	}
 }
@@ -33,7 +33,7 @@ func (t *OffMeshConnectionTool) init(sample *Sample) {
 }
 func (t *OffMeshConnectionTool) reset() { t.m_hitPosSet = false }
 
-func (t *OffMeshConnectionTool) handleClick(s []float64, p []float64, shift bool) {
+func (t *OffMeshConnectionTool) handleClick(s []float32, p []float32, shift bool) {
 	if t.m_sample == nil {
 		return
 	}
@@ -45,7 +45,7 @@ func (t *OffMeshConnectionTool) handleClick(s []float64, p []float64, shift bool
 	if shift {
 		// Delete
 		// Find nearest link end-point
-		nearestDist := math.MaxFloat64
+		nearestDist := math.Maxfloat32
 		nearestIndex := -1
 		verts := geom.getOffMeshConnectionVerts()
 		for i := 0; i < geom.getOffMeshConnectionCount()*2; i++ {
@@ -91,8 +91,8 @@ func (t *OffMeshConnectionTool) handleRender() {
 	}
 
 }
-func (t *OffMeshConnectionTool) handleRenderOverlay(proj, model []float64, view []int) {
-	res := common.GluProject([]float64{t.m_hitPos[0], t.m_hitPos[1], t.m_hitPos[2]}, model, proj, view)
+func (t *OffMeshConnectionTool) handleRenderOverlay(proj, model []float32, view []int) {
+	res := common.GluProject([]float32{t.m_hitPos[0], t.m_hitPos[1], t.m_hitPos[2]}, model, proj, view)
 	x, y := res[0], res[1]
 	//Draw start and end point labels
 	if t.m_hitPosSet && len(res) > 0 {
@@ -108,4 +108,4 @@ func (t *OffMeshConnectionTool) handleRenderOverlay(proj, model []float64, view 
 }
 func (t *OffMeshConnectionTool) handleToggle()           {}
 func (t *OffMeshConnectionTool) handleStep()             {}
-func (t *OffMeshConnectionTool) handleUpdate(dt float64) {}
+func (t *OffMeshConnectionTool) handleUpdate(dt float32) {}

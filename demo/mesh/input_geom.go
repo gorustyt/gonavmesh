@@ -19,30 +19,30 @@ const MAX_OFFMESH_CONNECTIONS = 256
 const MAX_VOLUMES = 256
 
 type ConvexVolume struct {
-	verts      []float64
-	hmin, hmax float64
+	verts      []float32
+	hmin, hmax float32
 	nverts     int
 	area       int
 }
 
 func newConvexVolume() *ConvexVolume {
 	return &ConvexVolume{
-		verts: make([]float64, MAX_CONVEXVOL_PTS*3),
+		verts: make([]float32, MAX_CONVEXVOL_PTS*3),
 	}
 }
 
 type InputGeom struct {
 	m_chunkyMesh       *rcChunkyTriMesh
 	m_mesh             *rcMeshLoaderObj
-	m_meshBMin         []float64
-	m_meshBMax         []float64
+	m_meshBMin         []float32
+	m_meshBMax         []float32
 	m_buildSettings    *BuildSettings
 	m_hasBuildSettings bool
 
 	/// @name Off-Mesh connections.
 	///@{
-	m_offMeshConVerts []float64
-	m_offMeshConRads  []float64
+	m_offMeshConVerts []float32
+	m_offMeshConRads  []float32
 	m_offMeshConDirs  []int
 	m_offMeshConAreas []int
 	m_offMeshConFlags []int
@@ -59,14 +59,14 @@ type InputGeom struct {
 
 func newInputGeom() *InputGeom {
 	return &InputGeom{
-		m_meshBMin:        make([]float64, 3),
-		m_meshBMax:        make([]float64, 3),
+		m_meshBMin:        make([]float32, 3),
+		m_meshBMax:        make([]float32, 3),
 		m_offMeshConDirs:  make([]int, MAX_OFFMESH_CONNECTIONS),
 		m_offMeshConAreas: make([]int, MAX_OFFMESH_CONNECTIONS),
 		m_offMeshConFlags: make([]int, MAX_OFFMESH_CONNECTIONS),
 		m_offMeshConId:    make([]int, MAX_OFFMESH_CONNECTIONS),
-		m_offMeshConRads:  make([]float64, MAX_OFFMESH_CONNECTIONS),
-		m_offMeshConVerts: make([]float64, MAX_OFFMESH_CONNECTIONS*3*2),
+		m_offMeshConRads:  make([]float32, MAX_OFFMESH_CONNECTIONS),
+		m_offMeshConVerts: make([]float32, MAX_OFFMESH_CONNECTIONS*3*2),
 		m_volumes:         make([]*ConvexVolume, MAX_VOLUMES),
 	}
 }
@@ -114,7 +114,7 @@ func (g *InputGeom) parseRow(ss []string) {
 			bidir := 0
 			area := 0
 			flags := 0
-			var rad float64
+			var rad float32
 			_, err := fmt.Sscanf(strings.Join(ss[1:], " "), "%f %f %f  %f %f %f %f %d %d %d",
 				&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags)
 			g.m_offMeshConRads[g.m_offMeshConCount] = rad
@@ -291,15 +291,15 @@ func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 
 // / Method to return static rcMeshLoaderObj data.
 func (g *InputGeom) getMesh() *rcMeshLoaderObj   { return g.m_mesh }
-func (g *InputGeom) getMeshBoundsMin() []float64 { return g.m_meshBMin }
-func (g *InputGeom) getMeshBoundsMax() []float64 { return g.m_meshBMax }
-func (g *InputGeom) getNavMeshBoundsMin() []float64 {
+func (g *InputGeom) getMeshBoundsMin() []float32 { return g.m_meshBMin }
+func (g *InputGeom) getMeshBoundsMax() []float32 { return g.m_meshBMax }
+func (g *InputGeom) getNavMeshBoundsMin() []float32 {
 	if g.m_hasBuildSettings {
 		return g.m_buildSettings.navMeshBMin[:]
 	}
 	return g.m_meshBMin
 }
-func (g *InputGeom) getNavMeshBoundsMax() []float64 {
+func (g *InputGeom) getNavMeshBoundsMax() []float32 {
 	if g.m_hasBuildSettings {
 		return g.m_buildSettings.navMeshBMax[:]
 	}
@@ -313,7 +313,7 @@ func (g *InputGeom) getBuildSettings() *BuildSettings {
 	return nil
 }
 
-func (g *InputGeom) addConvexVolume(verts []float64, nverts int, minh, maxh float64, area int) {
+func (g *InputGeom) addConvexVolume(verts []float32, nverts int, minh, maxh float32, area int) {
 	if g.m_volumeCount >= MAX_VOLUMES {
 		return
 	}
@@ -402,14 +402,14 @@ func (g *InputGeom) drawConvexVolumes(dd debug_utils.DuDebugDraw, hilights ...bo
 
 	dd.DepthMask(true)
 }
-func (g *InputGeom) raycastMesh(src, dst []float64, tmin *float64) bool {
+func (g *InputGeom) raycastMesh(src, dst []float32, tmin *float32) bool {
 	// Prune hit ray.
-	var btmin, btmax float64
+	var btmin, btmax float32
 	if !isectSegAABB(src, dst, g.m_meshBMin, g.m_meshBMax, btmin, btmax) {
 		return false
 	}
 
-	var p, q [2]float64
+	var p, q [2]float32
 	p[0] = src[0] + (dst[0]-src[0])*btmin
 	p[1] = src[2] + (dst[2]-src[2])*btmin
 	q[0] = src[0] + (dst[0]-src[0])*btmax
@@ -446,14 +446,14 @@ func (g *InputGeom) raycastMesh(src, dst []float64, tmin *float64) bool {
 
 	return hit
 }
-func intersectSegmentTriangle(sp, sq, a, b, c []float64, t float64) bool {
-	var v, w float64
-	ab := make([]float64, 3)
-	ac := make([]float64, 3)
-	qp := make([]float64, 3)
-	ap := make([]float64, 3)
-	norm := make([]float64, 3)
-	e := make([]float64, 3)
+func intersectSegmentTriangle(sp, sq, a, b, c []float32, t float32) bool {
+	var v, w float32
+	ab := make([]float32, 3)
+	ac := make([]float32, 3)
+	qp := make([]float32, 3)
+	ap := make([]float32, 3)
+	norm := make([]float32, 3)
+	e := make([]float32, 3)
 	common.Vsub(ab, b, a)
 	common.Vsub(ac, c, a)
 	common.Vsub(qp, sp, sq)
@@ -537,13 +537,13 @@ func (g *InputGeom) drawOffMeshConnections(dd debug_utils.DuDebugDraw, hilights 
 // / @name Off-Mesh connections.
 // /@{
 func (g *InputGeom) getOffMeshConnectionCount() int       { return g.m_offMeshConCount }
-func (g *InputGeom) getOffMeshConnectionVerts() []float64 { return g.m_offMeshConVerts }
-func (g *InputGeom) getOffMeshConnectionRads() []float64  { return g.m_offMeshConRads }
+func (g *InputGeom) getOffMeshConnectionVerts() []float32 { return g.m_offMeshConVerts }
+func (g *InputGeom) getOffMeshConnectionRads() []float32  { return g.m_offMeshConRads }
 func (g *InputGeom) getOffMeshConnectionDirs() []int      { return g.m_offMeshConDirs }
 func (g *InputGeom) getOffMeshConnectionAreas() []int     { return g.m_offMeshConAreas }
 func (g *InputGeom) getOffMeshConnectionFlags() []int     { return g.m_offMeshConFlags }
 func (g *InputGeom) getOffMeshConnectionId() []int        { return g.m_offMeshConId }
-func (g *InputGeom) addOffMeshConnection(spos, epos []float64, rad float64,
+func (g *InputGeom) addOffMeshConnection(spos, epos []float32, rad float32,
 	bidir int, area int, flags int) {
 	if g.m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS {
 		return
@@ -582,37 +582,37 @@ func (g *InputGeom) deleteConvexVolume(index int) {
 
 type BuildSettings struct {
 	// Cell size in world units
-	cellSize float64
+	cellSize float32
 	// Cell height in world units
-	cellHeight float64
+	cellHeight float32
 	// Agent height in world units
-	agentHeight float64
+	agentHeight float32
 	// Agent radius in world units
-	agentRadius float64
+	agentRadius float32
 	// Agent max climb in world units
-	agentMaxClimb float64
+	agentMaxClimb float32
 	// Agent max slope in degrees
-	agentMaxSlope float64
+	agentMaxSlope float32
 	// Region minimum size in voxels.
 	// regionMinSize = sqrt(regionMinArea)
-	regionMinSize float64
+	regionMinSize float32
 	// Region merge size in voxels.
 	// regionMergeSize = sqrt(regionMergeArea)
-	regionMergeSize float64
+	regionMergeSize float32
 	// Edge max length in world units
-	edgeMaxLen float64
+	edgeMaxLen float32
 	// Edge max error in voxels
-	edgeMaxError float64
-	vertsPerPoly float64
+	edgeMaxError float32
+	vertsPerPoly float32
 	// Detail sample distance in voxels
-	detailSampleDist float64
+	detailSampleDist float32
 	// Detail sample max error in voxel heights.
-	detailSampleMaxError float64
+	detailSampleMaxError float32
 	// Partition type, see SamplePartitionType
 	partitionType int
 	// Bounds of the area to rcMeshLoaderObj
-	navMeshBMin [3]float64
-	navMeshBMax [3]float64
+	navMeshBMin [3]float32
+	navMeshBMax [3]float32
 	// Size of the tiles in voxels
-	tileSize float64
+	tileSize float32
 }

@@ -9,7 +9,7 @@ import (
 
 type meshTitleTool struct {
 	m_sample    *Sample_TileMesh
-	m_hitPos    [3]float64
+	m_hitPos    [3]float32
 	m_hitPosSet bool
 	cfg         *config.Config
 }
@@ -27,7 +27,7 @@ func (m *meshTitleTool) init(sample *Sample) {
 
 func (m *meshTitleTool) Type() int { return TOOL_TILE_EDIT }
 
-func (m *meshTitleTool) handleClick(s []float64, p []float64, shift bool) {
+func (m *meshTitleTool) handleClick(s []float32, p []float32, shift bool) {
 	m.m_hitPosSet = true
 	copy(m.m_hitPos[:], p)
 	if m.m_sample != nil {
@@ -44,7 +44,7 @@ func (m *meshTitleTool) handleToggle() {}
 
 func (m *meshTitleTool) handleStep() {}
 
-func (m *meshTitleTool) handleUpdate(dt float64) {}
+func (m *meshTitleTool) handleUpdate(dt float32) {}
 
 func (m *meshTitleTool) handleRender() {
 	if m.m_hitPosSet {
@@ -63,8 +63,8 @@ func (m *meshTitleTool) handleRender() {
 	}
 }
 
-func (m *meshTitleTool) handleRenderOverlay(proj, model []float64, view []int) {
-	res := common.GluProject([]float64{m.m_hitPos[0], m.m_hitPos[1], m.m_hitPos[2]},
+func (m *meshTitleTool) handleRenderOverlay(proj, model []float32, view []int) {
+	res := common.GluProject([]float32{m.m_hitPos[0], m.m_hitPos[1], m.m_hitPos[2]},
 		model, proj, view)
 	if m.m_hitPosSet && len(res) > 0 {
 		tx := 0

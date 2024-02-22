@@ -13,11 +13,11 @@ func NewDuDebugDraw() DuDebugDraw {
 }
 func (d *DuDebugDrawBase) DepthMask(state bool)                              {}
 func (d *DuDebugDrawBase) Texture(state bool)                                {}
-func (d *DuDebugDrawBase) Begin(prim DuDebugDrawPrimitives, size ...float64) {} //TODO float size = 1.0f
-func (d *DuDebugDrawBase) Vertex(pos []float64, color int)                   {}
-func (d *DuDebugDrawBase) Vertex1(x, y, z float64, color int)                {}
-func (d *DuDebugDrawBase) Vertex2(pos []float64, color int, uv []float64)    {}
-func (d *DuDebugDrawBase) Vertex3(x, y, z float64, color int, u, v float64)  {}
+func (d *DuDebugDrawBase) Begin(prim DuDebugDrawPrimitives, size ...float32) {} //TODO float size = 1.0f
+func (d *DuDebugDrawBase) Vertex(pos []float32, color int)                   {}
+func (d *DuDebugDrawBase) Vertex1(x, y, z float32, color int)                {}
+func (d *DuDebugDrawBase) Vertex2(pos []float32, color int, uv []float32)    {}
+func (d *DuDebugDrawBase) Vertex3(x, y, z float32, color int, u, v float32)  {}
 func (d *DuDebugDrawBase) End()                                              {}
 
 func (d *DuDebugDrawBase) AreaToCol(area int) int {
@@ -40,13 +40,13 @@ func DuIntToCol(i, a int) int {
 	return DuRGBA(r*63, g*63, b*63, a)
 }
 
-func DuIntToCol1(i int, col []float64) {
+func DuIntToCol1(i int, col []float32) {
 	r := Bit(i, 0) + Bit(i, 3)*2 + 1
 	g := Bit(i, 1) + Bit(i, 4)*2 + 1
 	b := Bit(i, 2) + Bit(i, 5)*2 + 1
-	col[0] = 1 - float64(r)*63.0/255.0
-	col[1] = 1 - float64(g)*63.0/255.0
-	col[2] = 1 - float64(b)*63.0/255.0
+	col[0] = 1 - float32(r)*63.0/255.0
+	col[1] = 1 - float32(g)*63.0/255.0
+	col[2] = 1 - float32(b)*63.0/255.0
 }
 
 func DuCalcBoxColors(colors []int, colTop int, colSide int) {
@@ -62,8 +62,8 @@ func DuCalcBoxColors(colors []int, colTop int, colSide int) {
 	colors[5] = duMultCol(colSide, 217)
 }
 
-func DuDebugDrawCylinderWire(dd DuDebugDraw, minx float64, miny, minz,
-	maxx, maxy, maxz float64, col int, lineWidth float64) {
+func DuDebugDrawCylinderWire(dd DuDebugDraw, minx float32, miny, minz,
+	maxx, maxy, maxz float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -74,7 +74,7 @@ func DuDebugDrawCylinderWire(dd DuDebugDraw, minx float64, miny, minz,
 }
 
 func DuDebugDrawBoxWire(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, col int, lineWidth float64) {
+	maxx, maxy, maxz float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -86,7 +86,7 @@ func DuDebugDrawBoxWire(dd DuDebugDraw, minx, miny, minz,
 
 func DuDebugDrawArc(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1, h,
-	as0, as1 float64, col int, lineWidth float64) {
+	as0, as1 float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -98,7 +98,7 @@ func DuDebugDrawArc(dd DuDebugDraw, x0, y0, z0,
 
 func DuDebugDrawArrow(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1,
-	as0, as1 float64, col int, lineWidth float64) {
+	as0, as1 float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -109,7 +109,7 @@ func DuDebugDrawArrow(dd DuDebugDraw, x0, y0, z0,
 }
 
 func DuDebugDrawCircle(dd DuDebugDraw, x, y, z,
-	r float64, col int, lineWidth float64) {
+	r float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -120,7 +120,7 @@ func DuDebugDrawCircle(dd DuDebugDraw, x, y, z,
 }
 
 func DuDebugDrawCross(dd DuDebugDraw, x, y, z,
-	size float64, col int, lineWidth float64) {
+	size float32, col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -131,7 +131,7 @@ func DuDebugDrawCross(dd DuDebugDraw, x, y, z,
 }
 
 func DuDebugDrawBox(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, fcol []int) {
+	maxx, maxy, maxz float32, fcol []int) {
 	if dd == nil {
 		return
 	}
@@ -142,7 +142,7 @@ func DuDebugDrawBox(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuDebugDrawCylinder(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, col int) {
+	maxx, maxy, maxz float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -152,38 +152,38 @@ func DuDebugDrawCylinder(dd DuDebugDraw, minx, miny, minz,
 	dd.End()
 }
 
-func DuDebugDrawGridXZ(dd DuDebugDraw, ox, oy, oz float64,
-	w, h int, size float64,
-	col int, lineWidth float64) {
+func DuDebugDrawGridXZ(dd DuDebugDraw, ox, oy, oz float32,
+	w, h int, size float32,
+	col int, lineWidth float32) {
 	if dd == nil {
 		return
 	}
 
 	dd.Begin(DU_DRAW_LINES, lineWidth)
 	for i := 0; i <= h; i++ {
-		dd.Vertex1(ox, oy, oz+float64(i)*size, col)
-		dd.Vertex1(ox+float64(w)*size, oy, oz+float64(i)*size, col)
+		dd.Vertex1(ox, oy, oz+float32(i)*size, col)
+		dd.Vertex1(ox+float32(w)*size, oy, oz+float32(i)*size, col)
 	}
 	for i := 0; i <= w; i++ {
-		dd.Vertex1(ox+float64(i)*size, oy, oz, col)
-		dd.Vertex1(ox+float64(i)*size, oy, oz+float64(h)*size, col)
+		dd.Vertex1(ox+float32(i)*size, oy, oz, col)
+		dd.Vertex1(ox+float32(i)*size, oy, oz+float32(h)*size, col)
 	}
 	dd.End()
 }
 
 func DuAppendCylinderWire(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, col int) {
+	maxx, maxy, maxz float32, col int) {
 	if dd == nil {
 		return
 	}
 
 	const NUM_SEG = 16
-	dir := make([]float64, NUM_SEG*2)
+	dir := make([]float32, NUM_SEG*2)
 	init := false
 	if !init {
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
-			a := float64(i) / NUM_SEG * math.Pi * 2
+			a := float32(i) / NUM_SEG * math.Pi * 2
 			dir[i*2] = math.Cos(a)
 			dir[i*2+1] = math.Sin(a)
 		}
@@ -210,7 +210,7 @@ func DuAppendCylinderWire(dd DuDebugDraw, minx, miny, minz,
 	}
 }
 
-func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float64, col int) {
+func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -246,7 +246,7 @@ func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float64,
 }
 
 func DuAppendBoxPoints(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, col int) {
+	maxx, maxy, maxz float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -272,11 +272,11 @@ func DuAppendBoxPoints(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuAppendBox(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, fcol []int) {
+	maxx, maxy, maxz float32, fcol []int) {
 	if dd == nil {
 		return
 	}
-	verts := [8 * 3]float64{
+	verts := [8 * 3]float32{
 		minx, miny, minz,
 		maxx, miny, minz,
 		maxx, miny, maxz,
@@ -309,18 +309,18 @@ func DuAppendBox(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuAppendCylinder(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float64, col int) {
+	maxx, maxy, maxz float32, col int) {
 	if dd == nil {
 		return
 	}
 
 	const NUM_SEG = 16
-	dir := make([]float64, NUM_SEG*2)
+	dir := make([]float32, NUM_SEG*2)
 	init := false
 	if !init {
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
-			a := float64(i) / NUM_SEG * math.Pi * 2
+			a := float32(i) / NUM_SEG * math.Pi * 2
 			dir[i*2] = math.Cos(a)
 			dir[i*2+1] = math.Sin(a)
 		}
@@ -365,14 +365,14 @@ func DuAppendCylinder(dd DuDebugDraw, minx, miny, minz,
 }
 func evalArc(x0, y0, z0,
 	dx, dy, dz,
-	h, u float64, res []float64) {
+	h, u float32, res []float32) {
 	res[0] = x0 + dx*u
 	res[1] = y0 + dy*u + h*(1-(u*2-1)*(u*2-1))
 	res[2] = z0 + dz*u
 }
 
-func AppendArrowHead(dd DuDebugDraw, p, q []float64,
-	s float64, col int) {
+func AppendArrowHead(dd DuDebugDraw, p, q []float32,
+	s float32, col int) {
 	eps := 0.001
 	if dd == nil {
 		return
@@ -380,9 +380,9 @@ func AppendArrowHead(dd DuDebugDraw, p, q []float64,
 	if common.VdistSqr(p, q) < eps*eps {
 		return
 	}
-	ax := []float64{0, 1, 0}
-	ay := []float64{0, 1, 0}
-	az := make([]float64, 3)
+	ax := []float32{0, 1, 0}
+	ay := []float32{0, 1, 0}
+	az := make([]float32, 3)
 	common.Vsub(az, q, p)
 	common.Vnormalize(az)
 	common.Vcross(ax, ay, az)
@@ -400,7 +400,7 @@ func AppendArrowHead(dd DuDebugDraw, p, q []float64,
 
 func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1, h,
-	as0, as1 float64, col int) {
+	as0, as1 float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -411,11 +411,11 @@ func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 	dy := y1 - y0
 	dz := z1 - z0
 	length := math.Sqrt(dx*dx + dy*dy + dz*dz)
-	prev := make([]float64, 3)
+	prev := make([]float32, 3)
 	evalArc(x0, y0, z0, dx, dy, dz, length*h, PAD, prev)
 	for i := 1; i <= NUM_ARC_PTS; i++ {
-		u := PAD + float64(i)*ARC_PTS_SCALE
-		pt := make([]float64, 3)
+		u := PAD + float32(i)*ARC_PTS_SCALE
+		pt := make([]float32, 3)
 		evalArc(x0, y0, z0, dx, dy, dz, length*h, u, pt)
 		dd.Vertex1(prev[0], prev[1], prev[2], col)
 		dd.Vertex1(pt[0], pt[1], pt[2], col)
@@ -426,16 +426,16 @@ func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 
 	// End arrows
 	if as0 > 0.001 {
-		p := make([]float64, 3)
-		q := make([]float64, 3)
+		p := make([]float32, 3)
+		q := make([]float32, 3)
 		evalArc(x0, y0, z0, dx, dy, dz, length*h, PAD, p)
 		evalArc(x0, y0, z0, dx, dy, dz, length*h, PAD+0.05, q)
 		AppendArrowHead(dd, p, q, as0, col)
 	}
 
 	if as1 > 0.001 {
-		p := make([]float64, 3)
-		q := make([]float64, 3)
+		p := make([]float32, 3)
+		q := make([]float32, 3)
 		evalArc(x0, y0, z0, dx, dy, dz, length*h, 1-PAD, p)
 		evalArc(x0, y0, z0, dx, dy, dz, length*h, 1-(PAD+0.05), q)
 		AppendArrowHead(dd, p, q, as1, col)
@@ -444,7 +444,7 @@ func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 
 func DuAppendArrow(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1,
-	as0, as1 float64, col int) {
+	as0, as1 float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -453,8 +453,8 @@ func DuAppendArrow(dd DuDebugDraw, x0, y0, z0,
 	dd.Vertex1(x1, y1, z1, col)
 
 	// End arrows
-	p := []float64{x0, y0, z0}
-	q := []float64{x1, y1, z1}
+	p := []float32{x0, y0, z0}
+	q := []float32{x1, y1, z1}
 	if as0 > 0.001 {
 		AppendArrowHead(dd, p, q, as0, col)
 	}
@@ -466,17 +466,17 @@ func DuAppendArrow(dd DuDebugDraw, x0, y0, z0,
 }
 
 func DuAppendCircle(dd DuDebugDraw, x, y, z,
-	r float64, col int) {
+	r float32, col int) {
 	if dd == nil {
 		return
 	}
 	const NUM_SEG = 40
-	dir := make([]float64, 40*2)
+	dir := make([]float32, 40*2)
 	init := false
 	if !init {
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
-			a := float64(i) / NUM_SEG * math.Pi * 2
+			a := float32(i) / NUM_SEG * math.Pi * 2
 			dir[i*2] = math.Cos(a)
 			dir[i*2+1] = math.Sin(a)
 		}
@@ -492,7 +492,7 @@ func DuAppendCircle(dd DuDebugDraw, x, y, z,
 }
 
 func DuAppendCross(dd DuDebugDraw, x, y, z,
-	s float64, col int) {
+	s float32, col int) {
 	if dd == nil {
 		return
 	}
@@ -507,7 +507,7 @@ func DuRGBA(r, g, b, a int) int {
 	return (r) | (g << 8) | (b << 16) | (a << 24)
 }
 
-func DuRGBAf(fr, fg, fb, fa float64) int {
+func DuRGBAf(fr, fg, fb, fa float32) int {
 	r := int(fr * 255.0)
 	g := int(fg * 255.0)
 	b := int(fb * 255.0)
@@ -556,29 +556,29 @@ type DuDebugDraw interface {
 	/// Begin drawing primitives.
 	///  @param prim [in] primitive type to draw, one of rcDebugDrawPrimitives.
 	///  @param size [in] size of a primitive, applies to point size and line width only.
-	Begin(prim DuDebugDrawPrimitives, size ...float64) //TODO float size = 1.0f
+	Begin(prim DuDebugDrawPrimitives, size ...float32) //TODO float size = 1.0f
 
 	/// Submit a vertex
 	///  @param pos [in] position of the verts.
 	///  @param color [in] color of the verts.
-	Vertex(pos []float64, color int)
+	Vertex(pos []float32, color int)
 
 	/// Submit a vertex
 	///  @param x,y,z [in] position of the verts.
 	///  @param color [in] color of the verts.
-	Vertex1(x, y, z float64, color int)
+	Vertex1(x, y, z float32, color int)
 
 	/// Submit a vertex
 	///  @param pos [in] position of the verts.
 	///  @param color [in] color of the verts.
 	///  @param uv [in] the uv coordinates of the verts.
-	Vertex2(pos []float64, color int, uv []float64)
+	Vertex2(pos []float32, color int, uv []float32)
 
 	/// Submit a vertex
 	///  @param x,y,z [in] position of the verts.
 	///  @param color [in] color of the verts.
 	///  @param u,v [in] the uv coordinates of the verts.
-	Vertex3(x, y, z float64, color int, u, v float64)
+	Vertex3(x, y, z float32, color int, u, v float32)
 
 	/// End drawing primitives.
 	End()
@@ -587,13 +587,13 @@ type DuDebugDraw interface {
 	AreaToCol(area int) int
 }
 type DuDisplayList struct {
-	m_pos   []float64
+	m_pos   []float32
 	m_color []int
 	m_size  int
 	m_cap   int
 
 	m_prim      DuDebugDrawPrimitives
-	m_primSize  float64
+	m_primSize  float32
 	m_depthMask bool
 }
 
@@ -624,7 +624,7 @@ const (
 )
 
 func (d *DuDisplayList) resize(cap int) {
-	newPos := make([]float64, cap*3)
+	newPos := make([]float32, cap*3)
 	if d.m_size != 0 {
 		copy(newPos, d.m_pos[:3*d.m_size])
 	}
@@ -648,13 +648,13 @@ func (d *DuDisplayList) depthMask(state bool) {
 	d.m_depthMask = state
 }
 
-func (d *DuDisplayList) begin(prim DuDebugDrawPrimitives, size float64) {
+func (d *DuDisplayList) begin(prim DuDebugDrawPrimitives, size float32) {
 	d.clear()
 	d.m_prim = prim
 	d.m_primSize = size
 }
 
-func (d *DuDisplayList) vertex(x, y, z float64, color int) {
+func (d *DuDisplayList) vertex(x, y, z float32, color int) {
 	if d.m_size+1 >= d.m_cap {
 		d.resize(d.m_cap * 2)
 	}
@@ -667,7 +667,7 @@ func (d *DuDisplayList) vertex(x, y, z float64, color int) {
 	d.m_size++
 }
 
-func (d *DuDisplayList) Vertex(pos []float64, color int) {
+func (d *DuDisplayList) Vertex(pos []float32, color int) {
 	d.vertex(pos[0], pos[1], pos[2], color)
 }
 func (d *DuDisplayList) end() {

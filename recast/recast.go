@@ -10,16 +10,16 @@ import (
 // / @ingroup recast
 type RcConfig struct {
 	/// The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
-	Width int
+	Width int32
 
 	/// The height of the field along the z-axis. [Limit: >= 0] [Units: vx]
-	Height int
+	Height int32
 
 	/// The width/height size of tile's on the xz-plane. [Limit: >= 0] [Units: vx]
-	TileSize int
+	TileSize int32
 
 	/// The size of the non-navigable border around the heightfield. [Limit: >=0] [Units: vx]
-	BorderSize int
+	BorderSize int32
 
 	/// The xz-plane cell size to use for fields. [Limit: > 0] [Units: wu]
 	Cs float32

@@ -13,10 +13,10 @@ import (
 // 负责加载对象数据
 type rcMeshLoaderObj struct {
 	m_filename  string
-	m_scale     float64
-	m_verts     []float64
+	m_scale     float32
+	m_verts     []float32
 	m_tris      []int
-	m_normals   []float64
+	m_normals   []float32
 	m_vertCount int
 	m_triCount  int
 }
@@ -24,8 +24,8 @@ type rcMeshLoaderObj struct {
 func newRcMeshLoaderObj() *rcMeshLoaderObj {
 	return &rcMeshLoaderObj{}
 }
-func (m *rcMeshLoaderObj) getVerts() []float64   { return m.m_verts }
-func (m *rcMeshLoaderObj) getNormals() []float64 { return m.m_normals }
+func (m *rcMeshLoaderObj) getVerts() []float32   { return m.m_verts }
+func (m *rcMeshLoaderObj) getNormals() []float32 { return m.m_normals }
 func (m *rcMeshLoaderObj) getTris() []int        { return m.m_tris }
 func (m *rcMeshLoaderObj) getVertCount() int     { return m.m_vertCount }
 func (m *rcMeshLoaderObj) getTriCount() int      { return m.m_triCount }
@@ -122,13 +122,13 @@ func (m *rcMeshLoaderObj) parseRow(ss []string) {
 		m.parseFace(ss[1:])
 	}
 	// Calculate normals.
-	m.m_normals = make([]float64, m.m_triCount*3)
+	m.m_normals = make([]float32, m.m_triCount*3)
 	for i := 0; i < m.m_triCount*3; i += 3 {
 		v0 := m.m_verts[m.m_tris[i]*3:]
 		v1 := m.m_verts[m.m_tris[i+1]*3:]
 		v2 := m.m_verts[m.m_tris[i+2]*3:]
-		e0 := make([]float64, 3)
-		e1 := make([]float64, 3)
+		e0 := make([]float32, 3)
+		e1 := make([]float32, 3)
 		for j := 0; j < 3; j++ {
 			e0[j] = v1[j] - v0[j]
 			e1[j] = v2[j] - v0[j]
@@ -147,7 +147,7 @@ func (m *rcMeshLoaderObj) parseRow(ss []string) {
 	}
 }
 
-func (m *rcMeshLoaderObj) addVertex(x, y, z float64) {
+func (m *rcMeshLoaderObj) addVertex(x, y, z float32) {
 	m.m_verts = append(m.m_verts, x*m.m_scale, y*m.m_scale, z*m.m_scale)
 	m.m_vertCount++
 }

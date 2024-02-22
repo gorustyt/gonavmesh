@@ -83,10 +83,10 @@ func (s *SampleSoloMesh) cleanup() {
 
 func (s *SampleSoloMesh) handleSettings() {
 	s.Sample.handleCommonSettings()
-	s.cfg.PropsConfig.SetBuildTimeLabelData(float64(s.m_totalBuildTimeMs))
+	s.cfg.PropsConfig.SetBuildTimeLabelData(float32(s.m_totalBuildTimeMs))
 }
 
-func (s *SampleSoloMesh) handleDebugMode() {
+func (s *SampleSoloMesh) onDrawModeChange() {
 	// Check which modes are valid.
 	valid := make([]bool, SOLOMESH_MAX_DRAWMODE)
 	for i := 0; i < int(SOLOMESH_MAX_DRAWMODE); i++ {
@@ -319,7 +319,7 @@ func (s *SampleSoloMesh) handleRender() {
 	gl.DepthMask(true)
 }
 
-func (s *SampleSoloMesh) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *SampleSoloMesh) handleRenderOverlay(proj, model []float32, view []int) {
 	if s.m_tool != nil {
 		s.m_tool.handleRenderOverlay(proj, model, view)
 	}
@@ -363,9 +363,9 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	s.m_cfg.Cs = float32(s.m_cellSize)
 	s.m_cfg.Ch = float32(s.m_cellHeight)
 	s.m_cfg.WalkableSlopeAngle = float32(s.m_agentMaxSlope)
-	s.m_cfg.WalkableHeight = int(math.Ceil(s.m_agentHeight / float64(s.m_cfg.Ch)))
-	s.m_cfg.WalkableClimb = int(math.Floor(s.m_agentMaxClimb / float64(s.m_cfg.Ch)))
-	s.m_cfg.WalkableRadius = int(math.Ceil(s.m_agentRadius / float64(s.m_cfg.Cs)))
+	s.m_cfg.WalkableHeight = int(math.Ceil(s.m_agentHeight / float32(s.m_cfg.Ch)))
+	s.m_cfg.WalkableClimb = int(math.Floor(s.m_agentMaxClimb / float32(s.m_cfg.Ch)))
+	s.m_cfg.WalkableRadius = int(math.Ceil(s.m_agentRadius / float32(s.m_cfg.Cs)))
 	s.m_cfg.MaxEdgeLen = int(s.m_edgeMaxLen / s.m_cellSize)
 	s.m_cfg.MaxSimplificationError = float32(s.m_edgeMaxError)
 	s.m_cfg.MinRegionArea = int(common.Sqr(s.m_regionMinSize))     // Note: area = size*size
@@ -380,8 +380,8 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input rcMeshLoaderObj are used, but the
 	// area could be specified by an user defined box, etc.
-	copy(s.m_cfg.Bmin[:], common.SliceTToSlice[float64, float32](bmin))
-	copy(s.m_cfg.Bmax[:], common.SliceTToSlice[float64, float32](bmax))
+	copy(s.m_cfg.Bmin[:], common.SliceTToSlice[float32, float32](bmin))
+	copy(s.m_cfg.Bmax[:], common.SliceTToSlice[float32, float32](bmax))
 	recast.RcCalcGridSize(s.m_cfg.Bmin[:], s.m_cfg.Bmax[:], s.m_cfg.Cs, &s.m_cfg.Width, &s.m_cfg.Height)
 
 	log.Printf("Building navigation:")
@@ -582,7 +582,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 			}
 		}
 
-		var params detour.DTNavMeshCreateParams
+		var params detour.DtNavMeshCreateParams
 		params.Verts = s.m_pmesh.Verts
 		params.VertCount = s.m_pmesh.Nverts
 		params.Polys = s.m_pmesh.Polys
@@ -611,7 +611,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		params.Ch = s.m_cfg.Ch
 		params.BuildBvTree = true
 
-		navData, ok := detour.DTCreateNavMeshData(&params)
+		navData, ok := detour.DtCreateNavMeshData(&params)
 		if !ok {
 			log.Printf("Could not build Detour navmesh.")
 			return false

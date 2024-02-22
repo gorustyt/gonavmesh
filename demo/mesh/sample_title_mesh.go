@@ -51,13 +51,13 @@ type Sample_TileMesh struct {
 	m_drawMode        TitleMeshDrawMode
 	m_maxTiles        int
 	m_maxPolysPerTile int
-	m_tileSize        float64
+	m_tileSize        float32
 
 	m_tileCol           int
-	m_lastBuiltTileBmin [3]float64
-	m_lastBuiltTileBmax [3]float64
+	m_lastBuiltTileBmin [3]float32
+	m_lastBuiltTileBmax [3]float32
 	m_tileBuildTime     time.Duration
-	m_tileMemUsage      float64
+	m_tileMemUsage      float32
 	m_tileTriCount      int
 }
 
@@ -142,9 +142,9 @@ func (s *Sample_TileMesh) handleSettings() {
 }
 
 func (s *Sample_TileMesh) handleRender() {}
-func (s *Sample_TileMesh) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *Sample_TileMesh) handleRenderOverlay(proj, model []float32, view []int) {
 	// Draw start and end point labels
-	res := common.GluProject([]float64{s.m_lastBuiltTileBmin[0] + s.m_lastBuiltTileBmax[0]/2, (s.m_lastBuiltTileBmin[1] + s.m_lastBuiltTileBmax[1]) / 2, (s.m_lastBuiltTileBmin[2] + s.m_lastBuiltTileBmax[2]) / 2}, model, proj, view)
+	res := common.GluProject([]float32{s.m_lastBuiltTileBmin[0] + s.m_lastBuiltTileBmax[0]/2, (s.m_lastBuiltTileBmin[1] + s.m_lastBuiltTileBmax[1]) / 2, (s.m_lastBuiltTileBmin[2] + s.m_lastBuiltTileBmax[2]) / 2}, model, proj, view)
 	if s.m_tileBuildTime > 0.0 && len(res) > 0 {
 		x, y := int(res[0]), int(res[1])
 		text := fmt.Sprintf("%.3fms / %dTris / %.1fkB", s.m_tileBuildTime, s.m_tileTriCount, s.m_tileMemUsage)
@@ -219,7 +219,7 @@ func (s *Sample_TileMesh) collectSettings(settings *BuildSettings) {
 	settings.tileSize = s.m_tileSize
 }
 
-func (s *Sample_TileMesh) getTilePos(pos []float64, tx, ty *int) {
+func (s *Sample_TileMesh) getTilePos(pos []float32, tx, ty *int) {
 	if s.m_geom == nil {
 		return
 	}
@@ -231,7 +231,7 @@ func (s *Sample_TileMesh) getTilePos(pos []float64, tx, ty *int) {
 	*ty = int((pos[2] - bmin[2]) / ts)
 }
 
-func (s *Sample_TileMesh) buildTile(pos []float64) {
+func (s *Sample_TileMesh) buildTile(pos []float32) {
 	if s.m_geom == nil {
 		return
 	}
@@ -246,13 +246,13 @@ func (s *Sample_TileMesh) buildTile(pos []float64) {
 	tx := (int)((pos[0] - bmin[0]) / ts)
 	ty := (int)((pos[2] - bmin[2]) / ts)
 
-	s.m_lastBuiltTileBmin[0] = bmin[0] + float64(tx)*ts
+	s.m_lastBuiltTileBmin[0] = bmin[0] + float32(tx)*ts
 	s.m_lastBuiltTileBmin[1] = bmin[1]
-	s.m_lastBuiltTileBmin[2] = bmin[2] + float64(ty)*ts
+	s.m_lastBuiltTileBmin[2] = bmin[2] + float32(ty)*ts
 
-	s.m_lastBuiltTileBmax[0] = bmin[0] + float64(tx+1)*ts
+	s.m_lastBuiltTileBmax[0] = bmin[0] + float32(tx+1)*ts
 	s.m_lastBuiltTileBmax[1] = bmax[1]
-	s.m_lastBuiltTileBmax[2] = bmin[2] + float64(ty+1)*ts
+	s.m_lastBuiltTileBmax[2] = bmin[2] + float32(ty+1)*ts
 
 	s.m_tileCol = debug_utils.DuRGBA(255, 255, 255, 64)
 
@@ -271,7 +271,7 @@ func (s *Sample_TileMesh) buildTile(pos []float64) {
 
 	s.l.dumpLog("Build Tile (%d,%d):", tx, ty)
 }
-func (s *Sample_TileMesh) removeTile(pos []float64) {
+func (s *Sample_TileMesh) removeTile(pos []float32) {
 	if s.m_geom == nil || s.m_navMesh == nil {
 		return
 	}
@@ -441,13 +441,13 @@ func (s *Sample_TileMesh) buildAllTiles() {
 	now := time.Now()
 	for y := 0; y < th; y++ {
 		for x := 0; x < tw; x++ {
-			s.m_lastBuiltTileBmin[0] = bmin[0] + float64(x)*tcs
+			s.m_lastBuiltTileBmin[0] = bmin[0] + float32(x)*tcs
 			s.m_lastBuiltTileBmin[1] = bmin[1]
-			s.m_lastBuiltTileBmin[2] = bmin[2] + float64(y)*tcs
+			s.m_lastBuiltTileBmin[2] = bmin[2] + float32(y)*tcs
 
-			s.m_lastBuiltTileBmax[0] = bmin[0] + float64(x+1)*tcs
+			s.m_lastBuiltTileBmax[0] = bmin[0] + float32(x+1)*tcs
 			s.m_lastBuiltTileBmax[1] = bmax[1]
-			s.m_lastBuiltTileBmax[2] = bmin[2] + float64(y+1)*tcs
+			s.m_lastBuiltTileBmax[2] = bmin[2] + float32(y+1)*tcs
 			data := s.buildTileMesh(x, y, s.m_lastBuiltTileBmin[:], s.m_lastBuiltTileBmax[:])
 			if data != nil {
 				// Remove any previous data (navmesh owns and deletes the data).
@@ -481,7 +481,7 @@ func (s *Sample_TileMesh) removeAllTiles() {
 	}
 
 }
-func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data *recast.NavMeshData) {
+func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float32) (data *recast.NavMeshData) {
 	if s.m_geom == nil || s.m_geom.getMesh() == nil || s.m_geom.getChunkyMesh() == nil {
 		log.Printf("buildNavigation: Input rcMeshLoaderObj is not specified.")
 		return
@@ -544,10 +544,10 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 	// or use the bounding box below to only pass in a sliver of each of the 8 neighbours.
 	copy(m_cfg.Bmin[:], bmin)
 	copy(m_cfg.Bmax[:], bmax)
-	m_cfg.Bmin[0] -= float64(m_cfg.BorderSize) * m_cfg.Cs
-	m_cfg.Bmin[2] -= float64(m_cfg.BorderSize) * m_cfg.Cs
-	m_cfg.Bmax[0] += float64(m_cfg.BorderSize) * m_cfg.Cs
-	m_cfg.Bmax[2] += float64(m_cfg.BorderSize) * m_cfg.Cs
+	m_cfg.Bmin[0] -= float32(m_cfg.BorderSize) * m_cfg.Cs
+	m_cfg.Bmin[2] -= float32(m_cfg.BorderSize) * m_cfg.Cs
+	m_cfg.Bmax[0] += float32(m_cfg.BorderSize) * m_cfg.Cs
+	m_cfg.Bmax[2] += float32(m_cfg.BorderSize) * m_cfg.Cs
 
 	// Reset build times gathering.
 	// Start the build process.
@@ -566,8 +566,8 @@ func (s *Sample_TileMesh) buildTileMesh(tx, ty int, bmin, bmax []float64) (data 
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
 	s.m_triareas = []int{}
-	var tbmin [2]float64
-	var tbmax [2]float64
+	var tbmin [2]float32
+	var tbmax [2]float32
 	tbmin[0] = m_cfg.Bmin[0]
 	tbmin[1] = m_cfg.Bmin[2]
 	tbmax[0] = m_cfg.Bmax[0]

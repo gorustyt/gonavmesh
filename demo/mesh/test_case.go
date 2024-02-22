@@ -22,16 +22,16 @@ const (
 
 type Test struct {
 	Type         TestType
-	spos         []float64
-	epos         []float64
-	nspos        []float64
-	nepos        []float64
-	radius       float64
+	spos         []float32
+	epos         []float32
+	nspos        []float32
+	nepos        []float32
+	radius       float32
 	includeFlags int
 	excludeFlags int
 	expand       bool
 
-	straight  []float64
+	straight  []float32
 	nstraight int
 	polys     []detour.DtPolyRef
 	npolys    int
@@ -45,10 +45,10 @@ type Test struct {
 
 func newTest() *Test {
 	return &Test{
-		spos:  make([]float64, 3),
-		epos:  make([]float64, 3),
-		nspos: make([]float64, 3),
-		nepos: make([]float64, 3),
+		spos:  make([]float32, 3),
+		epos:  make([]float32, 3),
+		nspos: make([]float32, 3),
+		nepos: make([]float32, 3),
 	}
 }
 
@@ -147,8 +147,8 @@ func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery detour.NavMeshQue
 
 	const MAX_POLYS = 256
 	polys := make([]detour.DtPolyRef, MAX_POLYS)
-	straight := make([]float64, MAX_POLYS*3)
-	polyPickExt := []float64{2, 4, 2}
+	straight := make([]float32, MAX_POLYS*3)
+	polyPickExt := []float32{2, 4, 2}
 
 	for iter := t.m_tests; iter != nil; iter = iter.next {
 		iter.polys = nil
@@ -198,15 +198,15 @@ func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery detour.NavMeshQue
 				copy(iter.polys, polys[:iter.npolys])
 			}
 			if iter.nstraight > 0 {
-				iter.straight = make([]float64, iter.nstraight*3)
+				iter.straight = make([]float32, iter.nstraight*3)
 				copy(iter.straight, straight[:3*iter.nstraight])
 			}
 		} else if iter.Type == TEST_RAYCAST {
 			tt := 0.0
 
-			hitNormal := make([]float64, 2*3)
-			hitPos := make([]float64, 2*3)
-			iter.straight = make([]float64, 2*3)
+			hitNormal := make([]float32, 2*3)
+			hitPos := make([]float32, 2*3)
+			iter.straight = make([]float32, 2*3)
 			iter.nstraight = 2
 
 			iter.straight[0] = iter.spos[0]
@@ -244,10 +244,10 @@ func (t *TestCase) doTests(navmesh recast.IDtNavMesh, navquery detour.NavMeshQue
 	n := 0
 	for iter := t.m_tests; iter != nil; iter = iter.next {
 		total := iter.findNearestPolyTime + iter.findPathTime + iter.findStraightPathTime
-		log.Printf(" - Path %02d:     %.4f ms\n", n, float64(total)/1000.0)
-		log.Printf("    - poly:     %.4f ms\n", float64(iter.findNearestPolyTime)/1000.0)
-		log.Printf("    - path:     %.4f ms\n", float64(iter.findPathTime)/1000.0)
-		log.Printf("    - straight: %.4f ms\n", float64(iter.findStraightPathTime)/1000.0)
+		log.Printf(" - Path %02d:     %.4f ms\n", n, float32(total)/1000.0)
+		log.Printf("    - poly:     %.4f ms\n", float32(iter.findNearestPolyTime)/1000.0)
+		log.Printf("    - path:     %.4f ms\n", float32(iter.findPathTime)/1000.0)
+		log.Printf("    - straight: %.4f ms\n", float32(iter.findStraightPathTime)/1000.0)
 		n++
 	}
 }
@@ -256,7 +256,7 @@ func (t *TestCase) handleRender() {
 	gl.LineWidth(2.0)
 	glBegin(GL_LINES)
 	for iter := t.m_tests; iter != nil; iter = iter.next {
-		dir := make([]float64, 3)
+		dir := make([]float32, 3)
 		common.Vsub(dir, iter.epos[:], iter.spos[:])
 		common.Vnormalize(dir)
 		glColor4ub(128, 25, 0, 192)
@@ -307,15 +307,15 @@ func (t *TestCase) handleRender() {
 	gl.End()
 	gl.LineWidth(1.0)
 }
-func (t *TestCase) handleRenderOverlay(proj, model []float64, view []int) bool {
+func (t *TestCase) handleRenderOverlay(proj, model []float32, view []int) bool {
 	var text, subtext string
 	n := 0
 
 	LABEL_DIST := 1.0
 
 	for iter := t.m_tests; iter != nil; iter = iter.next {
-		pt := make([]float64, 3)
-		dir := make([]float64, 3)
+		pt := make([]float32, 3)
+		dir := make([]float32, 3)
 		if iter.nstraight > 0 {
 			copy(pt, iter.straight[3:])
 			if common.Vdist(pt, iter.spos[:]) > LABEL_DIST {
@@ -330,7 +330,7 @@ func (t *TestCase) handleRenderOverlay(proj, model []float64, view []int) bool {
 			common.Vmad(pt, iter.spos[:], dir, LABEL_DIST)
 			pt[1] += 0.5
 		}
-		res := common.GluProject([]float64{pt[0], pt[1], pt[2]},
+		res := common.GluProject([]float32{pt[0], pt[1], pt[2]},
 			model, proj, view)
 		if len(res) > 0 {
 			x, y := int(res[0]), int(res[1])
@@ -352,7 +352,7 @@ func (t *TestCase) handleRenderOverlay(proj, model []float64, view []int) bool {
 	n = 0
 	for iter := t.m_tests; iter != nil; iter = iter.next {
 		total := iter.findNearestPolyTime + iter.findPathTime + iter.findStraightPathTime
-		subtext = fmt.Sprintf("%.4f ms", float64(total)/1000.0)
+		subtext = fmt.Sprintf("%.4f ms", float32(total)/1000.0)
 		text = fmt.Sprintf("Path %d", n)
 
 		if t.gs.imguiCollapse(text, subtext, iter.expand) {
@@ -360,13 +360,13 @@ func (t *TestCase) handleRenderOverlay(proj, model []float64, view []int) bool {
 		}
 
 		if iter.expand {
-			text = fmt.Sprintf("Poly: %.4f ms", float64(iter.findNearestPolyTime)/1000.0)
+			text = fmt.Sprintf("Poly: %.4f ms", float32(iter.findNearestPolyTime)/1000.0)
 			t.gs.imguiValue(text)
 
-			text = fmt.Sprintf("Path: %.4f ms", float64(iter.findPathTime)/1000.0)
+			text = fmt.Sprintf("Path: %.4f ms", float32(iter.findPathTime)/1000.0)
 			t.gs.imguiValue(text)
 
-			text = fmt.Sprintf("Straight: %.4f ms", float64(iter.findStraightPathTime)/1000.0)
+			text = fmt.Sprintf("Straight: %.4f ms", float32(iter.findStraightPathTime)/1000.0)
 			t.gs.imguiValue(text)
 
 			t.gs.imguiSeparator()

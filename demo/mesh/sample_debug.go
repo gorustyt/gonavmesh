@@ -11,10 +11,10 @@ type SampleDebug struct {
 	m_chf         *recast.RcCompactHeightfield
 	m_cset        *recast.RcContourSet
 	m_pmesh       *recast.RcPolyMesh
-	m_halfExtents [3]float64
-	m_center      [3]float64
-	m_bmin        [3]float64
-	m_bmax        [3]float64
+	m_halfExtents [3]float32
+	m_center      [3]float32
+	m_bmin        [3]float32
+	m_bmax        [3]float32
 	m_ref         detour.DtPolyRef
 }
 
@@ -29,7 +29,7 @@ func (s *SampleDebug) handleSettings() {}
 func (s *SampleDebug) handleDebugMode() {
 
 }
-func (s *SampleDebug) handleClick(ss, p []float64, shift bool) {
+func (s *SampleDebug) handleClick(ss, p []float32, shift bool) {
 	if s.m_tool != nil {
 		s.m_tool.handleClick(ss, p, shift)
 	}
@@ -43,7 +43,7 @@ func (s *SampleDebug) handleToggle() {
 func (s *SampleDebug) handleRender() {
 
 }
-func (s *SampleDebug) handleRenderOverlay(proj, model []float64, view []int) {
+func (s *SampleDebug) handleRenderOverlay(proj, model []float32, view []int) {
 
 }
 func (s *SampleDebug) handleMeshChanged(geom *InputGeom) {
@@ -53,13 +53,13 @@ func (s *SampleDebug) handleBuild() {
 
 }
 
-func (s *SampleDebug) getBoundsMin() []float64 {
+func (s *SampleDebug) getBoundsMin() []float32 {
 	if s.m_cset != nil {
-		return common.SliceTToSlice[float32, float64](s.m_cset.Bmin)
+		return common.SliceTToSlice[float32, float32](s.m_cset.Bmin)
 	}
 
 	if s.m_chf != nil {
-		return common.SliceTToSlice[float32, float64](s.m_chf.Bmin[:])
+		return common.SliceTToSlice[float32, float32](s.m_chf.Bmin[:])
 	}
 
 	if s.m_navMesh != nil {
@@ -68,13 +68,13 @@ func (s *SampleDebug) getBoundsMin() []float64 {
 
 	return nil
 }
-func (s *SampleDebug) getBoundsMax() []float64 {
+func (s *SampleDebug) getBoundsMax() []float32 {
 	if s.m_cset != nil {
-		return common.SliceTToSlice[float32, float64](s.m_cset.Bmax)
+		return common.SliceTToSlice[float32, float32](s.m_cset.Bmax)
 	}
 
 	if s.m_chf != nil {
-		return common.SliceTToSlice[float32, float64](s.m_chf.Bmax[:])
+		return common.SliceTToSlice[float32, float32](s.m_chf.Bmax[:])
 	}
 
 	if s.m_navMesh != nil {

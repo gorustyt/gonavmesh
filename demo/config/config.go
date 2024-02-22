@@ -48,8 +48,9 @@ type ToolsConfig struct {
 	OnMakeRandomPointsAroundClick func()
 	OnMakeRandomPointsClick       func()
 
-	IncludeFlags []string
-	ExcludeFlags []string
+	IncludeFlags  []string
+	ExcludeFlags  []string
+	OnFlagsChange func()
 	//TOOL_NAVMESH_PRUNE
 
 	//TOOL_OFFMESH_CONNECTION
@@ -62,6 +63,7 @@ type ToolsConfig struct {
 	OnClearShapeClick func()
 	//TOOL_CROWD
 	ToolModel               string
+	OnToolModelChange       func()
 	ExpandOptions           []string
 	ExpandOptionsOnchange   func()
 	ObstacleAvoidanceType   float64

@@ -21,6 +21,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 		config.DESC_SAMPLE_POLYFLAGS_JUMP,
 	}, func(strings []string) {
 		cfg.ToolsConfig.IncludeFlags = strings
+		cfg.ToolsConfig.OnFlagsChange()
 	})
 	checkGroup1.Selected = cfg.ToolsConfig.IncludeFlags
 	checkGroup2 := widget.NewCheckGroup([]string{
@@ -30,6 +31,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 		config.DESC_SAMPLE_POLYFLAGS_JUMP,
 	}, func(strings []string) {
 		cfg.ToolsConfig.ExcludeFlags = strings
+		cfg.ToolsConfig.OnFlagsChange()
 	})
 	b1 := widget.NewButton("Set Random Start", cfg.ToolsConfig.OnSetRandomStartClick)
 	b2 := widget.NewButton("Set Random End", cfg.ToolsConfig.OnSetRandomEndClick)
@@ -42,6 +44,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 		config.DT_STRAIGHTPATH_ALL_CROSSINGS,
 	}, func(v string) {
 		cfg.ToolsConfig.PathfindStraight = v
+		cfg.ToolsConfig.OnToolModelChange()
 	})
 	c1 := container.NewVBox(widget.NewLabel("Vertices at crossings"), group1, widget.NewSeparator())
 	c1.Hide()
@@ -57,6 +60,7 @@ func NewToolsTestNavmesh(ctx *Context) *ToolsTestNavmesh {
 		config.Desc_TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD,
 	}, func(s string) {
 		cfg.ToolsConfig.ToolModel = s
+		cfg.ToolsConfig.OnToolModelChange()
 		if s == config.Desc_TOOLMODE_PATHFIND_STRAIGHT {
 			c1.Show()
 		} else {
