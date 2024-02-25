@@ -153,11 +153,17 @@ func rcCreateChunkyTriMesh(verts []float32, tris []int, ntris int,
 	nchunks := (ntris + trisPerChunk - 1) / trisPerChunk
 
 	cm.nodes = make([]*rcChunkyTriMeshNode, nchunks*4)
+	for i := range cm.nodes {
+		cm.nodes[i] = &rcChunkyTriMeshNode{}
+	}
 	cm.tris = make([]int, ntris*3)
 	cm.ntris = ntris
 
 	// Build tree
 	items := make([]*BoundsItem, ntris)
+	for i := range items {
+		items[i] = &BoundsItem{}
+	}
 	for i := 0; i < ntris; i++ {
 		t := tris[i*3:]
 		it := items[i]
@@ -259,7 +265,7 @@ func checkOverlapSegment(p, q, bmin, bmax [2]float32) bool {
 	d[1] = q[1] - p[1]
 
 	for i := 0; i < 2; i++ {
-		if math.Abs(d[i]) < EPSILON {
+		if math.Abs(float64(d[i])) < EPSILON {
 			// Ray is parallel to slab. No hit if origin not within slab
 			if p[i] < bmin[i] || p[i] > bmax[i] {
 				return false
@@ -275,11 +281,11 @@ func checkOverlapSegment(p, q, bmin, bmax [2]float32) bool {
 				t1 = t2
 				t2 = tmp
 			}
-			if t1 > tmin {
-				tmin = t1
+			if float64(t1) > tmin {
+				tmin = float64(t1)
 			}
-			if t2 < tmax {
-				tmax = t2
+			if float64(t2) < tmax {
+				tmax = float64(t2)
 			}
 			if tmin > tmax {
 				return false

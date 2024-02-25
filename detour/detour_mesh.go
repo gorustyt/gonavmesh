@@ -410,6 +410,7 @@ func (d *NavMeshParams) ToBin(w *rw.ReaderWriter) {
 }
 
 type IDtNavMesh interface {
+	GetParams() *NavMeshParams
 	/// Adds a tile to the navigation mesh.
 	///  @param[in]		data		Data for the new tile mesh. (See: #dtCreateNavMeshData)
 	///  @param[in]		dataSize	Data size of the new tile mesh.

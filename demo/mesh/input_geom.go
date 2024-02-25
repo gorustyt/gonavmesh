@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/debug_utils"
+	"github.com/gorustyt/gonavmesh/demo/config"
 	"io"
 	"log"
 	"os"
@@ -70,6 +71,7 @@ func newInputGeom() *InputGeom {
 		m_volumes:         make([]*ConvexVolume, MAX_VOLUMES),
 	}
 }
+
 func (g *InputGeom) loadMesh(path string) bool {
 	if g.m_mesh != nil {
 		g.m_chunkyMesh = nil
@@ -98,6 +100,7 @@ func (g *InputGeom) loadMesh(path string) bool {
 
 	return true
 }
+
 func (g *InputGeom) parseRow(ss []string) {
 	switch ss[0] {
 	case "f":
@@ -199,11 +202,11 @@ func (g *InputGeom) loadGeomSet(path string) bool {
 }
 func (g *InputGeom) load(path string) bool {
 	extension := filepath.Ext(path)
-	if extension == ".gset" {
+	if extension == config.MeshSetExt {
 		return g.loadGeomSet(path)
 	}
 
-	if extension == ".obj" {
+	if extension == config.MeshObjExt {
 		return g.loadMesh(path)
 	}
 	return false
@@ -215,7 +218,7 @@ func (g *InputGeom) saveGeomSet(settings *BuildSettings) bool {
 	}
 
 	// Change extension
-	path := g.m_mesh.getFileName() + ".gset"
+	path := g.m_mesh.getFileName() + config.MeshSetExt
 	fp, err := os.Open(path)
 	defer fp.Close()
 	common.AssertTrue(err == nil)
@@ -306,6 +309,7 @@ func (g *InputGeom) getNavMeshBoundsMax() []float32 {
 	return g.m_meshBMax
 }
 func (g *InputGeom) getChunkyMesh() *rcChunkyTriMesh { return g.m_chunkyMesh }
+
 func (g *InputGeom) getBuildSettings() *BuildSettings {
 	if g.m_hasBuildSettings {
 		return g.m_buildSettings
@@ -431,7 +435,7 @@ func (g *InputGeom) raycastMesh(src, dst []float32, tmin *float32) bool {
 		ntris := node.n
 
 		for j := 0; j < ntris*3; j += 3 {
-			t := 1.0
+			t := float32(1.0)
 			if intersectSegmentTriangle(src, dst,
 				common.GetVert3(verts, tris[j]),
 				common.GetVert3(verts, tris[j+1]),
@@ -521,7 +525,7 @@ func (g *InputGeom) drawOffMeshConnections(dd debug_utils.DuDebugDraw, hilights 
 		debug_utils.DuAppendCircle(dd, v[3], v[4]+0.1, v[5], g.m_offMeshConRads[i], baseColor)
 
 		if hilight {
-			tmp := 0.0
+			tmp := float32(0.0)
 			if g.m_offMeshConDirs[i]&1 > 0 {
 				tmp = 0.6
 			}

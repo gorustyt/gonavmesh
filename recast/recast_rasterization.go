@@ -297,14 +297,14 @@ func dividePoly(inVerts []float32, inVertsCount int32,
 // / @param[in]	flagMergeThreshold	How close two spans maximum extents need to be to merge area type IDs
 func addSpan(heightfield *RcHeightfield,
 	x, z int32,
-	min, max uint16, areaID uint8, flagMergeThreshold int32) bool {
+	minValue, maxValue uint16, areaID uint8, flagMergeThreshold int32) bool {
 	// Create the new span.
 	newSpan := allocSpan(heightfield)
 	if newSpan == nil {
 		return false
 	}
-	newSpan.Smin = uint32(min)
-	newSpan.Smax = uint32(max)
+	newSpan.Smin = uint32(minValue)
+	newSpan.Smax = uint32(maxValue)
 	newSpan.Area = uint32(areaID)
 	newSpan.Next = nil
 

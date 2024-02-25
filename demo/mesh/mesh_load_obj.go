@@ -22,7 +22,7 @@ type rcMeshLoaderObj struct {
 }
 
 func newRcMeshLoaderObj() *rcMeshLoaderObj {
-	return &rcMeshLoaderObj{}
+	return &rcMeshLoaderObj{m_scale: 1}
 }
 func (m *rcMeshLoaderObj) getVerts() []float32   { return m.m_verts }
 func (m *rcMeshLoaderObj) getNormals() []float32 { return m.m_normals }
@@ -30,9 +30,6 @@ func (m *rcMeshLoaderObj) getTris() []int        { return m.m_tris }
 func (m *rcMeshLoaderObj) getVertCount() int     { return m.m_vertCount }
 func (m *rcMeshLoaderObj) getTriCount() int      { return m.m_triCount }
 func (m *rcMeshLoaderObj) getFileName() string   { return m.m_filename }
-func mewMesh() *rcMeshLoaderObj {
-	return &rcMeshLoaderObj{m_scale: 1}
-}
 
 func (m *rcMeshLoaderObj) Load(p string) error {
 	f, err := os.Open(p)
@@ -75,7 +72,7 @@ func (m *rcMeshLoaderObj) parseVertex(ss []string) {
 		if err != nil {
 			panic(err)
 		}
-		m.addVertex(x, y, z)
+		m.addVertex(float32(x), float32(y), float32(z))
 		count++
 	}
 }
@@ -92,7 +89,7 @@ func (m *rcMeshLoaderObj) parseFace(ss []string) {
 		}
 		return vi - 1
 	}
-	data := []int{}
+	var data []int
 	for count < len(ss) {
 		vs := strings.Split(ss[count], "/")
 		data = append(data, getV(vs[len(vs)-1]))
@@ -137,9 +134,9 @@ func (m *rcMeshLoaderObj) parseRow(ss []string) {
 		n[0] = e0[1]*e1[2] - e0[2]*e1[1]
 		n[1] = e0[2]*e1[0] - e0[0]*e1[2]
 		n[2] = e0[0]*e1[1] - e0[1]*e1[0]
-		d := math.Sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])
+		d := float32(math.Sqrt(float64(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])))
 		if d > 0 {
-			d = 1.0 / d
+			d = float32(1.0) / d
 			n[0] *= d
 			n[1] *= d
 			n[2] *= d

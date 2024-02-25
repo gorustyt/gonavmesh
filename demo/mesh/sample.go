@@ -3,8 +3,10 @@ package mesh
 import (
 	"fmt"
 	"github.com/gorustyt/fyne/v2"
+	"github.com/gorustyt/fyne/v2/canvas3d"
 	"github.com/gorustyt/gonavmesh/common/rw"
 	"github.com/gorustyt/gonavmesh/debug_utils"
+	"github.com/gorustyt/gonavmesh/demo/config"
 	"github.com/gorustyt/gonavmesh/detour"
 	"github.com/gorustyt/gonavmesh/detour_crowd"
 	"github.com/gorustyt/gonavmesh/recast"
@@ -46,14 +48,21 @@ type Sample struct {
 	m_filterWalkableLowHeightSpans bool
 
 	m_tool       SampleTool
-	m_toolStates [MAX_TOOLS]SampleToolState
+	m_toolStates [config.MAX_TOOLS]SampleToolState
 	m_dd         debug_utils.DuDebugDraw
 
 	ctx *Content
+
+	vert       *canvas3d.VertexFloat32Array
+	coordinate *canvas3d.Coordinate
 }
 
 func NewSample(ctx *Content) *Sample {
-	return &Sample{ctx: ctx}
+	s := &Sample{ctx: ctx,
+		coordinate: canvas3d.NewCoordinate(),
+		vert:       canvas3d.NewVertexFloat32Array()}
+
+	return s
 }
 
 type NavMeshSetHeader struct {
@@ -84,12 +93,12 @@ func (n *NavMeshSetHeader) Decode(r *rw.ReaderWriter) {
 }
 
 type NavMeshTileHeader struct {
-	TileRef  detour.DTTileRef
+	TileRef  detour.DtTileRef
 	DataSize int
 }
 
 func (n *NavMeshTileHeader) Decode(r *rw.ReaderWriter) {
-	n.TileRef = detour.DTTileRef(r.ReadInt32())
+	n.TileRef = detour.DtTileRef(r.ReadInt32())
 	n.DataSize = int(r.ReadInt32())
 }
 func (n *NavMeshTileHeader) Encode(w *rw.ReaderWriter) {
@@ -204,14 +213,14 @@ func (s *Sample) setTool(tool SampleTool) {
 
 }
 
+func (s *Sample) HandleRender() {
+
+}
+
 func (s *Sample) handleRender() {
 	if s.m_geom == nil {
 		return
 	}
-
-	// Draw rcMeshLoaderObj
-	debug_utils.DuDebugDrawTriMesh(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
-		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(), []int{}, 1.0)
 	// Draw bounds
 	bmin := s.m_geom.getMeshBoundsMin()
 	bmax := s.m_geom.getMeshBoundsMax()
@@ -291,7 +300,7 @@ func (s *Sample) handleUpdate(dt float32) {
 }
 
 func (s *Sample) updateToolStates(dt float32) {
-	for i := 0; i < MAX_TOOLS; i++ {
+	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleUpdate(dt)
 		}
@@ -300,7 +309,7 @@ func (s *Sample) updateToolStates(dt float32) {
 }
 
 func (s *Sample) initToolStates(sample *Sample) {
-	for i := 0; i < MAX_TOOLS; i++ {
+	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].init(sample)
 		}
@@ -309,7 +318,7 @@ func (s *Sample) initToolStates(sample *Sample) {
 }
 
 func (s *Sample) resetToolStates() {
-	for i := 0; i < MAX_TOOLS; i++ {
+	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].reset()
 		}
@@ -318,7 +327,7 @@ func (s *Sample) resetToolStates() {
 }
 
 func (s *Sample) renderToolStates() {
-	for i := 0; i < MAX_TOOLS; i++ {
+	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleRender()
 		}
@@ -326,7 +335,7 @@ func (s *Sample) renderToolStates() {
 	}
 }
 func (s *Sample) renderOverlayToolStates(proj, model []float32, view []int) {
-	for i := 0; i < MAX_TOOLS; i++ {
+	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
 			s.m_toolStates[i].handleRenderOverlay(proj, model, view)
 		}
@@ -339,11 +348,11 @@ func (s *Sample) handleCommonSettings() {
 	if s.m_geom != nil {
 		bmin := s.m_geom.getNavMeshBoundsMin()
 		bmax := s.m_geom.getNavMeshBoundsMax()
-		gw := 0
-		gh := 0
+		gw := int32(0)
+		gh := int32(0)
 		recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
 		text := fmt.Sprintf("Voxels  %d x %d", gw, gh)
-
+		_ = text
 	}
 
 }

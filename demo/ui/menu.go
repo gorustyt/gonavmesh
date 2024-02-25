@@ -13,6 +13,7 @@ func SetUi(a fyne.App, w fyne.Window) {
 	ctx.AppendSampleChange(c)
 	InitToolsMap(ctx)
 	root := container.NewBorder(nil, nil, NewTools(ctx).GetRenderObj(), NewProps(ctx).GetRenderObj(), c)
+	ctx.root = root
 	ctx.AfterInit()
 	SetMainMenu(a, w, ctx)
 	w.SetContent(root)

@@ -1480,9 +1480,9 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 	h := chf.Height
 	buf := make([]uint16, chf.SpanCount*2)
 	LOG_NB_STACKS := 3
-	NB_STACKS := 1 << LOG_NB_STACKS
+	NB_STACKS := int32(1 << LOG_NB_STACKS)
 	lvlStacks := make([]Stack[*LevelStackEntry], NB_STACKS)
-	for i := 0; i < NB_STACKS; i++ {
+	for i := int32(0); i < NB_STACKS; i++ {
 		lvlStacks[i].Reserve(256)
 	}
 
@@ -1526,9 +1526,9 @@ func RcBuildRegions(chf *RcCompactHeightfield, borderSize, minRegionArea, mergeR
 		if level >= 2 {
 			level = level - 2
 		}
-		sId = (sId + 1) & (NB_STACKS - 1)
+		sId = (sId + 1) & (int(NB_STACKS - 1))
 		if sId == 0 {
-			sortCellsByLevel(level, chf, srcReg, NB_STACKS, lvlStacks, 1)
+			sortCellsByLevel(level, chf, srcReg, uint32(NB_STACKS), lvlStacks, 1)
 		} else {
 			appendStacks(lvlStacks[sId-1], lvlStacks[sId], srcReg) // copy left overs from last level}
 

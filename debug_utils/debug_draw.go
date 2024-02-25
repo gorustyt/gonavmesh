@@ -184,8 +184,8 @@ func DuAppendCylinderWire(dd DuDebugDraw, minx, miny, minz,
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
 			a := float32(i) / NUM_SEG * math.Pi * 2
-			dir[i*2] = math.Cos(a)
-			dir[i*2+1] = math.Sin(a)
+			dir[i*2] = float32(math.Cos(float64(a)))
+			dir[i*2+1] = float32(math.Sin(float64(a)))
 		}
 	}
 
@@ -321,8 +321,8 @@ func DuAppendCylinder(dd DuDebugDraw, minx, miny, minz,
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
 			a := float32(i) / NUM_SEG * math.Pi * 2
-			dir[i*2] = math.Cos(a)
-			dir[i*2+1] = math.Sin(a)
+			dir[i*2] = float32(math.Cos(float64(a)))
+			dir[i*2+1] = float32(math.Sin(float64(a)))
 		}
 	}
 
@@ -405,12 +405,12 @@ func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 		return
 	}
 	const NUM_ARC_PTS = 8
-	PAD := 0.05
+	PAD := float32(0.05)
 	ARC_PTS_SCALE := (1.0 - PAD*2) / NUM_ARC_PTS
 	dx := x1 - x0
 	dy := y1 - y0
 	dz := z1 - z0
-	length := math.Sqrt(dx*dx + dy*dy + dz*dz)
+	length := float32(math.Sqrt(float64(dx*dx + dy*dy + dz*dz)))
 	prev := make([]float32, 3)
 	evalArc(x0, y0, z0, dx, dy, dz, length*h, PAD, prev)
 	for i := 1; i <= NUM_ARC_PTS; i++ {
@@ -477,8 +477,8 @@ func DuAppendCircle(dd DuDebugDraw, x, y, z,
 		init = true
 		for i := 0; i < NUM_SEG; i++ {
 			a := float32(i) / NUM_SEG * math.Pi * 2
-			dir[i*2] = math.Cos(a)
-			dir[i*2+1] = math.Sin(a)
+			dir[i*2] = float32(math.Cos(float64(a)))
+			dir[i*2+1] = float32(math.Sin(float64(a)))
 		}
 	}
 	i := 0
@@ -503,8 +503,29 @@ func DuAppendCross(dd DuDebugDraw, x, y, z,
 	dd.Vertex1(x, y, z-s, col)
 	dd.Vertex1(x, y, z+s, col)
 }
+
 func DuRGBA(r, g, b, a int) int {
 	return (r) | (g << 8) | (b << 16) | (a << 24)
+}
+
+func NormalizeDuLerpCol(ca, cb, u int) []float32 {
+	ra := ca & 0xff
+	ga := (ca >> 8) & 0xff
+	ba := (ca >> 16) & 0xff
+	aa := (ca >> 24) & 0xff
+	rb := cb & 0xff
+	gb := (cb >> 8) & 0xff
+	bb := (cb >> 16) & 0xff
+	ab := (cb >> 24) & 0xff
+
+	r := (ra*(255-u) + rb*u) / 255
+	g := (ga*(255-u) + gb*u) / 255
+	b := (ba*(255-u) + bb*u) / 255
+	a := (aa*(255-u) + ab*u) / 255
+	return NormalizeRgba(r, g, b, a)
+}
+func NormalizeRgba(r, g, b, a int) []float32 {
+	return []float32{float32(r / 255), float32(g / 255), float32(b / 255), float32(a / 255)}
 }
 
 func DuRGBAf(fr, fg, fb, fa float32) int {

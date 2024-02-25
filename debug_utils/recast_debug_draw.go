@@ -6,12 +6,10 @@ import (
 	"math"
 )
 
-func DuDebugDrawTriMesh(dd DuDebugDraw, verts []float32, nverts int,
+func DuDebugDrawTriMesh(verts []float32, nverts int,
 	tris []int, normals []float32, ntris int,
-	flags []int, texScale float32) {
-	if dd == nil {
-		return
-	}
+	flags []int, texScale float32) (res []float32) {
+
 	if len(verts) == 0 {
 		return
 	}
@@ -27,18 +25,14 @@ func DuDebugDrawTriMesh(dd DuDebugDraw, verts []float32, nverts int,
 	var uvc [2]float32
 
 	unwalkable := DuRGBA(192, 128, 0, 255)
-
-	dd.Texture(true)
-
-	dd.Begin(DU_DRAW_TRIS)
 	for i := 0; i < ntris*3; i += 3 {
+		var color []float32
 		norm := normals[i:]
-		var color int
 		a := int(220 * (2 + norm[0] + norm[1]) / 4)
 		if len(flags) != 0 && flags[i/3] == 0 {
-			color = DuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
+			color = NormalizeDuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
 		} else {
-			color = DuRGBA(a, a, a, 255)
+			color = NormalizeRgba(a, a, a, 255)
 		}
 
 		va := verts[tris[i+0]*3:]
@@ -64,21 +58,22 @@ func DuDebugDrawTriMesh(dd DuDebugDraw, verts []float32, nverts int,
 		uvb[1] = vb[ay] * texScale
 		uvc[0] = vc[ax] * texScale
 		uvc[1] = vc[ay] * texScale
-
-		dd.Vertex2(va, color, uva[:])
-		dd.Vertex2(vb, color, uvb[:])
-		dd.Vertex2(vc, color, uvc[:])
+		res = append(res, va...)
+		res = append(res, color...)
+		res = append(res, uva[:]...)
+		res = append(res, vb...)
+		res = append(res, color...)
+		res = append(res, uvb[:]...)
+		res = append(res, vc...)
+		res = append(res, color...)
+		res = append(res, uvc[:]...)
 	}
-	dd.End()
-	dd.Texture(false)
+	return res
 }
 
-func DuDebugDrawTriMeshSlope(dd DuDebugDraw, verts []float32, nverts int,
+func DuDebugDrawTriMeshSlope(verts []float32, nverts int,
 	tris []int, normals []float32, ntris int,
-	walkableSlopeAngle float32, texScale float32) {
-	if dd == nil {
-		return
-	}
+	walkableSlopeAngle float32, texScale float32) (res []float32) {
 	if len(verts) == 0 {
 		return
 	}
@@ -89,25 +84,20 @@ func DuDebugDrawTriMeshSlope(dd DuDebugDraw, verts []float32, nverts int,
 		return
 	}
 
-	walkableThr := math.Cos(walkableSlopeAngle / 180.0 * math.Pi)
+	walkableThr := float32(math.Cos(float64(walkableSlopeAngle / 180.0 * math.Pi)))
 
 	uva := make([]float32, 2)
 	uvb := make([]float32, 2)
 	uvc := make([]float32, 2)
-
-	dd.Texture(true)
-
 	unwalkable := DuRGBA(192, 128, 0, 255)
-
-	dd.Begin(DU_DRAW_TRIS)
 	for i := 0; i < ntris*3; i += 3 {
 		norm := normals[i:]
-		var color int
+		var color []float32
 		a := int(220 * (2 + norm[0] + norm[1]) / 4)
 		if norm[1] < walkableThr {
-			color = DuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
+			color = NormalizeDuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
 		} else {
-			color = DuRGBA(a, a, a, 255)
+			color = NormalizeRgba(a, a, a, 255)
 		}
 
 		va := verts[tris[i+0]*3:]
@@ -116,11 +106,11 @@ func DuDebugDrawTriMeshSlope(dd DuDebugDraw, verts []float32, nverts int,
 
 		ax := 0
 		ay := 0
-		if math.Abs(norm[1]) > math.Abs(norm[ax]) {
+		if math.Abs(float64(norm[1])) > math.Abs(float64(norm[ax])) {
 			ax = 1
 		}
 
-		if math.Abs(norm[2]) > math.Abs(norm[ax]) {
+		if math.Abs(float64(norm[2])) > math.Abs(float64(norm[ax])) {
 			ax = 2
 		}
 
@@ -134,13 +124,17 @@ func DuDebugDrawTriMeshSlope(dd DuDebugDraw, verts []float32, nverts int,
 		uvc[0] = vc[ax] * texScale
 		uvc[1] = vc[ay] * texScale
 
-		dd.Vertex2(va, color, uva)
-		dd.Vertex2(vb, color, uvb)
-		dd.Vertex2(vc, color, uvc)
+		res = append(res, va...)
+		res = append(res, color...)
+		res = append(res, uva[:]...)
+		res = append(res, vb...)
+		res = append(res, color...)
+		res = append(res, uvb[:]...)
+		res = append(res, vc...)
+		res = append(res, color...)
+		res = append(res, uvc[:]...)
 	}
-	dd.End()
-
-	dd.Texture(false)
+	return res
 }
 
 func DuDebugDrawHeightfieldSolid(dd DuDebugDraw, hf *recast.RcHeightfield) {
@@ -360,7 +354,7 @@ func drawLayerPortals(dd DuDebugDraw, layer *recast.RcHeightfieldLayer) {
 			}
 
 			for dir := 0; dir < 4; dir++ {
-				if layer.Cons[idx] & (1 << (dir + 4)) {
+				if layer.Cons[idx]&(1<<(dir+4)) != 0 {
 					seg := segs[dir*4:]
 					ax := float32(layer.Bmin[0]) + float32(x+seg[0])*cs
 					ay := float32(layer.Bmin[1]) + float32(lh+2)*ch
@@ -693,7 +687,7 @@ func findContourFromSet(cset *recast.RcContourSet, reg int) *recast.RcContour {
 }
 
 func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float32) {
-	alpha := 1.0
+	alpha := float32(1.0)
 	if len(alphas) > 0 {
 		alpha = alphas[0]
 	}
@@ -745,7 +739,7 @@ func DuDebugDrawRegionConnections(dd DuDebugDraw, cset *recast.RcContourSet, alp
 }
 
 func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float32) {
-	alpha := 1.0
+	alpha := float32(1.0)
 	if len(alphas) > 0 {
 		alpha = alphas[0]
 	}
@@ -793,16 +787,16 @@ func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ..
 
 		for j := int32(0); j < c.Nrverts; j++ {
 			v := c.Rverts[j*4:]
-			off := 0.0
+			off := float32(0.0)
 			colv := color
 			if v[3]&recast.RC_BORDER_VERTEX != 0 {
 				colv = DuRGBA(255, 255, 255, a)
 				off = ch * 2
 			}
 
-			fx := float32(orig[0]) + float32(v[0])*cs
-			fy := float32(orig[1]) + float32(v[1]+1+(i&1))*ch + off
-			fz := float32(orig[2]) + float32(v[2])*cs
+			fx := orig[0] + float32(v[0])*cs
+			fy := orig[1] + float32(v[1]+1+(i&1))*ch + off
+			fz := orig[2] + float32(v[2])*cs
 			dd.Vertex1(fx, fy, fz, colv)
 		}
 	}
@@ -810,7 +804,7 @@ func DuDebugDrawRawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ..
 }
 
 func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...float32) {
-	alpha := 1.0
+	alpha := float32(1.0)
 	if len(alphas) > 0 {
 		alpha = alphas[0]
 	}
@@ -864,7 +858,7 @@ func DuDebugDrawContours(dd DuDebugDraw, cset *recast.RcContourSet, alphas ...fl
 		color := DuDarkenCol(DuIntToCol(int(c.Reg), a))
 		for j := int32(0); j < c.Nverts; j++ {
 			v := c.Verts[j*4:]
-			off := 0.0
+			off := float32(0.0)
 			colv := color
 			if v[3]&recast.RC_BORDER_VERTEX != 0 {
 				colv = DuRGBA(255, 255, 255, a)

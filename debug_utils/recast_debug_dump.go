@@ -277,7 +277,7 @@ func DuReadCompactHeightfield(chf *recast.RcCompactHeightfield, r *rw.ReaderWrit
 }
 
 func logLine(name string, pc float32) {
-	t := 0.
+	t := float32(0.)
 	slog.Info("%s:\t%.2fms\t(%.1f%%)", name, t/1000.0, t*pc)
 }
 

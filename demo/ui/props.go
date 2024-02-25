@@ -91,13 +91,18 @@ func (p *Props) GetSample() (res []fyne.CanvasObject) {
 		p.ctx.OnSampleChange(s.Selected)
 		p.ctx.Config().PropsConfig.OnInputMesh()
 	})
+	var ss []string
+	for k := range p.ctx.Config().PropsConfig.InputMeshLists {
+		ss = append(ss, k)
+	}
 	return []fyne.CanvasObject{
 		widget.NewLabel("Sample"),
 		s,
 		widget.NewLabel("Input Mesh"),
 		widget.NewLabelWithData(p.ctx.Config().PropsConfig.VertLabelData),
-		widget.NewSelect([]string{}, func(s string) {
+		widget.NewSelect(ss, func(s string) {
 			p.ctx.Config().PropsConfig.InputMeshPath = s
+			p.ctx.Config().PropsConfig.OnInputMesh()
 		}),
 	}
 }

@@ -82,6 +82,7 @@ func SetMainMenu(a fyne.App, w fyne.Window, ctx *Context) {
 	})
 	resetItem := fyne.NewMenuItem("Restore Default", func() {
 		ctx.Config().Reset()
+		ctx.Refresh()
 	})
 	runMenu := fyne.NewMenu("Run", resetItem, buildItem)
 	helpMenu := fyne.NewMenu("Help",

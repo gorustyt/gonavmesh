@@ -1,7 +1,6 @@
 package mesh
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/debug_utils"
@@ -11,29 +10,6 @@ import (
 	"log"
 	"math"
 	"time"
-)
-
-type SoloMeshDrawMode int
-
-const (
-	SOLOMESH_DRAWMODE_NAVMESH SoloMeshDrawMode = iota
-	SOLOMESH_DRAWMODE_NAVMESH_TRANS
-	SOLOMESH_DRAWMODE_NAVMESH_BVTREE
-	SOLOMESH_DRAWMODE_NAVMESH_NODES
-	SOLOMESH_DRAWMODE_NAVMESH_INVIS
-	SOLOMESH_DRAWMODE_MESH
-	SOLOMESH_DRAWMODE_VOXELS
-	SOLOMESH_DRAWMODE_VOXELS_WALKABLE
-	SOLOMESH_DRAWMODE_COMPACT
-	SOLOMESH_DRAWMODE_COMPACT_DISTANCE
-	SOLOMESH_DRAWMODE_COMPACT_REGIONS
-	SOLOMESH_DRAWMODE_REGION_CONNECTIONS
-	SOLOMESH_DRAWMODE_RAW_CONTOURS
-	SOLOMESH_DRAWMODE_BOTH_CONTOURS
-	SOLOMESH_DRAWMODE_CONTOURS
-	SOLOMESH_DRAWMODE_POLYMESH
-	SOLOMESH_DRAWMODE_POLYMESH_DETAIL
-	SOLOMESH_MAX_DRAWMODE
 )
 
 type SampleSoloMesh struct {
@@ -48,14 +24,13 @@ type SampleSoloMesh struct {
 	m_pmesh    *recast.RcPolyMesh
 	m_cfg      *recast.RcConfig
 	m_dmesh    *recast.RcPolyMeshDetail
-	m_drawMode SoloMeshDrawMode
 
 	cfg *config.Config
 }
 
 func newSampleSoloMesh(ctx *Content) *SampleSoloMesh {
 	s := &SampleSoloMesh{
-		m_drawMode:         config.DRAWMODE_NAVMESH,
+		Sample:             NewSample(ctx),
 		m_keepInterResults: true,
 		cfg:                ctx.GetConfig(),
 	}
@@ -66,7 +41,7 @@ func newSampleSoloMesh(ctx *Content) *SampleSoloMesh {
 	s.cfg.PropsConfig.OnSaveClick = func(writer fyne.URIWriteCloser) {
 		s.Sample.saveAll(writer, s.m_navMesh)
 	}
-	s.setTool(newMeshTitleTool(ctx))
+	//s.setTool(newMeshTitleTool(ctx))
 	return s
 }
 
@@ -83,240 +58,257 @@ func (s *SampleSoloMesh) cleanup() {
 
 func (s *SampleSoloMesh) handleSettings() {
 	s.Sample.handleCommonSettings()
-	s.cfg.PropsConfig.SetBuildTimeLabelData(float32(s.m_totalBuildTimeMs))
+	s.cfg.PropsConfig.SetBuildTimeLabelData(float64(s.m_totalBuildTimeMs))
 }
 
 func (s *SampleSoloMesh) onDrawModeChange() {
-	// Check which modes are valid.
-	valid := make([]bool, SOLOMESH_MAX_DRAWMODE)
-	for i := 0; i < int(SOLOMESH_MAX_DRAWMODE); i++ {
-		valid[i] = false
-	}
+	//// Check which modes are valid.
+	//valid := make([]bool, SOLOMESH_MAX_DRAWMODE)
+	//for i := 0; i < int(SOLOMESH_MAX_DRAWMODE); i++ {
+	//	valid[i] = false
+	//}
+	//
+	//if s.m_geom != nil {
+	//	valid[SOLOMESH_DRAWMODE_NAVMESH] = s.m_navMesh != nil
+	//	valid[SOLOMESH_DRAWMODE_NAVMESH_TRANS] = s.m_navMesh != nil
+	//	valid[SOLOMESH_DRAWMODE_NAVMESH_BVTREE] = s.m_navMesh != nil
+	//	valid[SOLOMESH_DRAWMODE_NAVMESH_NODES] = s.m_navQuery != nil
+	//	valid[SOLOMESH_DRAWMODE_NAVMESH_INVIS] = s.m_navMesh != nil
+	//	valid[SOLOMESH_DRAWMODE_MESH] = true
+	//	valid[SOLOMESH_DRAWMODE_VOXELS] = s.m_solid != nil
+	//	valid[SOLOMESH_DRAWMODE_VOXELS_WALKABLE] = s.m_solid != nil
+	//	valid[SOLOMESH_DRAWMODE_COMPACT] = s.m_chf != nil
+	//	valid[SOLOMESH_DRAWMODE_COMPACT_DISTANCE] = s.m_chf != nil
+	//	valid[SOLOMESH_DRAWMODE_COMPACT_REGIONS] = s.m_chf != nil
+	//	valid[SOLOMESH_DRAWMODE_REGION_CONNECTIONS] = s.m_cset != nil
+	//	valid[SOLOMESH_DRAWMODE_RAW_CONTOURS] = s.m_cset != nil
+	//	valid[SOLOMESH_DRAWMODE_BOTH_CONTOURS] = s.m_cset != nil
+	//	valid[SOLOMESH_DRAWMODE_CONTOURS] = s.m_cset != nil
+	//	valid[SOLOMESH_DRAWMODE_POLYMESH] = s.m_pmesh != nil
+	//	valid[SOLOMESH_DRAWMODE_POLYMESH_DETAIL] = s.m_dmesh != nil
+	//}
+	//
+	//unavail := 0
+	//for i := 0; i < int(SOLOMESH_MAX_DRAWMODE); i++ {
+	//	if !valid[i] {
+	//		unavail++
+	//	}
+	//}
+	//
+	//if unavail == int(SOLOMESH_MAX_DRAWMODE) {
+	//	return
+	//}
 
-	if s.m_geom != nil {
-		valid[SOLOMESH_DRAWMODE_NAVMESH] = s.m_navMesh != nil
-		valid[SOLOMESH_DRAWMODE_NAVMESH_TRANS] = s.m_navMesh != nil
-		valid[SOLOMESH_DRAWMODE_NAVMESH_BVTREE] = s.m_navMesh != nil
-		valid[SOLOMESH_DRAWMODE_NAVMESH_NODES] = s.m_navQuery != nil
-		valid[SOLOMESH_DRAWMODE_NAVMESH_INVIS] = s.m_navMesh != nil
-		valid[SOLOMESH_DRAWMODE_MESH] = true
-		valid[SOLOMESH_DRAWMODE_VOXELS] = s.m_solid != nil
-		valid[SOLOMESH_DRAWMODE_VOXELS_WALKABLE] = s.m_solid != nil
-		valid[SOLOMESH_DRAWMODE_COMPACT] = s.m_chf != nil
-		valid[SOLOMESH_DRAWMODE_COMPACT_DISTANCE] = s.m_chf != nil
-		valid[SOLOMESH_DRAWMODE_COMPACT_REGIONS] = s.m_chf != nil
-		valid[SOLOMESH_DRAWMODE_REGION_CONNECTIONS] = s.m_cset != nil
-		valid[SOLOMESH_DRAWMODE_RAW_CONTOURS] = s.m_cset != nil
-		valid[SOLOMESH_DRAWMODE_BOTH_CONTOURS] = s.m_cset != nil
-		valid[SOLOMESH_DRAWMODE_CONTOURS] = s.m_cset != nil
-		valid[SOLOMESH_DRAWMODE_POLYMESH] = s.m_pmesh != nil
-		valid[SOLOMESH_DRAWMODE_POLYMESH_DETAIL] = s.m_dmesh != nil
-	}
+	//s.gs.imguiLabel("Draw")
+	//if s.gs.imguiCheck("Input Mesh", s.m_drawMode == SOLOMESH_DRAWMODE_MESH, valid[SOLOMESH_DRAWMODE_MESH]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_MESH
+	//}
+	//
+	//if s.gs.imguiCheck("Navmesh", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH, valid[SOLOMESH_DRAWMODE_NAVMESH]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH
+	//}
+	//
+	//if s.gs.imguiCheck("Navmesh Invis", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_INVIS, valid[SOLOMESH_DRAWMODE_NAVMESH_INVIS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_INVIS
+	//}
+	//
+	//if s.gs.imguiCheck("Navmesh Trans", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_TRANS, valid[SOLOMESH_DRAWMODE_NAVMESH_TRANS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_TRANS
+	//}
+	//
+	//if s.gs.imguiCheck("Navmesh BVTree", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE, valid[SOLOMESH_DRAWMODE_NAVMESH_BVTREE]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_BVTREE
+	//}
+	//
+	//if s.gs.imguiCheck("Navmesh Nodes", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES, valid[SOLOMESH_DRAWMODE_NAVMESH_NODES]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_NODES
+	//}
+	//
+	//if s.gs.imguiCheck("Voxels", s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS, valid[SOLOMESH_DRAWMODE_VOXELS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_VOXELS
+	//}
+	//
+	//if s.gs.imguiCheck("Walkable Voxels", s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS_WALKABLE, valid[SOLOMESH_DRAWMODE_VOXELS_WALKABLE]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_VOXELS_WALKABLE
+	//}
+	//
+	//if s.gs.imguiCheck("Compact", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT, valid[SOLOMESH_DRAWMODE_COMPACT]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT
+	//}
+	//
+	//if s.gs.imguiCheck("Compact Distance", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_DISTANCE, valid[SOLOMESH_DRAWMODE_COMPACT_DISTANCE]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT_DISTANCE
+	//}
+	//
+	//if s.gs.imguiCheck("Compact Regions", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_REGIONS, valid[SOLOMESH_DRAWMODE_COMPACT_REGIONS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT_REGIONS
+	//}
+	//
+	//if s.gs.imguiCheck("Region Connections", s.m_drawMode == SOLOMESH_DRAWMODE_REGION_CONNECTIONS, valid[SOLOMESH_DRAWMODE_REGION_CONNECTIONS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_REGION_CONNECTIONS
+	//}
+	//
+	//if s.gs.imguiCheck("Raw Contours", s.m_drawMode == SOLOMESH_DRAWMODE_RAW_CONTOURS, valid[SOLOMESH_DRAWMODE_RAW_CONTOURS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_RAW_CONTOURS
+	//}
+	//
+	//if s.gs.imguiCheck("Both Contours", s.m_drawMode == SOLOMESH_DRAWMODE_BOTH_CONTOURS, valid[SOLOMESH_DRAWMODE_BOTH_CONTOURS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_BOTH_CONTOURS
+	//}
+	//
+	//if s.gs.imguiCheck("Contours", s.m_drawMode == SOLOMESH_DRAWMODE_CONTOURS, valid[SOLOMESH_DRAWMODE_CONTOURS]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_CONTOURS
+	//}
+	//
+	//if s.gs.imguiCheck("Poly Mesh", s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH, valid[SOLOMESH_DRAWMODE_POLYMESH]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_POLYMESH
+	//}
+	//
+	//if s.gs.imguiCheck("Poly Mesh Detail", s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH_DETAIL, valid[SOLOMESH_DRAWMODE_POLYMESH_DETAIL]) {
+	//	s.m_drawMode = SOLOMESH_DRAWMODE_POLYMESH_DETAIL
+	//}
+	//
+	//if unavail > 0 {
+	//	s.gs.imguiValue("Tick 'Keep Itermediate Results'")
+	//	s.gs.imguiValue("to see more debug mode options.")
+	//}
+}
+func (s *SampleSoloMesh) HandleRender() {
+	s.ctx.canvas3D.SetShaderConfig(0, objVertexShader, objFragShader)
+	s.ctx.canvas3D.AppendObj(0, s.vert)
+	s.ctx.canvas3D.AppendObj(0, s.coordinate)
+	//Draw rcMeshLoaderObj
+	// Draw rcMeshLoaderObj
+	texScale := float32(1.0)
+	res := debug_utils.DuDebugDrawTriMeshSlope(s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
+		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
+		s.m_agentMaxSlope, texScale)
+	s.vert.Arr = res
 
-	unavail := 0
-	for i := 0; i < int(SOLOMESH_MAX_DRAWMODE); i++ {
-		if !valid[i] {
-			unavail++
-		}
-	}
-
-	if unavail == int(SOLOMESH_MAX_DRAWMODE) {
-		return
-	}
-
-	s.gs.imguiLabel("Draw")
-	if s.gs.imguiCheck("Input Mesh", s.m_drawMode == SOLOMESH_DRAWMODE_MESH, valid[SOLOMESH_DRAWMODE_MESH]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_MESH
-	}
-
-	if s.gs.imguiCheck("Navmesh", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH, valid[SOLOMESH_DRAWMODE_NAVMESH]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH
-	}
-
-	if s.gs.imguiCheck("Navmesh Invis", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_INVIS, valid[SOLOMESH_DRAWMODE_NAVMESH_INVIS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_INVIS
-	}
-
-	if s.gs.imguiCheck("Navmesh Trans", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_TRANS, valid[SOLOMESH_DRAWMODE_NAVMESH_TRANS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_TRANS
-	}
-
-	if s.gs.imguiCheck("Navmesh BVTree", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE, valid[SOLOMESH_DRAWMODE_NAVMESH_BVTREE]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_BVTREE
-	}
-
-	if s.gs.imguiCheck("Navmesh Nodes", s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES, valid[SOLOMESH_DRAWMODE_NAVMESH_NODES]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_NAVMESH_NODES
-	}
-
-	if s.gs.imguiCheck("Voxels", s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS, valid[SOLOMESH_DRAWMODE_VOXELS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_VOXELS
-	}
-
-	if s.gs.imguiCheck("Walkable Voxels", s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS_WALKABLE, valid[SOLOMESH_DRAWMODE_VOXELS_WALKABLE]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_VOXELS_WALKABLE
-	}
-
-	if s.gs.imguiCheck("Compact", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT, valid[SOLOMESH_DRAWMODE_COMPACT]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT
-	}
-
-	if s.gs.imguiCheck("Compact Distance", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_DISTANCE, valid[SOLOMESH_DRAWMODE_COMPACT_DISTANCE]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT_DISTANCE
-	}
-
-	if s.gs.imguiCheck("Compact Regions", s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_REGIONS, valid[SOLOMESH_DRAWMODE_COMPACT_REGIONS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_COMPACT_REGIONS
-	}
-
-	if s.gs.imguiCheck("Region Connections", s.m_drawMode == SOLOMESH_DRAWMODE_REGION_CONNECTIONS, valid[SOLOMESH_DRAWMODE_REGION_CONNECTIONS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_REGION_CONNECTIONS
-	}
-
-	if s.gs.imguiCheck("Raw Contours", s.m_drawMode == SOLOMESH_DRAWMODE_RAW_CONTOURS, valid[SOLOMESH_DRAWMODE_RAW_CONTOURS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_RAW_CONTOURS
-	}
-
-	if s.gs.imguiCheck("Both Contours", s.m_drawMode == SOLOMESH_DRAWMODE_BOTH_CONTOURS, valid[SOLOMESH_DRAWMODE_BOTH_CONTOURS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_BOTH_CONTOURS
-	}
-
-	if s.gs.imguiCheck("Contours", s.m_drawMode == SOLOMESH_DRAWMODE_CONTOURS, valid[SOLOMESH_DRAWMODE_CONTOURS]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_CONTOURS
-	}
-
-	if s.gs.imguiCheck("Poly Mesh", s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH, valid[SOLOMESH_DRAWMODE_POLYMESH]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_POLYMESH
-	}
-
-	if s.gs.imguiCheck("Poly Mesh Detail", s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH_DETAIL, valid[SOLOMESH_DRAWMODE_POLYMESH_DETAIL]) {
-		s.m_drawMode = SOLOMESH_DRAWMODE_POLYMESH_DETAIL
-	}
-
-	if unavail > 0 {
-		s.gs.imguiValue("Tick 'Keep Itermediate Results'")
-		s.gs.imguiValue("to see more debug mode options.")
-	}
+	s.vert.PositionSize = []int{3, 0}
+	s.vert.ColorSize = []int{3, 3}
+	s.vert.TexCoordSize = []int{2, 6}
 }
 
 func (s *SampleSoloMesh) handleRender() {
-	if s.m_geom == nil || s.m_geom.getMesh() == nil {
-		return
 
-	}
-
-	gl.Enable(GL_FOG)
-	gl.DepthMask(true)
-
-	texScale := 1.0 / (s.m_cellSize * 10.0)
-
-	if s.m_drawMode != SOLOMESH_DRAWMODE_NAVMESH_TRANS {
-		// Draw rcMeshLoaderObj
-		debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
-			s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
-			s.m_agentMaxSlope, texScale)
-		s.m_geom.drawOffMeshConnections(s.m_dd)
-	}
-
-	glDisable(GL_FOG)
-	gl.DepthMask(false)
-
-	// Draw bounds
-	bmin := s.m_geom.getNavMeshBoundsMin()
-	bmax := s.m_geom.getNavMeshBoundsMax()
-	debug_utils.DuDebugDrawBoxWire(s.m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], debug_utils.DuRGBA(255, 255, 255, 128), 1.0)
-	s.m_dd.Begin(debug_utils.DU_DRAW_POINTS, 5.0)
-	s.m_dd.Vertex1(bmin[0], bmin[1], bmin[2], debug_utils.DuRGBA(255, 255, 255, 128))
-	s.m_dd.End()
-
-	if s.m_navMesh != nil && s.m_navQuery != nil &&
-		(s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH ||
-			s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_TRANS ||
-			s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE ||
-			s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES ||
-			s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_INVIS) {
-		if s.m_drawMode != SOLOMESH_DRAWMODE_NAVMESH_INVIS {
-			debug_utils.DuDebugDrawNavMeshWithClosedList(s.m_dd, s.m_navMesh, s.m_navQuery, s.m_navMeshDrawFlags)
-		}
-
-		if s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE {
-			debug_utils.DuDebugDrawNavMeshBVTree(s.m_dd, s.m_navMesh)
-		}
-
-		if s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES {
-			debug_utils.DuDebugDrawNavMeshNodes(s.m_dd, s.m_navQuery)
-		}
-
-		debug_utils.DuDebugDrawNavMeshPolysWithFlags(s.m_dd, s.m_navMesh, SAMPLE_POLYFLAGS_DISABLED, debug_utils.DuRGBA(0, 0, 0, 128))
-	}
-
-	gl.DepthMask(true)
-
-	if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT {
-		debug_utils.DuDebugDrawCompactHeightfieldSolid(s.m_dd, s.m_chf)
-	}
-
-	if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_DISTANCE {
-		debug_utils.DuDebugDrawCompactHeightfieldDistance(s.m_dd, s.m_chf)
-	}
-
-	if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_REGIONS {
-		debug_utils.DuDebugDrawCompactHeightfieldRegions(s.m_dd, s.m_chf)
-	}
-
-	if s.m_solid != nil && s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS {
-		gl.Enable(gl.FOG)
-		debug_utils.DuDebugDrawHeightfieldSolid(s.m_dd, s.m_solid)
-		glDisable(GL_FOG)
-	}
-	if s.m_solid != nil && s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS_WALKABLE {
-		glEnable(GL_FOG)
-		debug_utils.DuDebugDrawHeightfieldWalkable(s.m_dd, s.m_solid)
-		glDisable(GL_FOG)
-	}
-	if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_RAW_CONTOURS {
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawRawContours(s.m_dd, s.m_cset)
-		gl.DepthMask(true)
-	}
-	if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_BOTH_CONTOURS {
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawRawContours(s.m_dd, s.m_cset, 0.5)
-		debug_utils.DuDebugDrawContours(s.m_dd, s.m_cset)
-		gl.DepthMask(true)
-	}
-	if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_CONTOURS {
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawContours(s.m_dd, s.m_cset)
-		gl.DepthMask(true)
-	}
-	if s.m_chf != nil && s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_REGION_CONNECTIONS {
-		debug_utils.DuDebugDrawCompactHeightfieldRegions(s.m_dd, s.m_chf)
-
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawRegionConnections(s.m_dd, s.m_cset)
-		gl.DepthMask(true)
-	}
-	if s.m_pmesh != nil && s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH {
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawPolyMesh(s.m_dd, s.m_pmesh)
-		gl.DepthMask(true)
-	}
-	if s.m_dmesh != nil && s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH_DETAIL {
-		gl.DepthMask(false)
-		debug_utils.DuDebugDrawPolyMeshDetail(s.m_dd, s.m_dmesh)
-		gl.DepthMask(true)
-	}
-
-	s.m_geom.drawConvexVolumes(s.m_dd)
-
-	if s.m_tool != nil {
-	}
-	s.m_tool.handleRender()
-
-	s.renderToolStates()
-
-	gl.DepthMask(true)
+	//if s.m_geom == nil || s.m_geom.getMesh() == nil {
+	//	return
+	//
+	//}
+	//
+	//gl.Enable(GL_FOG)
+	//gl.DepthMask(true)
+	//
+	//texScale := 1.0 / (s.m_cellSize * 10.0)
+	//
+	//if s.m_drawMode != SOLOMESH_DRAWMODE_NAVMESH_TRANS {
+	//	// Draw rcMeshLoaderObj
+	//	debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
+	//		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
+	//		s.m_agentMaxSlope, texScale)
+	//	s.m_geom.drawOffMeshConnections(s.m_dd)
+	//}
+	//
+	//glDisable(GL_FOG)
+	//gl.DepthMask(false)
+	//
+	//// Draw bounds
+	//bmin := s.m_geom.getNavMeshBoundsMin()
+	//bmax := s.m_geom.getNavMeshBoundsMax()
+	//debug_utils.DuDebugDrawBoxWire(s.m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], debug_utils.DuRGBA(255, 255, 255, 128), 1.0)
+	//s.m_dd.Begin(debug_utils.DU_DRAW_POINTS, 5.0)
+	//s.m_dd.Vertex1(bmin[0], bmin[1], bmin[2], debug_utils.DuRGBA(255, 255, 255, 128))
+	//s.m_dd.End()
+	//
+	//if s.m_navMesh != nil && s.m_navQuery != nil &&
+	//	(s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH ||
+	//		s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_TRANS ||
+	//		s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE ||
+	//		s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES ||
+	//		s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_INVIS) {
+	//	if s.m_drawMode != SOLOMESH_DRAWMODE_NAVMESH_INVIS {
+	//		debug_utils.DuDebugDrawNavMeshWithClosedList(s.m_dd, s.m_navMesh, s.m_navQuery, s.m_navMeshDrawFlags)
+	//	}
+	//
+	//	if s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_BVTREE {
+	//		debug_utils.DuDebugDrawNavMeshBVTree(s.m_dd, s.m_navMesh)
+	//	}
+	//
+	//	if s.m_drawMode == SOLOMESH_DRAWMODE_NAVMESH_NODES {
+	//		debug_utils.DuDebugDrawNavMeshNodes(s.m_dd, s.m_navQuery)
+	//	}
+	//
+	//	debug_utils.DuDebugDrawNavMeshPolysWithFlags(s.m_dd, s.m_navMesh, config.SAMPLE_POLYFLAGS_DISABLED, debug_utils.DuRGBA(0, 0, 0, 128))
+	//}
+	//
+	//gl.DepthMask(true)
+	//
+	//if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT {
+	//	debug_utils.DuDebugDrawCompactHeightfieldSolid(s.m_dd, s.m_chf)
+	//}
+	//
+	//if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_DISTANCE {
+	//	debug_utils.DuDebugDrawCompactHeightfieldDistance(s.m_dd, s.m_chf)
+	//}
+	//
+	//if s.m_chf != nil && s.m_drawMode == SOLOMESH_DRAWMODE_COMPACT_REGIONS {
+	//	debug_utils.DuDebugDrawCompactHeightfieldRegions(s.m_dd, s.m_chf)
+	//}
+	//
+	//if s.m_solid != nil && s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS {
+	//	gl.Enable(gl.FOG)
+	//	debug_utils.DuDebugDrawHeightfieldSolid(s.m_dd, s.m_solid)
+	//	glDisable(GL_FOG)
+	//}
+	//if s.m_solid != nil && s.m_drawMode == SOLOMESH_DRAWMODE_VOXELS_WALKABLE {
+	//	glEnable(GL_FOG)
+	//	debug_utils.DuDebugDrawHeightfieldWalkable(s.m_dd, s.m_solid)
+	//	glDisable(GL_FOG)
+	//}
+	//if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_RAW_CONTOURS {
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawRawContours(s.m_dd, s.m_cset)
+	//	gl.DepthMask(true)
+	//}
+	//if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_BOTH_CONTOURS {
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawRawContours(s.m_dd, s.m_cset, 0.5)
+	//	debug_utils.DuDebugDrawContours(s.m_dd, s.m_cset)
+	//	gl.DepthMask(true)
+	//}
+	//if s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_CONTOURS {
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawContours(s.m_dd, s.m_cset)
+	//	gl.DepthMask(true)
+	//}
+	//if s.m_chf != nil && s.m_cset != nil && s.m_drawMode == SOLOMESH_DRAWMODE_REGION_CONNECTIONS {
+	//	debug_utils.DuDebugDrawCompactHeightfieldRegions(s.m_dd, s.m_chf)
+	//
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawRegionConnections(s.m_dd, s.m_cset)
+	//	gl.DepthMask(true)
+	//}
+	//if s.m_pmesh != nil && s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH {
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawPolyMesh(s.m_dd, s.m_pmesh)
+	//	gl.DepthMask(true)
+	//}
+	//if s.m_dmesh != nil && s.m_drawMode == SOLOMESH_DRAWMODE_POLYMESH_DETAIL {
+	//	gl.DepthMask(false)
+	//	debug_utils.DuDebugDrawPolyMeshDetail(s.m_dd, s.m_dmesh)
+	//	gl.DepthMask(true)
+	//}
+	//
+	//s.m_geom.drawConvexVolumes(s.m_dd)
+	//
+	//if s.m_tool != nil {
+	//}
+	//s.m_tool.handleRender()
+	//
+	//s.renderToolStates()
+	//
+	//gl.DepthMask(true)
 }
 
 func (s *SampleSoloMesh) handleRenderOverlay(proj, model []float32, view []int) {
@@ -360,22 +352,22 @@ func (s *SampleSoloMesh) handleBuild() bool {
 
 	// Init build configuration from GUI
 
-	s.m_cfg.Cs = float32(s.m_cellSize)
+	s.m_cfg.Cs = s.m_cellSize
 	s.m_cfg.Ch = float32(s.m_cellHeight)
 	s.m_cfg.WalkableSlopeAngle = float32(s.m_agentMaxSlope)
-	s.m_cfg.WalkableHeight = int(math.Ceil(s.m_agentHeight / float32(s.m_cfg.Ch)))
-	s.m_cfg.WalkableClimb = int(math.Floor(s.m_agentMaxClimb / float32(s.m_cfg.Ch)))
-	s.m_cfg.WalkableRadius = int(math.Ceil(s.m_agentRadius / float32(s.m_cfg.Cs)))
+	s.m_cfg.WalkableHeight = int(math.Ceil(float64(s.m_agentHeight / float32(s.m_cfg.Ch))))
+	s.m_cfg.WalkableClimb = int(math.Floor(float64(s.m_agentMaxClimb / float32(s.m_cfg.Ch))))
+	s.m_cfg.WalkableRadius = int(math.Ceil(float64(s.m_agentRadius / float32(s.m_cfg.Cs))))
 	s.m_cfg.MaxEdgeLen = int(s.m_edgeMaxLen / s.m_cellSize)
-	s.m_cfg.MaxSimplificationError = float32(s.m_edgeMaxError)
+	s.m_cfg.MaxSimplificationError = s.m_edgeMaxError
 	s.m_cfg.MinRegionArea = int(common.Sqr(s.m_regionMinSize))     // Note: area = size*size
 	s.m_cfg.MergeRegionArea = int(common.Sqr(s.m_regionMergeSize)) // Note: area = size*size
 	s.m_cfg.MaxVertsPerPoly = int(s.m_vertsPerPoly)
-	s.m_cfg.DetailSampleDist = float32(s.m_cellSize * s.m_detailSampleDist)
+	s.m_cfg.DetailSampleDist = s.m_cellSize * s.m_detailSampleDist
 	if s.m_detailSampleDist < 0.9 {
 		s.m_cfg.DetailSampleDist = 0
 	}
-	s.m_cfg.DetailSampleMaxError = float32(s.m_cellHeight * s.m_detailSampleMaxError)
+	s.m_cfg.DetailSampleMaxError = s.m_cellHeight * s.m_detailSampleMaxError
 	now := time.Now()
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input rcMeshLoaderObj are used, but the
@@ -402,7 +394,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// If your input data is multiple meshes, you can transform them here, calculate
 	// the are type for each of the meshes and rasterize them.
 	recast.RcMarkWalkableTriangles(s.m_cfg.WalkableSlopeAngle, verts, nverts, tris, ntris, s.m_triareas)
-	if !recast.RcRasterizeTriangles(verts, int32(nverts), tris, s.m_triareas, int32(ntris), s.m_solid, int32(s.m_cfg.WalkableClimb)) {
+	if !recast.RcRasterizeTriangles(verts, int32(nverts), common.SliceTToSlice[int, int32](tris), common.SliceTToSlice[int, uint8](s.m_triareas), int32(ntris), s.m_solid, int32(s.m_cfg.WalkableClimb)) {
 		log.Printf("buildNavigation: Could not rasterize triangles.")
 		return false
 	}
@@ -459,7 +451,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	vols := s.m_geom.getConvexVolumes()
 	for i := 0; i < s.m_geom.getConvexVolumeCount(); i++ {
 		recast.RcMarkConvexPolyArea(vols[i].verts, int32(vols[i].nverts), vols[i].hmin, vols[i].hmax,
-			vols[i].area, s.m_chf)
+			uint8(vols[i].area), s.m_chf)
 
 	}
 
@@ -597,11 +589,11 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		params.DetailTriCount = s.m_dmesh.Ntris
 		params.OffMeshConVerts = s.m_geom.getOffMeshConnectionVerts()
 		params.OffMeshConRad = s.m_geom.getOffMeshConnectionRads()
-		params.OffMeshConDir = s.m_geom.getOffMeshConnectionDirs()
-		params.OffMeshConAreas = s.m_geom.getOffMeshConnectionAreas()
-		params.OffMeshConFlags = s.m_geom.getOffMeshConnectionFlags()
-		params.OffMeshConUserID = s.m_geom.getOffMeshConnectionId()
-		params.OffMeshConCount = s.m_geom.getOffMeshConnectionCount()
+		params.OffMeshConDir = common.SliceTToSlice[int, uint8](s.m_geom.getOffMeshConnectionDirs())
+		params.OffMeshConAreas = common.SliceTToSlice[int, uint8](s.m_geom.getOffMeshConnectionAreas())
+		params.OffMeshConFlags = common.SliceTToSlice[int, uint16](s.m_geom.getOffMeshConnectionFlags())
+		params.OffMeshConUserID = common.SliceTToSlice[int, uint32](s.m_geom.getOffMeshConnectionId())
+		params.OffMeshConCount = int32(s.m_geom.getOffMeshConnectionCount())
 		params.WalkableHeight = s.m_agentHeight
 		params.WalkableRadius = s.m_agentRadius
 		params.WalkableClimb = s.m_agentMaxClimb

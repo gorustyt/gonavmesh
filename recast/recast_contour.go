@@ -759,13 +759,13 @@ func RcBuildContours(chf *RcCompactHeightfield,
 						}
 					}
 
-					cont.Nrverts = verts.Len() / 4
+					cont.Nrverts = int32(verts.Len()) / 4
 					cont.Rverts = make([]int32, cont.Nrverts*4)
 
-					copy(cont.Rverts, verts.Slice(0, cont.Nrverts*4))
+					copy(cont.Rverts, verts.Slice(0, int(cont.Nrverts*4)))
 					if borderSize > 0 {
 						// If the heightfield was build with bordersize, remove the offset.
-						for j := 0; j < cont.Nrverts; j++ {
+						for j := int32(0); j < cont.Nrverts; j++ {
 							v := common.GetVert4(cont.Rverts, j)
 							v[0] -= borderSize
 							v[2] -= borderSize

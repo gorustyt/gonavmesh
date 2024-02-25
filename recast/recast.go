@@ -79,9 +79,9 @@ type RcConfig struct {
 // / recognized by some steps in the build process.
 const RC_WALKABLE_AREA = 63
 
-func RcCalcGridSize(minBounds, maxBounds []float32, cellSize float32, sizeX, sizeZ *int) {
-	*sizeX = int((maxBounds[0]-minBounds[0])/cellSize + 0.5)
-	*sizeZ = int((maxBounds[2]-minBounds[2])/cellSize + 0.5)
+func RcCalcGridSize(minBounds, maxBounds []float32, cellSize float32, sizeX, sizeZ *int32) {
+	*sizeX = int32((maxBounds[0]-minBounds[0])/cellSize + 0.5)
+	*sizeZ = int32((maxBounds[2]-minBounds[2])/cellSize + 0.5)
 }
 
 func calcTriNormal(v0, v1, v2 []float32, faceNormal []float32) {

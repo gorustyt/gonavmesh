@@ -14,26 +14,24 @@ type ContentRender struct {
 	c *Content
 }
 
-func (c ContentRender) Destroy() {
+func (c *ContentRender) Destroy() {
 
 }
 
-func (c ContentRender) Layout(size fyne.Size) {
-
+func (c *ContentRender) Layout(size fyne.Size) {
+	c.c.Resize(size)
 }
 
-func (c ContentRender) MinSize() fyne.Size {
+func (c *ContentRender) MinSize() fyne.Size {
 	return c.c.MinSize()
 }
 
-func (c ContentRender) Objects() []fyne.CanvasObject {
-	//TODO implement me
-	panic("implement me")
+func (c *ContentRender) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{c.c.canvas3D.GetRenderObj()}
 }
 
-func (c ContentRender) Refresh() {
-	//TODO implement me
-	panic("implement me")
+func (c *ContentRender) Refresh() {
+	c.c.Refresh()
 }
 
 type Content struct {
@@ -49,7 +47,7 @@ type Content struct {
 }
 
 func (c *Content) CreateRenderer() fyne.WidgetRenderer {
-	return &ContentRender{}
+	return &ContentRender{c: c}
 }
 
 func (c *Content) SetLabel1(s string) {
@@ -100,12 +98,14 @@ func (c *Content) Show() {
 }
 
 func (c *Content) Refresh() {
-
+	c.canvas3D.Reset()
+	c.sample.HandleRender()
+	c.canvas3D.Refresh()
 }
 
 func (c *Content) InputMeshChange() {
 	geom := newInputGeom()
-	if !geom.load("") {
+	if !geom.load(c.cfg.PropsConfig.InputMeshLists[c.cfg.PropsConfig.InputMeshPath]) {
 		slog.Info("geom load error")
 		return
 	}
@@ -113,27 +113,28 @@ func (c *Content) InputMeshChange() {
 	if c.sample != nil {
 		c.sample.handleMeshChanged(geom)
 	}
+	c.Refresh()
 }
 
 func (c *Content) ToolChange() {
 	switch c.cfg.ToolsConfig.Uid {
-	case config.TOOL_NAVMESH_TESTER:
-		c.sample.setTool(newNavMeshTesterTool(c))
-	case config.TOOL_NAVMESH_PRUNE:
-		c.sample.setTool(newTempObstacleHilightTool(c))
-	case config.TOOL_OFFMESH_CONNECTION:
-		c.sample.setTool(newOffMeshConnectionTool(c))
-	case config.TOOL_OFFMESH_Links:
-		c.sample.setTool(newOffMeshConnectionTool(c))
-	case config.TOOL_CONVEX_VOLUME:
-		c.sample.setTool(newConvexVolumeTool(c))
-	case config.TOOL_CROWD:
-		c.sample.setTool(newCrowdTool(c))
-	case config.TOOL_CreateTiles:
-		c.sample.setTool(newMeshTitleTool(c))
-	case config.TOOL_CreateTempObstacles:
-		c.sample.setTool(newTempObstacleCreateTool(c))
-	case config.TOOL_HighlightTileCache:
+	case config.Desc_TOOL_NAVMESH_TESTER:
+		//c.sample.setTool(newNavMeshTesterTool(c))
+	case config.Desc_TOOL_NAVMESH_PRUNE:
+		//c.sample.setTool(newTempObstacleHilightTool(c))
+	case config.Desc_TOOL_OFFMESH_CONNECTION:
+		//c.sample.setTool(newOffMeshConnectionTool(c))
+	case config.Desc_TOOL_OFFMESH_Links:
+		//c.sample.setTool(newOffMeshConnectionTool(c))
+	case config.Desc_TOOL_CONVEX_VOLUME:
+		//c.sample.setTool(newConvexVolumeTool(c))
+	case config.Desc_TOOL_CROWD:
+		//c.sample.setTool(newCrowdTool(c))
+	case config.Desc_TOOL_CreateTiles:
+		//c.sample.setTool(newMeshTitleTool(c))
+	case config.Desc_TOOL_CreateTempObstacles:
+		//c.sample.setTool(newTempObstacleCreateTool(c))
+	case config.Desc_TOOL_HighlightTileCache:
 
 	}
 }
@@ -142,9 +143,9 @@ func (c *Content) SampleChange(sample string) {
 	case config.SampleSoloMesh:
 		c.sample = newSampleSoloMesh(c)
 	case config.SampleTileMesh:
-		c.sample = newSampleTileMesh(c)
+		//c.sample = newSampleTileMesh(c)
 	case config.SampleTempObstacles:
-		c.sample = newSampleTempObstacles(c)
+		//c.sample = newSampleTempObstacles(c)
 	}
 }
 

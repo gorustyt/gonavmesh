@@ -21,15 +21,15 @@ var (
 
 func InitToolsMap(ctx *Context) {
 	toolsMap = map[string]ToolsRender{
-		config.TOOL_NAVMESH_TESTER:      NewToolsTestNavmesh(ctx),
-		config.TOOL_NAVMESH_PRUNE:       NewToolsPruneNavmesh(ctx),
-		config.TOOL_OFFMESH_CONNECTION:  NewToolOffMeshConnection(ctx),
-		config.TOOL_OFFMESH_Links:       NewToolOffMeshConnection(ctx),
-		config.TOOL_CONVEX_VOLUME:       NewToolsCreateConvexVolumes(ctx),
-		config.TOOL_CROWD:               NewToolsCrowds(ctx),
-		config.TOOL_CreateTiles:         NewToolsCreateTitles(ctx),
-		config.TOOL_HighlightTileCache:  NewToolsHighlightTileCache(ctx),
-		config.TOOL_CreateTempObstacles: NewToolsToolsCreateTempObstacles(ctx),
+		config.Desc_TOOL_NAVMESH_TESTER:      NewToolsTestNavmesh(ctx),
+		config.Desc_TOOL_NAVMESH_PRUNE:       NewToolsPruneNavmesh(ctx),
+		config.Desc_TOOL_OFFMESH_CONNECTION:  NewToolOffMeshConnection(ctx),
+		config.Desc_TOOL_OFFMESH_Links:       NewToolOffMeshConnection(ctx),
+		config.Desc_TOOL_CONVEX_VOLUME:       NewToolsCreateConvexVolumes(ctx),
+		config.Desc_TOOL_CROWD:               NewToolsCrowds(ctx),
+		config.Desc_TOOL_CreateTiles:         NewToolsCreateTitles(ctx),
+		config.Desc_TOOL_HighlightTileCache:  NewToolsHighlightTileCache(ctx),
+		config.Desc_TOOL_CreateTempObstacles: NewToolsToolsCreateTempObstacles(ctx),
 	}
 }
 
@@ -79,34 +79,33 @@ func (t *Tools) GetRenderObj() fyne.CanvasObject {
 func (t *Tools) setToolsGroup(sample string) {
 	switch sample {
 	case config.SampleSoloMesh:
-		t.toolGroup.Selected = config.TOOL_NAVMESH_TESTER
+		t.toolGroup.Selected = config.Desc_TOOL_NAVMESH_TESTER
 		t.toolGroup.Options = []string{
-			config.TOOL_NAVMESH_TESTER,
-			config.TOOL_NAVMESH_PRUNE,
-
-			config.TOOL_OFFMESH_CONNECTION,
-			config.TOOL_CONVEX_VOLUME,
-			config.TOOL_CROWD,
+			config.Desc_TOOL_NAVMESH_TESTER,
+			config.Desc_TOOL_NAVMESH_PRUNE,
+			config.Desc_TOOL_OFFMESH_CONNECTION,
+			config.Desc_TOOL_CONVEX_VOLUME,
+			config.Desc_TOOL_CROWD,
 		}
 	case config.SampleTileMesh:
-		t.toolGroup.Selected = config.TOOL_CreateTiles
+		t.toolGroup.Selected = config.Desc_TOOL_CreateTiles
 		t.toolGroup.Options = []string{
-			config.TOOL_NAVMESH_TESTER,
-			config.TOOL_NAVMESH_PRUNE,
-			config.TOOL_CreateTiles,
-			config.TOOL_OFFMESH_Links,
-			config.TOOL_CONVEX_VOLUME,
-			config.TOOL_CROWD,
+			config.Desc_TOOL_NAVMESH_TESTER,
+			config.Desc_TOOL_NAVMESH_PRUNE,
+			config.Desc_TOOL_CreateTiles,
+			config.Desc_TOOL_OFFMESH_Links,
+			config.Desc_TOOL_CONVEX_VOLUME,
+			config.Desc_TOOL_CROWD,
 		}
 	case config.SampleTempObstacles:
-		t.toolGroup.Selected = config.TOOL_CreateTempObstacles
+		t.toolGroup.Selected = config.Desc_TOOL_CreateTempObstacles
 		t.toolGroup.Options = []string{
-			config.TOOL_NAVMESH_TESTER,
-			config.TOOL_HighlightTileCache,
-			config.TOOL_CreateTempObstacles,
-			config.TOOL_OFFMESH_Links,
-			config.TOOL_CONVEX_VOLUME,
-			config.TOOL_CROWD,
+			config.Desc_TOOL_NAVMESH_TESTER,
+			config.Desc_TOOL_HighlightTileCache,
+			config.Desc_TOOL_CreateTempObstacles,
+			config.Desc_TOOL_OFFMESH_Links,
+			config.Desc_TOOL_CONVEX_VOLUME,
+			config.Desc_TOOL_CROWD,
 		}
 	}
 	t.toolGroup.Refresh()

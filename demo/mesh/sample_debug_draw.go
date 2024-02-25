@@ -3,6 +3,7 @@ package mesh
 type ISample interface {
 	handleMeshChanged(geom *InputGeom)
 	setTool(tool SampleTool)
+	HandleRender()
 }
 type SampleTool interface {
 	Type() int

@@ -5,6 +5,8 @@ import (
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/data/binding"
 	"github.com/gorustyt/gonavmesh/detour_crowd"
+	"io/fs"
+	"path/filepath"
 )
 
 type Config struct {
@@ -211,6 +213,7 @@ func (cfg *ToolsConfig) Reset() {
 type PropsConfig struct {
 	ShowLogAndShowTool []string
 	SampleType         string
+	InputMeshLists     map[string]string
 	InputMeshPath      string
 	OnInputMesh        func()
 
@@ -256,6 +259,7 @@ type PropsConfig struct {
 }
 
 func (cfg *PropsConfig) Reset() {
+	cfg.InputMeshLists = GetInputMeshList()
 	cfg.Filtering = []string{
 		FilteringLowHangingObstacles,
 		FilteringLedgeSpans,
@@ -330,4 +334,21 @@ func (cfg *PropsConfig) SetTitleCacheNavmeshBuildTimeLabel(cacheBuildTimeMs floa
 }
 func (cfg *PropsConfig) SetTitleCacheBuildPeakMemUsageLabel(cacheBuildMemUsage int) {
 	cfg.TitleCacheBuildPeakMemUsageLabel.Set(fmt.Sprintf("Build Peak Mem Usage  %.1f kB", float64(cacheBuildMemUsage)/1024.0))
+}
+
+func GetInputMeshList() map[string]string {
+	res := map[string]string{}
+	err := filepath.Walk("./demo/objs/Meshes", func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			panic(err)
+		}
+		if filepath.Ext(path) == MeshObjExt || filepath.Ext(path) == MeshSetExt {
+			res[info.Name()] = path
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return res
 }

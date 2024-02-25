@@ -147,15 +147,31 @@ const (
 )
 
 const (
-	TOOL_NAVMESH_TESTER      = "Test Navmesh"
-	TOOL_NAVMESH_PRUNE       = "Prune Navmesh"
-	TOOL_OFFMESH_CONNECTION  = "Create Off-Mesh Connections"
-	TOOL_OFFMESH_Links       = "Create Off-Mesh Links"
-	TOOL_CONVEX_VOLUME       = "Create Convex Volumes"
-	TOOL_CROWD               = "Create Crowds"
-	TOOL_CreateTiles         = "Create Tiles"
-	TOOL_CreateTempObstacles = "Create Temp Obstacles"
-	TOOL_HighlightTileCache  = "Highlight Tile Cache"
+	Desc_TOOL_NAVMESH_TESTER      = "Test Navmesh"
+	Desc_TOOL_NAVMESH_PRUNE       = "Prune Navmesh"
+	Desc_TOOL_OFFMESH_CONNECTION  = "Create Off-Mesh Connections"
+	Desc_TOOL_OFFMESH_Links       = "Create Off-Mesh Links"
+	Desc_TOOL_CONVEX_VOLUME       = "Create Convex Volumes"
+	Desc_TOOL_CROWD               = "Create Crowds"
+	Desc_TOOL_CreateTiles         = "Create Tiles"
+	Desc_TOOL_CreateTempObstacles = "Create Temp Obstacles"
+	Desc_TOOL_HighlightTileCache  = "Highlight Tile Cache"
+)
+
+// / Tool types.
+type SampleToolType int
+
+const (
+	TOOL_NONE SampleToolType = iota
+	TOOL_TILE_EDIT
+	TOOL_TILE_HIGHLIGHT
+	TOOL_TEMP_OBSTACLE
+	TOOL_NAVMESH_TESTER
+	TOOL_NAVMESH_PRUNE
+	TOOL_OFFMESH_CONNECTION
+	TOOL_CONVEX_VOLUME
+	TOOL_CROWD
+	MAX_TOOLS
 )
 
 const (
@@ -168,4 +184,31 @@ const (
 	HighLightTitleDrawRegions    = "Draw Regions"
 	HighLightTitleDrawContours   = "Draw Contours"
 	HighLightTitleDrawMesh       = "Draw Mesh"
+)
+const (
+	MeshObjExt = ".obj"
+	MeshSetExt = ".gset"
+)
+
+type SoloMeshDrawMode int
+
+const (
+	SOLOMESH_DRAWMODE_NAVMESH SoloMeshDrawMode = iota
+	SOLOMESH_DRAWMODE_NAVMESH_TRANS
+	SOLOMESH_DRAWMODE_NAVMESH_BVTREE
+	SOLOMESH_DRAWMODE_NAVMESH_NODES
+	SOLOMESH_DRAWMODE_NAVMESH_INVIS
+	SOLOMESH_DRAWMODE_MESH
+	SOLOMESH_DRAWMODE_VOXELS
+	SOLOMESH_DRAWMODE_VOXELS_WALKABLE
+	SOLOMESH_DRAWMODE_COMPACT
+	SOLOMESH_DRAWMODE_COMPACT_DISTANCE
+	SOLOMESH_DRAWMODE_COMPACT_REGIONS
+	SOLOMESH_DRAWMODE_REGION_CONNECTIONS
+	SOLOMESH_DRAWMODE_RAW_CONTOURS
+	SOLOMESH_DRAWMODE_BOTH_CONTOURS
+	SOLOMESH_DRAWMODE_CONTOURS
+	SOLOMESH_DRAWMODE_POLYMESH
+	SOLOMESH_DRAWMODE_POLYMESH_DETAIL
+	SOLOMESH_MAX_DRAWMODE
 )

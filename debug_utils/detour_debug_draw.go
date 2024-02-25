@@ -217,7 +217,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 			dd.Vertex1(float32(con.Pos[3]), float32(con.Pos[4]+0.2), float32(con.Pos[5]), DuRGBA(0, 48, 64, 196))
 
 			// Connection arc.
-			a := 0.0
+			a := float32(0.0)
 			if con.Flags&1 != 0 {
 				a = 0.6
 			}
@@ -278,7 +278,7 @@ func DuDebugDrawNavMeshNodes(dd DuDebugDraw, query detour.NavMeshQuery) {
 
 	pool := query.GetNodePool()
 	if pool != nil {
-		off := 0.5
+		off := float32(0.5)
 		dd.Begin(DU_DRAW_POINTS, 4.0)
 		for i := int32(0); i < pool.GetHashSize(); i++ {
 			for j := pool.GetFirst(int(i)); j != detour.DT_NULL_IDX; j = pool.GetNext(int(j)) {
@@ -350,7 +350,7 @@ func DuDebugDrawNavMeshBVTree(dd DuDebugDraw, mesh detour.IDtNavMesh) {
 
 func drawMeshTilePortal(dd DuDebugDraw, tile *detour.DtMeshTile) {
 	// Draw portals
-	padx := 0.04
+	padx := float32(0.04)
 	pady := tile.Header.WalkableClimb
 
 	dd.Begin(DU_DRAW_LINES, 2.0)
@@ -398,9 +398,9 @@ func drawMeshTilePortal(dd DuDebugDraw, tile *detour.DtMeshTile) {
 					if side == 2 {
 						col = DuRGBA(0, 128, 0, 128)
 					}
-					z := float32(va[2]) + padx
+					z := va[2] + padx
 					if side == 2 {
-						z = float32(va[2]) - padx
+						z = va[2] - padx
 					}
 					dd.Vertex1(float32(va[0]), float32(va[1]-pady), z, col)
 					dd.Vertex1(float32(va[0]), float32(va[1]+pady), z, col)
@@ -484,7 +484,7 @@ func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.D
 			as0 = 0.6
 		}
 		DuAppendArc(dd, float32(con.Pos[0]), float32(con.Pos[1]), float32(con.Pos[2]), float32(con.Pos[3]), float32(con.Pos[4]), float32(con.Pos[5]), 0.25,
-			as0, 0.6, c)
+			float32(as0), 0.6, c)
 
 		dd.End()
 	} else {
