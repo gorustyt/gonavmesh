@@ -100,9 +100,9 @@ func DuDebugDrawTriMeshSlope(verts []float32, nverts int,
 			color = NormalizeRgba(a, a, a, 255)
 		}
 
-		va := verts[tris[i+0]*3:]
-		vb := verts[tris[i+1]*3:]
-		vc := verts[tris[i+2]*3:]
+		va := common.GetVert3(verts, tris[i+0])
+		vb := common.GetVert3(verts, tris[i+1])
+		vc := common.GetVert3(verts, tris[i+2])
 
 		ax := 0
 		ay := 0
