@@ -25,14 +25,12 @@ void main()
 in vec2 TexCoord;
 in vec3 Vcolor;
 
-out vec4 color;
-uniform float mixParams;
-uniform sampler2D texture1;
-uniform sampler2D texture2;
+out vec4 FragColor;
 
+uniform sampler2D texture1;
 void main()
 {
-    //color = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), mixParams);
-	color = vec4(Vcolor, 1.0f);
+	FragColor = texture(texture1, TexCoord);
+	FragColor*=Vcolor;
 }`
 )
