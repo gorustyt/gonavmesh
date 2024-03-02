@@ -174,7 +174,6 @@ func (s *SampleSoloMesh) onDrawModeChange() {
 	//}
 }
 func (s *SampleSoloMesh) HandleRender() {
-	s.ctx.canvas3D.SetShaderConfig(0, objVertexShader, objFragShader)
 	s.ctx.canvas3D.AppendObj(0, s.vert)
 	s.ctx.canvas3D.AppendObj(0, s.coordinate)
 	//Draw rcMeshLoaderObj

@@ -4,11 +4,12 @@ go 1.21.0
 
 require (
 	github.com/go-gl/mathgl v1.1.0
-	github.com/gorustyt/fyne/v2 v2.0.0-20240211112124-d0174e8cb286
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	go.uber.org/zap v1.26.0
 	google.golang.org/protobuf v1.31.0
 )
+
+require github.com/gorustyt/fyne/v2 v2.0.0-20240228150042-50d8ace1fcda
 
 require (
 	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e // indirect

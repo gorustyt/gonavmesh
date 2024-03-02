@@ -356,3 +356,28 @@ func (s *Sample) handleCommonSettings() {
 	}
 
 }
+
+func (s *Sample) createDefaultTexture() {
+	// Create checker pattern.
+	col0 := debug_utils.DuRGBA(215, 215, 215, 255)
+	col1 := debug_utils.DuRGBA(255, 255, 255, 255)
+	const TSIZE = 64
+	var data [TSIZE]int
+	level := 0
+	size := TSIZE
+	for size > 0 {
+		for y := 0; y < size; y++ {
+			for x := 0; x < size; x++ {
+				c := col1
+				if x == 0 || y == 0 {
+					c = col0
+				}
+				data[x+y*size] = c
+			}
+		}
+
+		//glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+		size /= 2
+		level++
+	}
+}
