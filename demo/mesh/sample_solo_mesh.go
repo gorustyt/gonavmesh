@@ -175,7 +175,6 @@ func (s *SampleSoloMesh) onDrawModeChange() {
 }
 func (s *SampleSoloMesh) HandleRender() {
 	s.ctx.canvas3D.AppendObj(0, s.vert)
-	s.ctx.canvas3D.AppendObj(0, s.coordinate)
 	//Draw rcMeshLoaderObj
 	// Draw rcMeshLoaderObj
 	texScale := float32(1.0)

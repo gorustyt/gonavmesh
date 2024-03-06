@@ -2,7 +2,6 @@ package mesh
 
 import (
 	"github.com/gorustyt/fyne/v2"
-	"github.com/gorustyt/fyne/v2/canvas3d"
 	"github.com/gorustyt/fyne/v2/canvas3d/canvas3d_render"
 	"github.com/gorustyt/fyne/v2/container"
 	"github.com/gorustyt/fyne/v2/data/binding"
@@ -45,8 +44,6 @@ type Content struct {
 	cfg    *config.Config
 	sample ISample
 	geom   *InputGeom
-
-	coordinate *canvas3d.Coordinate
 }
 
 func (c *Content) CreateRenderer() fyne.WidgetRenderer {
@@ -103,7 +100,6 @@ func (c *Content) Show() {
 func (c *Content) Refresh() {
 	c.canvas3D.Reset()
 	c.sample.HandleRender()
-	//c.canvas3D.AppendDefaultObj(c.coordinate)
 	c.canvas3D.Refresh()
 }
 
@@ -156,7 +152,6 @@ func (c *Content) SampleChange(sample string) {
 func NewContent() *Content {
 	cfg := config.NewConfig()
 	c := &Content{
-		coordinate: canvas3d.NewCoordinate(),
 		label1Data: binding.NewString(),
 		label2Data: binding.NewString(),
 		canvas3D:   canvas3d_render.NewCanvas3d(),
@@ -168,6 +163,5 @@ func NewContent() *Content {
 		widget.NewLabelWithData(c.label1Data),
 		widget.NewLabelWithData(c.label2Data),
 	)
-	c.canvas3D.SetShaderConfig(0, objVertexShader, objFragShader)
 	return c
 }

@@ -9,7 +9,7 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require github.com/gorustyt/fyne/v2 v2.0.0-20240228150042-50d8ace1fcda
+require github.com/gorustyt/fyne/v2 v2.0.0-20240306142919-fdfd85152d6c
 
 require (
 	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e // indirect

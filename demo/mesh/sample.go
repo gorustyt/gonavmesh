@@ -3,7 +3,6 @@ package mesh
 import (
 	"fmt"
 	"github.com/gorustyt/fyne/v2"
-	"github.com/gorustyt/fyne/v2/canvas3d"
 	"github.com/gorustyt/gonavmesh/common/rw"
 	"github.com/gorustyt/gonavmesh/debug_utils"
 	"github.com/gorustyt/gonavmesh/demo/config"
@@ -52,15 +51,10 @@ type Sample struct {
 	m_dd         debug_utils.DuDebugDraw
 
 	ctx *Content
-
-	vert       *canvas3d.VertexFloat32Array
-	coordinate *canvas3d.Coordinate
 }
 
 func NewSample(ctx *Content) *Sample {
-	s := &Sample{ctx: ctx,
-		coordinate: canvas3d.NewCoordinate(),
-		vert:       canvas3d.NewVertexFloat32Array()}
+	s := &Sample{ctx: ctx}
 
 	return s
 }
@@ -334,6 +328,7 @@ func (s *Sample) renderToolStates() {
 
 	}
 }
+
 func (s *Sample) renderOverlayToolStates(proj, model []float32, view []int) {
 	for i := 0; i < int(config.MAX_TOOLS); i++ {
 		if s.m_toolStates[i] != nil {
@@ -344,7 +339,6 @@ func (s *Sample) renderOverlayToolStates(proj, model []float32, view []int) {
 }
 
 func (s *Sample) handleCommonSettings() {
-
 	if s.m_geom != nil {
 		bmin := s.m_geom.getNavMeshBoundsMin()
 		bmax := s.m_geom.getNavMeshBoundsMax()
@@ -355,29 +349,4 @@ func (s *Sample) handleCommonSettings() {
 		_ = text
 	}
 
-}
-
-func (s *Sample) createDefaultTexture() {
-	// Create checker pattern.
-	col0 := debug_utils.DuRGBA(215, 215, 215, 255)
-	col1 := debug_utils.DuRGBA(255, 255, 255, 255)
-	const TSIZE = 64
-	var data [TSIZE]int
-	level := 0
-	size := TSIZE
-	for size > 0 {
-		for y := 0; y < size; y++ {
-			for x := 0; x < size; x++ {
-				c := col1
-				if x == 0 || y == 0 {
-					c = col0
-				}
-				data[x+y*size] = c
-			}
-		}
-
-		//glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-		size /= 2
-		level++
-	}
 }
