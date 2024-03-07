@@ -124,7 +124,7 @@ func (g *DebugDrawGL) End() {
 }
 
 type GLCheckerTexture struct {
-	texId context.Texture
+	texId uint32
 	ctx   context.Context
 }
 
@@ -136,7 +136,7 @@ func (c *GLCheckerTexture) Bind() {
 		const TSIZE = 64
 		var data [TSIZE * TSIZE]uint32
 		c.ctx.GenTextures(1, &c.texId)
-		c.ctx.BindTexture(enum.Texture2D, c.texId)
+		c.ctx.BindTexture(enum.Texture2D, context.Texture(c.texId))
 		level := 0
 		size := TSIZE
 		for size > 0 {
