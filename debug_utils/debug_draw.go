@@ -11,16 +11,16 @@ type DuDebugDrawBase struct {
 func NewDuDebugDraw() DuDebugDraw {
 	return &DuDebugDrawBase{}
 }
-func (d *DuDebugDrawBase) DepthMask(state bool)                              {}
-func (d *DuDebugDrawBase) Texture(state bool)                                {}
-func (d *DuDebugDrawBase) Begin(prim DuDebugDrawPrimitives, size ...float32) {} //TODO float size = 1.0f
-func (d *DuDebugDrawBase) Vertex(pos []float32, color int)                   {}
-func (d *DuDebugDrawBase) Vertex1(x, y, z float32, color int)                {}
-func (d *DuDebugDrawBase) Vertex2(pos []float32, color int, uv []float32)    {}
-func (d *DuDebugDrawBase) Vertex3(x, y, z float32, color int, u, v float32)  {}
-func (d *DuDebugDrawBase) End()                                              {}
+func (d *DuDebugDrawBase) DepthMask(state bool)                                {}
+func (d *DuDebugDrawBase) Texture(state bool)                                  {}
+func (d *DuDebugDrawBase) Begin(prim DuDebugDrawPrimitives, size ...float32)   {} //TODO float size = 1.0f
+func (d *DuDebugDrawBase) Vertex(pos []float32, color Colorb)                  {}
+func (d *DuDebugDrawBase) Vertex1(x, y, z float32, color Colorb)               {}
+func (d *DuDebugDrawBase) Vertex2(pos []float32, color Colorb, uv []float32)   {}
+func (d *DuDebugDrawBase) Vertex3(x, y, z float32, color Colorb, u, v float32) {}
+func (d *DuDebugDrawBase) End()                                                {}
 
-func (d *DuDebugDrawBase) AreaToCol(area int) int {
+func (d *DuDebugDrawBase) AreaToCol(area int) Colorb {
 	if area == 0 {
 		// Treat zero area type as default.
 		return DuRGBA(0, 192, 255, 255)
@@ -33,7 +33,7 @@ func Bit(a, b int) int {
 	return (a & (1 << b)) >> b
 }
 
-func DuIntToCol(i, a int) int {
+func DuIntToCol(i, a int) Colorb {
 	r := Bit(i, 1) + Bit(i, 3)*2 + 1
 	g := Bit(i, 2) + Bit(i, 4)*2 + 1
 	b := Bit(i, 0) + Bit(i, 5)*2 + 1
@@ -49,7 +49,7 @@ func DuIntToCol1(i int, col []float32) {
 	col[2] = 1 - float32(b)*63.0/255.0
 }
 
-func DuCalcBoxColors(colors []int, colTop int, colSide int) {
+func DuCalcBoxColors(colors []Colorb, colTop Colorb, colSide Colorb) {
 	if len(colors) == 0 {
 		return
 	}
@@ -63,7 +63,7 @@ func DuCalcBoxColors(colors []int, colTop int, colSide int) {
 }
 
 func DuDebugDrawCylinderWire(dd DuDebugDraw, minx float32, miny, minz,
-	maxx, maxy, maxz float32, col int, lineWidth float32) {
+	maxx, maxy, maxz float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -74,7 +74,7 @@ func DuDebugDrawCylinderWire(dd DuDebugDraw, minx float32, miny, minz,
 }
 
 func DuDebugDrawBoxWire(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, col int, lineWidth float32) {
+	maxx, maxy, maxz float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -86,7 +86,7 @@ func DuDebugDrawBoxWire(dd DuDebugDraw, minx, miny, minz,
 
 func DuDebugDrawArc(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1, h,
-	as0, as1 float32, col int, lineWidth float32) {
+	as0, as1 float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -98,7 +98,7 @@ func DuDebugDrawArc(dd DuDebugDraw, x0, y0, z0,
 
 func DuDebugDrawArrow(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1,
-	as0, as1 float32, col int, lineWidth float32) {
+	as0, as1 float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -109,7 +109,7 @@ func DuDebugDrawArrow(dd DuDebugDraw, x0, y0, z0,
 }
 
 func DuDebugDrawCircle(dd DuDebugDraw, x, y, z,
-	r float32, col int, lineWidth float32) {
+	r float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -120,7 +120,7 @@ func DuDebugDrawCircle(dd DuDebugDraw, x, y, z,
 }
 
 func DuDebugDrawCross(dd DuDebugDraw, x, y, z,
-	size float32, col int, lineWidth float32) {
+	size float32, col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -131,7 +131,7 @@ func DuDebugDrawCross(dd DuDebugDraw, x, y, z,
 }
 
 func DuDebugDrawBox(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, fcol []int) {
+	maxx, maxy, maxz float32, fcol []Colorb) {
 	if dd == nil {
 		return
 	}
@@ -142,7 +142,7 @@ func DuDebugDrawBox(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuDebugDrawCylinder(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, col int) {
+	maxx, maxy, maxz float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -154,7 +154,7 @@ func DuDebugDrawCylinder(dd DuDebugDraw, minx, miny, minz,
 
 func DuDebugDrawGridXZ(dd DuDebugDraw, ox, oy, oz float32,
 	w, h int, size float32,
-	col int, lineWidth float32) {
+	col Colorb, lineWidth float32) {
 	if dd == nil {
 		return
 	}
@@ -172,7 +172,7 @@ func DuDebugDrawGridXZ(dd DuDebugDraw, ox, oy, oz float32,
 }
 
 func DuAppendCylinderWire(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, col int) {
+	maxx, maxy, maxz float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func DuAppendCylinderWire(dd DuDebugDraw, minx, miny, minz,
 	}
 }
 
-func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float32, col int) {
+func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -246,7 +246,7 @@ func DuAppendBoxWire(dd DuDebugDraw, minx, miny, minz, maxx, maxy, maxz float32,
 }
 
 func DuAppendBoxPoints(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, col int) {
+	maxx, maxy, maxz float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -272,7 +272,7 @@ func DuAppendBoxPoints(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuAppendBox(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, fcol []int) {
+	maxx, maxy, maxz float32, fcol []Colorb) {
 	if dd == nil {
 		return
 	}
@@ -309,7 +309,7 @@ func DuAppendBox(dd DuDebugDraw, minx, miny, minz,
 }
 
 func DuAppendCylinder(dd DuDebugDraw, minx, miny, minz,
-	maxx, maxy, maxz float32, col int) {
+	maxx, maxy, maxz float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -372,7 +372,7 @@ func evalArc(x0, y0, z0,
 }
 
 func AppendArrowHead(dd DuDebugDraw, p, q []float32,
-	s float32, col int) {
+	s float32, col Colorb) {
 	eps := 0.001
 	if dd == nil {
 		return
@@ -400,7 +400,7 @@ func AppendArrowHead(dd DuDebugDraw, p, q []float32,
 
 func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1, h,
-	as0, as1 float32, col int) {
+	as0, as1 float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -444,7 +444,7 @@ func DuAppendArc(dd DuDebugDraw, x0, y0, z0,
 
 func DuAppendArrow(dd DuDebugDraw, x0, y0, z0,
 	x1, y1, z1,
-	as0, as1 float32, col int) {
+	as0, as1 float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -466,7 +466,7 @@ func DuAppendArrow(dd DuDebugDraw, x0, y0, z0,
 }
 
 func DuAppendCircle(dd DuDebugDraw, x, y, z,
-	r float32, col int) {
+	r float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -492,7 +492,7 @@ func DuAppendCircle(dd DuDebugDraw, x, y, z,
 }
 
 func DuAppendCross(dd DuDebugDraw, x, y, z,
-	s float32, col int) {
+	s float32, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -504,31 +504,11 @@ func DuAppendCross(dd DuDebugDraw, x, y, z,
 	dd.Vertex1(x, y, z+s, col)
 }
 
-func DuRGBA(r, g, b, a int) int {
-	return (r) | (g << 8) | (b << 16) | (a << 24)
+func DuRGBA[T int | int32 | int32 | uint8](r, g, b, a T) Colorb {
+	return Colorb{uint8(r), uint8(g), uint8(b), uint8(a)}
 }
 
-func NormalizeDuLerpCol(ca, cb, u int) []float32 {
-	ra := ca & 0xff
-	ga := (ca >> 8) & 0xff
-	ba := (ca >> 16) & 0xff
-	aa := (ca >> 24) & 0xff
-	rb := cb & 0xff
-	gb := (cb >> 8) & 0xff
-	bb := (cb >> 16) & 0xff
-	ab := (cb >> 24) & 0xff
-
-	r := (ra*(255-u) + rb*u) / 255
-	g := (ga*(255-u) + gb*u) / 255
-	b := (ba*(255-u) + bb*u) / 255
-	a := (aa*(255-u) + ab*u) / 255
-	return NormalizeRgba(r, g, b, a)
-}
-func NormalizeRgba(r, g, b, a int) []float32 {
-	return []float32{float32(r / 255), float32(g / 255), float32(b / 255), float32(a / 255)}
-}
-
-func DuRGBAf(fr, fg, fb, fa float32) int {
+func DuRGBAf(fr, fg, fb, fa float32) Colorb {
 	r := int(fr * 255.0)
 	g := int(fg * 255.0)
 	b := int(fb * 255.0)
@@ -536,27 +516,30 @@ func DuRGBAf(fr, fg, fb, fa float32) int {
 	return DuRGBA(r, g, b, a)
 }
 
-func duMultCol(col, d int) int {
-	r := col & 0xff
-	g := (col >> 8) & 0xff
-	b := (col >> 16) & 0xff
-	a := (col >> 24) & 0xff
-	return DuRGBA((r*d)>>8, (g*d)>>8, (b*d)>>8, a)
+func duMultCol(col Colorb, d uint8) Colorb {
+	r := int(col.R() & 0xff)
+	g := int((col.G()) & 0xff)
+	b := int((col.B()) & 0xff)
+	a := int(col.A() & 0xff)
+	di := int(d)
+	return DuRGBA(r*di>>8, g*di>>8, b*di>>8, a)
 }
 
-func DuDarkenCol(col int) int {
-	return ((col >> 1) & 0x007f7f7f) | (col & 0xff000000)
+func DuDarkenCol(col Colorb) (res Colorb) {
+	i := col.Int()
+	res.FromInt(((i >> 1) & 0x007f7f7f) | (i & 0xff000000))
+	return res
 }
 
-func DuLerpCol(ca, cb, u int) int {
-	ra := ca & 0xff
-	ga := (ca >> 8) & 0xff
-	ba := (ca >> 16) & 0xff
-	aa := (ca >> 24) & 0xff
-	rb := cb & 0xff
-	gb := (cb >> 8) & 0xff
-	bb := (cb >> 16) & 0xff
-	ab := (cb >> 24) & 0xff
+func DuLerpCol(ca, cb Colorb, u uint8) Colorb {
+	ra := ca.R() & 0xff
+	ga := (ca.G()) & 0xff
+	ba := (ca.B()) & 0xff
+	aa := (ca.A()) & 0xff
+	rb := cb.R() & 0xff
+	gb := (cb.G()) & 0xff
+	bb := (cb.B()) & 0xff
+	ab := (cb.A()) & 0xff
 
 	r := (ra*(255-u) + rb*u) / 255
 	g := (ga*(255-u) + gb*u) / 255
@@ -565,8 +548,9 @@ func DuLerpCol(ca, cb, u int) int {
 	return DuRGBA(r, g, b, a)
 }
 
-func DuTransCol(c, a int) int {
-	return (a << 24) | (c & 0x00ffffff)
+func DuTransCol(c Colorb, a uint8) Colorb {
+	return Colorb{c.R() & 0xff, c.G() & 0xff, c.B() & 0xff, a}
+
 }
 
 type DuDebugDraw interface {
@@ -582,34 +566,34 @@ type DuDebugDraw interface {
 	/// Submit a vertex
 	///  @param pos [in] position of the verts.
 	///  @param color [in] color of the verts.
-	Vertex(pos []float32, color int)
+	Vertex(pos []float32, color Colorb)
 
 	/// Submit a vertex
 	///  @param x,y,z [in] position of the verts.
 	///  @param color [in] color of the verts.
-	Vertex1(x, y, z float32, color int)
+	Vertex1(x, y, z float32, color Colorb)
 
 	/// Submit a vertex
 	///  @param pos [in] position of the verts.
 	///  @param color [in] color of the verts.
 	///  @param uv [in] the uv coordinates of the verts.
-	Vertex2(pos []float32, color int, uv []float32)
+	Vertex2(pos []float32, color Colorb, uv []float32)
 
 	/// Submit a vertex
 	///  @param x,y,z [in] position of the verts.
 	///  @param color [in] color of the verts.
 	///  @param u,v [in] the uv coordinates of the verts.
-	Vertex3(x, y, z float32, color int, u, v float32)
+	Vertex3(x, y, z float32, color Colorb, u, v float32)
 
 	/// End drawing primitives.
 	End()
 
 	/// Compute a color for given area.
-	AreaToCol(area int) int
+	AreaToCol(area int) Colorb
 }
 type DuDisplayList struct {
 	m_pos   []float32
-	m_color []int
+	m_color []Colorb
 	m_size  int
 	m_cap   int
 
@@ -651,7 +635,7 @@ func (d *DuDisplayList) resize(cap int) {
 	}
 	d.m_pos = newPos
 
-	newColor := make([]int, cap)
+	newColor := make([]Colorb, cap)
 	if d.m_size != 0 {
 		copy(newColor, d.m_color[:d.m_size])
 	}
@@ -675,7 +659,7 @@ func (d *DuDisplayList) begin(prim DuDebugDrawPrimitives, size float32) {
 	d.m_primSize = size
 }
 
-func (d *DuDisplayList) vertex(x, y, z float32, color int) {
+func (d *DuDisplayList) vertex(x, y, z float32, color Colorb) {
 	if d.m_size+1 >= d.m_cap {
 		d.resize(d.m_cap * 2)
 	}
@@ -688,7 +672,7 @@ func (d *DuDisplayList) vertex(x, y, z float32, color int) {
 	d.m_size++
 }
 
-func (d *DuDisplayList) Vertex(pos []float32, color int) {
+func (d *DuDisplayList) Vertex(pos []float32, color Colorb) {
 	d.vertex(pos[0], pos[1], pos[2], color)
 }
 func (d *DuDisplayList) end() {

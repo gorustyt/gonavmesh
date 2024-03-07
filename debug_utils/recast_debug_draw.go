@@ -1,14 +1,15 @@
 package debug_utils
 
 import (
+	"github.com/gorustyt/fyne/v2/canvas3d/context/enum"
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/recast"
 	"math"
 )
 
-func DuDebugDrawTriMesh(verts []float32, nverts int,
+func DuDebugDrawTriMesh(dd DuDebugDraw, verts []float32, nverts int,
 	tris []int, normals []float32, ntris int,
-	flags []int, texScale float32) (res []float32) {
+	flags []int, texScale float32) {
 
 	if len(verts) == 0 {
 		return
@@ -25,14 +26,17 @@ func DuDebugDrawTriMesh(verts []float32, nverts int,
 	var uvc [2]float32
 
 	unwalkable := DuRGBA(192, 128, 0, 255)
+	dd.Texture(true)
+	dd.Begin(enum.Triangles)
+
 	for i := 0; i < ntris*3; i += 3 {
-		var color []float32
+		var color Colorb
 		norm := normals[i:]
-		a := int(220 * (2 + norm[0] + norm[1]) / 4)
+		a := uint8(220 * (2 + norm[0] + norm[1]) / 4)
 		if len(flags) != 0 && flags[i/3] == 0 {
-			color = NormalizeDuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
+			color = DuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
 		} else {
-			color = NormalizeRgba(a, a, a, 255)
+			color = DuRGBA(a, a, a, 255)
 		}
 
 		va := verts[tris[i+0]*3:]
@@ -58,22 +62,17 @@ func DuDebugDrawTriMesh(verts []float32, nverts int,
 		uvb[1] = vb[ay] * texScale
 		uvc[0] = vc[ax] * texScale
 		uvc[1] = vc[ay] * texScale
-		res = append(res, va...)
-		res = append(res, color...)
-		res = append(res, uva[:]...)
-		res = append(res, vb...)
-		res = append(res, color...)
-		res = append(res, uvb[:]...)
-		res = append(res, vc...)
-		res = append(res, color...)
-		res = append(res, uvc[:]...)
+		dd.Vertex2(va, color, uva[:])
+		dd.Vertex2(vb, color, uvb[:])
+		dd.Vertex2(vc, color, uvc[:])
 	}
-	return res
+	dd.End()
+	dd.Texture(false)
 }
 
-func DuDebugDrawTriMeshSlope(verts []float32, nverts int,
+func DuDebugDrawTriMeshSlope(dd DuDebugDraw, verts []float32, nverts int,
 	tris []int, normals []float32, ntris int,
-	walkableSlopeAngle float32, texScale float32) (res []float32) {
+	walkableSlopeAngle float32, texScale float32) {
 	if len(verts) == 0 {
 		return
 	}
@@ -89,15 +88,17 @@ func DuDebugDrawTriMeshSlope(verts []float32, nverts int,
 	uva := make([]float32, 2)
 	uvb := make([]float32, 2)
 	uvc := make([]float32, 2)
+	dd.Texture(true)
+	dd.Begin(enum.Triangles)
 	unwalkable := DuRGBA(192, 128, 0, 255)
 	for i := 0; i < ntris*3; i += 3 {
 		norm := normals[i:]
-		var color []float32
-		a := int(220 * (2 + norm[0] + norm[1]) / 4)
+		var color Colorb
+		a := uint8(220 * (2 + norm[0] + norm[1]) / 4)
 		if norm[1] < walkableThr {
-			color = NormalizeDuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
+			color = DuLerpCol(DuRGBA(a, a, a, 255), unwalkable, 64)
 		} else {
-			color = NormalizeRgba(a, a, a, 255)
+			color = DuRGBA(a, a, a, 255)
 		}
 
 		va := common.GetVert3(verts, tris[i+0])
@@ -123,18 +124,12 @@ func DuDebugDrawTriMeshSlope(verts []float32, nverts int,
 		uvb[1] = vb[ay] * texScale
 		uvc[0] = vc[ax] * texScale
 		uvc[1] = vc[ay] * texScale
-
-		res = append(res, va...)
-		res = append(res, color...)
-		res = append(res, uva[:]...)
-		res = append(res, vb...)
-		res = append(res, color...)
-		res = append(res, uvb[:]...)
-		res = append(res, vc...)
-		res = append(res, color...)
-		res = append(res, uvc[:]...)
+		dd.Vertex2(va, color, uva[:])
+		dd.Vertex2(vb, color, uvb[:])
+		dd.Vertex2(vc, color, uvc[:])
 	}
-	return res
+	dd.End()
+	dd.Texture(false)
 }
 
 func DuDebugDrawHeightfieldSolid(dd DuDebugDraw, hf *recast.RcHeightfield) {
@@ -149,7 +144,7 @@ func DuDebugDrawHeightfieldSolid(dd DuDebugDraw, hf *recast.RcHeightfield) {
 	w := int(hf.Width)
 	h := int(hf.Height)
 
-	fcol := make([]int, 6)
+	fcol := make([]Colorb, 6)
 	DuCalcBoxColors(fcol, DuRGBA(255, 255, 255, 255), DuRGBA(255, 255, 255, 255))
 
 	dd.Begin(DU_DRAW_QUADS)
@@ -181,7 +176,7 @@ func DuDebugDrawHeightfieldWalkable(dd DuDebugDraw, hf *recast.RcHeightfield) {
 	w := int(hf.Width)
 	h := int(hf.Height)
 
-	fcol := make([]int, 6)
+	fcol := make([]Colorb, 6)
 	DuCalcBoxColors(fcol, DuRGBA(255, 255, 255, 255), DuRGBA(217, 217, 217, 255))
 
 	dd.Begin(DU_DRAW_QUADS)
@@ -231,7 +226,7 @@ func DuDebugDrawCompactHeightfieldSolid(dd DuDebugDraw, chf *recast.RcCompactHei
 				s := chf.Spans[i]
 
 				area := chf.Areas[i]
-				var color int
+				var color Colorb
 				if area == recast.RC_WALKABLE_AREA {
 					color = DuRGBA(0, 192, 255, 64)
 				} else if area == recast.RC_NULL_AREA {
@@ -256,23 +251,23 @@ func DuDebugDrawCompactHeightfieldRegions(dd DuDebugDraw, chf *recast.RcCompactH
 		return
 	}
 
-	cs := float32(chf.Cs)
-	ch := float32(chf.Ch)
+	cs := chf.Cs
+	ch := chf.Ch
 
 	dd.Begin(DU_DRAW_QUADS)
 
 	for y := int32(0); y < chf.Height; y++ {
 		for x := int32(0); x < chf.Width; x++ {
-			fx := float32(chf.Bmin[0]) + float32(x)*cs
-			fz := float32(chf.Bmin[2]) + float32(y)*cs
+			fx := chf.Bmin[0] + float32(x)*cs
+			fz := chf.Bmin[2] + float32(y)*cs
 			c := chf.Cells[x+y*chf.Width]
 
 			i := c.Index
 			ni := c.Index + c.Count
 			for ; i < ni; i++ {
 				s := chf.Spans[i]
-				fy := float32(chf.Bmin[1]) + float32(s.Y)*ch
-				var color int
+				fy := chf.Bmin[1] + float32(s.Y)*ch
+				var color Colorb
 				if s.Reg != 0 {
 					color = DuIntToCol(int(s.Reg), 192)
 				} else {
@@ -312,15 +307,15 @@ func DuDebugDrawCompactHeightfieldDistance(dd DuDebugDraw, chf *recast.RcCompact
 
 	for y := int32(0); y < chf.Height; y++ {
 		for x := int32(0); x < chf.Width; x++ {
-			fx := float32(chf.Bmin[0]) + float32(x)*cs
-			fz := float32(chf.Bmin[2]) + float32(y)*cs
+			fx := chf.Bmin[0] + float32(x)*cs
+			fz := chf.Bmin[2] + float32(y)*cs
 			c := chf.Cells[x+y*chf.Width]
 
 			i := c.Index
 			ni := c.Index + c.Count
 			for ; i < ni; i++ {
 				s := chf.Spans[i]
-				fy := float32(chf.Bmin[1]) + float32(s.Y+1)*ch
+				fy := chf.Bmin[1] + float32(s.Y+1)*ch
 				cd := int(chf.Dist[i] * dscale)
 				color := DuRGBA(cd, cd, cd, 255)
 				dd.Vertex1(fx, fy, fz, color)
@@ -401,7 +396,7 @@ func DuDebugDrawHeightfieldLayer(dd DuDebugDraw, layer *recast.RcHeightfieldLaye
 			}
 			area := layer.Areas[lidx]
 
-			var col int
+			var col Colorb
 			if area == recast.RC_WALKABLE_AREA {
 				col = DuLerpCol(color, DuRGBA(0, 192, 255, 64), 32)
 			} else if area == recast.RC_NULL_AREA {
@@ -890,7 +885,7 @@ func DuDebugDrawPolyMesh(dd DuDebugDraw, mesh *recast.RcPolyMesh) {
 		p := mesh.Polys[i*nvp*2:]
 		area := mesh.Areas[i]
 
-		var color int
+		var color Colorb
 		if area == recast.RC_WALKABLE_AREA {
 			color = DuRGBA(0, 192, 255, 64)
 		} else if area == recast.RC_NULL_AREA {

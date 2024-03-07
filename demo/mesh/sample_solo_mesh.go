@@ -174,18 +174,10 @@ func (s *SampleSoloMesh) onDrawModeChange() {
 	//}
 }
 func (s *SampleSoloMesh) HandleRender() {
-	s.ctx.canvas3D.AppendObj(0, s.vert)
-	//Draw rcMeshLoaderObj
-	// Draw rcMeshLoaderObj
 	texScale := float32(1.0)
-	res := debug_utils.DuDebugDrawTriMeshSlope(s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
+	debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
 		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
 		s.m_agentMaxSlope, texScale)
-	s.vert.Arr = res
-
-	s.vert.PositionSize = []int{3, 0}
-	s.vert.ColorSize = []int{3, 3}
-	s.vert.TexCoordSize = []int{2, 6}
 }
 
 func (s *SampleSoloMesh) handleRender() {

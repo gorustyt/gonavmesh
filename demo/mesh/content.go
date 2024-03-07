@@ -1,6 +1,7 @@
 package mesh
 
 import (
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/gorustyt/fyne/v2"
 	"github.com/gorustyt/fyne/v2/canvas3d/canvas3d_render"
 	"github.com/gorustyt/fyne/v2/container"
@@ -44,6 +45,8 @@ type Content struct {
 	cfg    *config.Config
 	sample ISample
 	geom   *InputGeom
+
+	state *ContentState
 }
 
 func (c *Content) CreateRenderer() fyne.WidgetRenderer {
@@ -63,10 +66,7 @@ func (c *Content) GetConfig() *config.Config {
 }
 
 func (c *Content) MinSize() fyne.Size {
-	return fyne.Size{
-		Width:  600,
-		Height: 1080,
-	}
+	return c.state.GetSize()
 }
 
 func (c *Content) Move(position fyne.Position) {
@@ -152,6 +152,7 @@ func (c *Content) SampleChange(sample string) {
 func NewContent() *Content {
 	cfg := config.NewConfig()
 	c := &Content{
+		state:      NewContentState(),
 		label1Data: binding.NewString(),
 		label2Data: binding.NewString(),
 		canvas3D:   canvas3d_render.NewCanvas3d(),
@@ -164,4 +165,88 @@ func NewContent() *Content {
 		widget.NewLabelWithData(c.label2Data),
 	)
 	return c
+}
+
+func (c *Content) refresh() {
+
+}
+
+type ContentState struct {
+	camr     float32
+	viewPort mgl32.Vec4
+	model    mgl32.Mat4
+	view     mgl32.Mat4
+	project  mgl32.Mat4
+
+	cameraEulers mgl32.Vec2
+	cameraPos    mgl32.Vec3
+
+	rayStart mgl32.Vec3
+	rayEnd   mgl32.Vec3
+
+	mousePos     mgl32.Vec2
+	origMousePos mgl32.Vec2
+}
+
+func NewContentState() *ContentState {
+	return &ContentState{
+		camr:         1000,
+		cameraEulers: mgl32.Vec2{45, -45},
+		cameraPos:    mgl32.Vec3{},
+		viewPort: mgl32.Vec4{
+			0, 0, 600, 1080,
+		},
+	}
+}
+
+func (s *ContentState) GetSize() fyne.Size {
+	return fyne.Size{s.viewPort[2], s.viewPort[3]}
+}
+func (s *ContentState) Update() {
+	var err error
+	size := s.GetSize()
+	s.project = mgl32.Perspective(50, size.Width/size.Height, 1, s.camr)
+	s.model = mgl32.Translate3D(
+		-s.cameraPos[0],
+		-s.cameraPos[1],
+		-s.cameraPos[2],
+	).Mul4(mgl32.HomogRotate3D(
+		mgl32.DegToRad(s.cameraEulers[1]),
+		mgl32.Vec3{0, 1, 0})).Mul4(
+		mgl32.HomogRotate3D(
+			mgl32.DegToRad(s.cameraEulers[0]),
+			mgl32.Vec3{1, 0, 0}))
+	s.rayStart, err = mgl32.UnProject(
+		mgl32.Vec3{
+			s.mousePos[0],
+			s.mousePos[1],
+			0,
+		},
+		s.model,
+		s.project,
+		int(s.viewPort[0]),
+		int(s.viewPort[1]),
+		int(s.viewPort[2]),
+		int(s.viewPort[3]),
+	)
+	if err != nil {
+		panic(err)
+	}
+	s.rayEnd, err = mgl32.UnProject(
+		mgl32.Vec3{
+			s.mousePos[0],
+			s.mousePos[1],
+			0,
+		},
+		s.model,
+		s.project,
+		int(s.viewPort[0]),
+		int(s.viewPort[1]),
+		int(s.viewPort[2]),
+		int(s.viewPort[3]),
+	)
+	if err != nil {
+		panic(err)
+	}
+
 }

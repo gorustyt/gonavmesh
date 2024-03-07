@@ -27,7 +27,7 @@ func distancePtLine2d(pt, p, q []float32) float32 {
 	return dx*dx + dz*dz
 }
 
-func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col int, linew float32, inner bool) {
+func drawPolyBoundaries(dd DuDebugDraw, tile *detour.DtMeshTile, col Colorb, linew float32, inner bool) {
 	const thr = 0.01 * 0.01
 
 	dd.Begin(DU_DRAW_LINES, linew)
@@ -127,7 +127,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 
 		pd := tile.DetailMeshes[i]
 
-		var col int
+		var col Colorb
 		if query != nil && query.IsInClosedList(base|detour.DtPolyRef(i)) {
 			col = DuRGBA(255, 196, 0, 64)
 		} else {
@@ -167,7 +167,7 @@ func DrawMeshTile(dd DuDebugDraw, mesh detour.IDtNavMesh, query detour.NavMeshQu
 				continue
 			} // Skip regular polys.
 
-			var col, col2 int
+			var col, col2 Colorb
 			if query != nil && query.IsInClosedList(base|detour.DtPolyRef(i)) {
 				col = DuRGBA(255, 196, 0, 220)
 			} else {
@@ -437,7 +437,7 @@ func DuDebugDrawNavMeshPortals(dd DuDebugDraw, mesh detour.IDtNavMesh) {
 }
 
 func DuDebugDrawNavMeshPolysWithFlags(dd DuDebugDraw, mesh detour.IDtNavMesh,
-	polyFlags int, col int) {
+	polyFlags int, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -459,7 +459,7 @@ func DuDebugDrawNavMeshPolysWithFlags(dd DuDebugDraw, mesh detour.IDtNavMesh,
 	}
 }
 
-func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.DtPolyRef, col int) {
+func DuDebugDrawNavMeshPoly(dd DuDebugDraw, mesh detour.IDtNavMesh, ref detour.DtPolyRef, col Colorb) {
 	if dd == nil {
 		return
 	}
@@ -578,7 +578,7 @@ func DuDebugDrawTileCacheLayerAreas(dd DuDebugDraw, layer *detour_tile_cache.DtT
 			}
 
 			area := layer.Areas[lidx]
-			var col int
+			var col Colorb
 			if area == 63 {
 				col = DuLerpCol(color, DuRGBA(0, 192, 255, 64), 32)
 			} else if area == 0 {
@@ -678,9 +678,8 @@ func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTil
 
 	for i := 0; i < lcset.Nconts; i++ {
 		c := lcset.Conts[i]
-		color := 0
 
-		color = DuIntToCol(i, a)
+		color := DuIntToCol(i, a)
 
 		for j := 0; j < c.Nverts; j++ {
 			k := (j + 1) % c.Nverts
@@ -719,7 +718,7 @@ func DuDebugDrawTileCacheContours(dd DuDebugDraw, lcset *detour_tile_cache.DtTil
 
 	for i := 0; i < lcset.Nconts; i++ {
 		c := lcset.Conts[i]
-		color := 0
+		var color Colorb
 
 		for j := 0; j < c.Nverts; j++ {
 			va := c.Verts[j*4:]
@@ -755,7 +754,7 @@ func DuDebugDrawTileCachePolyMesh(dd DuDebugDraw, lmesh *detour_tile_cache.DtTil
 		p := lmesh.Polys[i*nvp*2:]
 		area := lmesh.Areas[i]
 
-		var color int
+		var color Colorb
 		if area == detour_tile_cache.DT_TILECACHE_WALKABLE_AREA {
 			color = DuRGBA(0, 192, 255, 64)
 		} else if area == detour_tile_cache.DT_TILECACHE_NULL_AREA {
