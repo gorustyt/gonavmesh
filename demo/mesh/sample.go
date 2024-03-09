@@ -26,29 +26,9 @@ type Sample struct {
 	m_crowd    *detour_crowd.DtCrowd
 
 	m_navMeshDrawFlags int
-
-	m_cellSize             float32
-	m_cellHeight           float32
-	m_agentHeight          float32
-	m_agentRadius          float32
-	m_agentMaxClimb        float32
-	m_agentMaxSlope        float32
-	m_regionMinSize        float32
-	m_regionMergeSize      float32
-	m_edgeMaxLen           float32
-	m_edgeMaxError         float32
-	m_vertsPerPoly         float32
-	m_detailSampleDist     float32
-	m_detailSampleMaxError float32
-	m_partitionType        int
-
-	m_filterLowHangingObstacles    bool
-	m_filterLedgeSpans             bool
-	m_filterWalkableLowHeightSpans bool
-
-	m_tool       SampleTool
-	m_toolStates [config.MAX_TOOLS]SampleToolState
-	m_dd         debug_utils.DuDebugDraw
+	m_tool             SampleTool
+	m_toolStates       [config.MAX_TOOLS]SampleToolState
+	m_dd               debug_utils.DuDebugDraw
 
 	ctx *Content
 }
@@ -99,7 +79,9 @@ func (n *NavMeshTileHeader) Encode(w *rw.ReaderWriter) {
 	w.WriteInt32(int32(n.TileRef))
 	w.WriteInt32(n.DataSize)
 }
-
+func (s *Sample) setDebugDraw(dd debug_utils.DuDebugDraw) {
+	s.m_dd = dd
+}
 func (s *Sample) saveAll(writer fyne.URIWriteCloser, mesh detour.IDtNavMesh) {
 	if mesh == nil {
 		return
@@ -184,9 +166,9 @@ func (s *Sample) getInputGeom() *InputGeom             { return s.m_geom }
 func (s *Sample) getNavMesh() detour.IDtNavMesh        { return s.m_navMesh }
 func (s *Sample) getNavMeshQuery() detour.NavMeshQuery { return s.m_navQuery }
 func (s *Sample) getCrowd() *detour_crowd.DtCrowd      { return s.m_crowd }
-func (s *Sample) getAgentRadius() float32              { return s.m_agentRadius }
-func (s *Sample) getAgentHeight() float32              { return s.m_agentHeight }
-func (s *Sample) getAgentClimb() float32               { return s.m_agentMaxClimb }
+func (s *Sample) getAgentRadius() float32              { return float32(s.ctx.cfg.PropsConfig.AgentRadius) }
+func (s *Sample) getAgentHeight() float32              { return float32(s.ctx.cfg.PropsConfig.AgentHeight) }
+func (s *Sample) getAgentClimb() float32               { return float32(s.ctx.cfg.PropsConfig.AgentMaxClimb) }
 
 func (s *Sample) getNavMeshDrawFlags() int                  { return s.m_navMeshDrawFlags }
 func (s *Sample) setNavMeshDrawFlags(flags int)             { s.m_navMeshDrawFlags = flags }
@@ -226,37 +208,37 @@ func (s *Sample) handleMeshChanged(geom *InputGeom) {
 
 	buildSettings := geom.getBuildSettings()
 	if buildSettings != nil {
-		s.m_cellSize = buildSettings.cellSize
-		s.m_cellHeight = buildSettings.cellHeight
-		s.m_agentHeight = buildSettings.agentHeight
-		s.m_agentRadius = buildSettings.agentRadius
-		s.m_agentMaxClimb = buildSettings.agentMaxClimb
-		s.m_agentMaxSlope = buildSettings.agentMaxSlope
-		s.m_regionMinSize = buildSettings.regionMinSize
-		s.m_regionMergeSize = buildSettings.regionMergeSize
-		s.m_edgeMaxLen = buildSettings.edgeMaxLen
-		s.m_edgeMaxError = buildSettings.edgeMaxError
-		s.m_vertsPerPoly = buildSettings.vertsPerPoly
-		s.m_detailSampleDist = buildSettings.detailSampleDist
-		s.m_detailSampleMaxError = buildSettings.detailSampleMaxError
-		s.m_partitionType = buildSettings.partitionType
+		//s.ctx.c = buildSettings.cellSize
+		//s.m_cellHeight = buildSettings.cellHeight
+		//s.m_agentHeight = buildSettings.agentHeight
+		//s.m_agentRadius = buildSettings.agentRadius
+		//s.m_agentMaxClimb = buildSettings.agentMaxClimb
+		//s.m_agentMaxSlope = buildSettings.agentMaxSlope
+		//s.m_regionMinSize = buildSettings.regionMinSize
+		//s.m_regionMergeSize = buildSettings.regionMergeSize
+		//s.m_edgeMaxLen = buildSettings.edgeMaxLen
+		//s.m_edgeMaxError = buildSettings.edgeMaxError
+		//s.m_vertsPerPoly = buildSettings.vertsPerPoly
+		//s.m_detailSampleDist = buildSettings.detailSampleDist
+		//s.m_detailSampleMaxError = buildSettings.detailSampleMaxError
+		//s.m_partitionType = buildSettings.partitionType
 	}
 }
 func (s *Sample) collectSettings(settings *BuildSettings) {
-	settings.cellSize = s.m_cellSize
-	settings.cellHeight = s.m_cellHeight
-	settings.agentHeight = s.m_agentHeight
-	settings.agentRadius = s.m_agentRadius
-	settings.agentMaxClimb = s.m_agentMaxClimb
-	settings.agentMaxSlope = s.m_agentMaxSlope
-	settings.regionMinSize = s.m_regionMinSize
-	settings.regionMergeSize = s.m_regionMergeSize
-	settings.edgeMaxLen = s.m_edgeMaxLen
-	settings.edgeMaxError = s.m_edgeMaxError
-	settings.vertsPerPoly = s.m_vertsPerPoly
-	settings.detailSampleDist = s.m_detailSampleDist
-	settings.detailSampleMaxError = s.m_detailSampleMaxError
-	settings.partitionType = s.m_partitionType
+	//settings.cellSize = s.m_cellSize
+	//settings.cellHeight = s.m_cellHeight
+	//settings.agentHeight = s.m_agentHeight
+	//settings.agentRadius = s.m_agentRadius
+	//settings.agentMaxClimb = s.m_agentMaxClimb
+	//settings.agentMaxSlope = s.m_agentMaxSlope
+	//settings.regionMinSize = s.m_regionMinSize
+	//settings.regionMergeSize = s.m_regionMergeSize
+	//settings.edgeMaxLen = s.m_edgeMaxLen
+	//settings.edgeMaxError = s.m_edgeMaxError
+	//settings.vertsPerPoly = s.m_vertsPerPoly
+	//settings.detailSampleDist = s.m_detailSampleDist
+	//settings.detailSampleMaxError = s.m_detailSampleMaxError
+	//settings.partitionType = s.m_partitionType
 }
 
 func (s *Sample) handleDebugMode() {
@@ -344,7 +326,7 @@ func (s *Sample) handleCommonSettings() {
 		bmax := s.m_geom.getNavMeshBoundsMax()
 		gw := int32(0)
 		gh := int32(0)
-		recast.RcCalcGridSize(bmin, bmax, s.m_cellSize, &gw, &gh)
+		recast.RcCalcGridSize(bmin, bmax, float32(s.ctx.cfg.PropsConfig.RasterizationCellSize), &gw, &gh)
 		text := fmt.Sprintf("Voxels  %d x %d", gw, gh)
 		_ = text
 	}

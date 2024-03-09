@@ -8,7 +8,7 @@ import (
 )
 
 func SetUi(a fyne.App, w fyne.Window) {
-	c := mesh.NewContent()
+	c := mesh.NewContent(w)
 	ctx := NewContext(c.GetConfig())
 	ctx.AppendSampleChange(c)
 	InitToolsMap(ctx)

@@ -12,6 +12,7 @@ type ISample interface {
 	handleMeshChanged(geom *InputGeom)
 	setTool(tool SampleTool)
 	HandleRender()
+	setDebugDraw(dd debug_utils.DuDebugDraw)
 }
 type SampleTool interface {
 	Type() int
@@ -88,7 +89,7 @@ func (g *DebugDrawGL) DepthMask(state bool) {
 func (g *DebugDrawGL) Texture(state bool) {
 	if state {
 		g.ctx.Enable(enum.Texture2D)
-		g_tex.Bind()
+		g_tex.Bind(g.ctx)
 	} else {
 		g.ctx.Disable(enum.Texture2D)
 	}
@@ -150,7 +151,8 @@ type GLCheckerTexture struct {
 	ctx   context.Context
 }
 
-func (c *GLCheckerTexture) Bind() {
+func (c *GLCheckerTexture) Bind(ctx context.Context) {
+	c.ctx = ctx
 	if c.texId == 0 {
 		// Create checker pattern.
 		col0 := []uint8{215, 215, 215, 255}

@@ -2,6 +2,7 @@ package mesh
 
 import (
 	"github.com/gorustyt/fyne/v2"
+	"github.com/gorustyt/fyne/v2/canvas3d/context/enum"
 	"github.com/gorustyt/gonavmesh/common"
 	"github.com/gorustyt/gonavmesh/debug_utils"
 	"github.com/gorustyt/gonavmesh/demo/config"
@@ -174,10 +175,11 @@ func (s *SampleSoloMesh) onDrawModeChange() {
 	//}
 }
 func (s *SampleSoloMesh) HandleRender() {
-	texScale := float32(1.0)
+	s.ctx.ctx.Enable(enum.GlTrue)
+	texScale := float32(1.0 / (s.cfg.PropsConfig.RasterizationCellHeight * 10.0))
 	debug_utils.DuDebugDrawTriMeshSlope(s.m_dd, s.m_geom.getMesh().getVerts(), s.m_geom.getMesh().getVertCount(),
 		s.m_geom.getMesh().getTris(), s.m_geom.getMesh().getNormals(), s.m_geom.getMesh().getTriCount(),
-		s.m_agentMaxSlope, texScale)
+		float32(s.cfg.PropsConfig.AgentMaxSlope), texScale)
 }
 
 func (s *SampleSoloMesh) handleRender() {
@@ -342,22 +344,22 @@ func (s *SampleSoloMesh) handleBuild() bool {
 
 	// Init build configuration from GUI
 
-	s.m_cfg.Cs = s.m_cellSize
-	s.m_cfg.Ch = float32(s.m_cellHeight)
-	s.m_cfg.WalkableSlopeAngle = float32(s.m_agentMaxSlope)
-	s.m_cfg.WalkableHeight = int(math.Ceil(float64(s.m_agentHeight / float32(s.m_cfg.Ch))))
-	s.m_cfg.WalkableClimb = int(math.Floor(float64(s.m_agentMaxClimb / float32(s.m_cfg.Ch))))
-	s.m_cfg.WalkableRadius = int(math.Ceil(float64(s.m_agentRadius / float32(s.m_cfg.Cs))))
-	s.m_cfg.MaxEdgeLen = int(s.m_edgeMaxLen / s.m_cellSize)
-	s.m_cfg.MaxSimplificationError = s.m_edgeMaxError
-	s.m_cfg.MinRegionArea = int(common.Sqr(s.m_regionMinSize))     // Note: area = size*size
-	s.m_cfg.MergeRegionArea = int(common.Sqr(s.m_regionMergeSize)) // Note: area = size*size
-	s.m_cfg.MaxVertsPerPoly = int(s.m_vertsPerPoly)
-	s.m_cfg.DetailSampleDist = s.m_cellSize * s.m_detailSampleDist
-	if s.m_detailSampleDist < 0.9 {
+	s.m_cfg.Cs = float32(s.cfg.PropsConfig.RasterizationCellSize)
+	s.m_cfg.Ch = float32(s.cfg.PropsConfig.RasterizationCellHeight)
+	s.m_cfg.WalkableSlopeAngle = float32(s.cfg.PropsConfig.AgentMaxSlope)
+	s.m_cfg.WalkableHeight = int(math.Ceil(s.cfg.PropsConfig.AgentHeight / float64(s.m_cfg.Ch)))
+	s.m_cfg.WalkableClimb = int(math.Floor(s.cfg.PropsConfig.AgentMaxClimb / float64(s.m_cfg.Ch)))
+	s.m_cfg.WalkableRadius = int(math.Ceil(s.cfg.PropsConfig.AgentRadius / float64(s.m_cfg.Cs)))
+	s.m_cfg.MaxEdgeLen = int(s.cfg.PropsConfig.PolygonizationMaxEdgeLength / s.cfg.PropsConfig.RasterizationCellSize)
+	s.m_cfg.MaxSimplificationError = float32(s.cfg.PropsConfig.PolygonizationMaxEdgeError)
+	s.m_cfg.MinRegionArea = int(common.Sqr(s.cfg.PropsConfig.RegionMinRegionSize))      // Note: area = size*size
+	s.m_cfg.MergeRegionArea = int(common.Sqr(s.cfg.PropsConfig.RegionMergedRegionSize)) // Note: area = size*size
+	s.m_cfg.MaxVertsPerPoly = int(s.cfg.PropsConfig.PolygonizationVertsPerPoly)
+	s.m_cfg.DetailSampleDist = float32(s.cfg.PropsConfig.RasterizationCellSize * s.cfg.PropsConfig.DetailMeshSampleDistance)
+	if s.cfg.PropsConfig.DetailMeshSampleDistance < 0.9 {
 		s.m_cfg.DetailSampleDist = 0
 	}
-	s.m_cfg.DetailSampleMaxError = s.m_cellHeight * s.m_detailSampleMaxError
+	s.m_cfg.DetailSampleMaxError = float32(s.cfg.PropsConfig.RasterizationCellHeight * s.cfg.PropsConfig.DetailMeshSampleMaxSampleError)
 	now := time.Now()
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input rcMeshLoaderObj are used, but the
@@ -400,15 +402,15 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	// Once all geometry is rasterized, we do initial pass of filtering to
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
-	if s.m_filterLowHangingObstacles {
+	if s.cfg.PropsConfig.HasFiltering(config.FilteringLowHangingObstacles) {
 		recast.RcFilterLowHangingWalkableObstacles(int32(s.m_cfg.WalkableClimb), s.m_solid)
 	}
 
-	if s.m_filterLedgeSpans {
+	if s.cfg.PropsConfig.HasFiltering(config.FilteringLedgeSpans) {
 		recast.RcFilterLedgeSpans(int32(s.m_cfg.WalkableHeight), int32(s.m_cfg.WalkableClimb), s.m_solid)
 	}
 
-	if s.m_filterWalkableLowHeightSpans {
+	if s.cfg.PropsConfig.HasFiltering(config.FilteringWalkableLowHeightSpans) {
 		recast.RcFilterWalkableLowHeightSpans(int32(s.m_cfg.WalkableHeight), s.m_solid)
 	}
 
@@ -471,7 +473,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 	//     if you have large open areas with small obstacles (not a problem if you use tiles)
 	//   * good choice to use for tiled navmesh with medium and small sized tiles
 
-	if s.m_partitionType == config.SAMPLE_PARTITION_WATERSHED {
+	if s.cfg.PropsConfig.Partitioning == config.DescSAMPLE_PARTITION_WATERSHED {
 		// Prepare for region partitioning, by calculating distance field along the walkable surface.
 		if !recast.RcBuildDistanceField(s.m_chf) {
 			log.Printf("buildNavigation: Could not build distance field.")
@@ -483,7 +485,7 @@ func (s *SampleSoloMesh) handleBuild() bool {
 			log.Printf("buildNavigation: Could not build watershed regions.")
 			return false
 		}
-	} else if s.m_partitionType == config.SAMPLE_PARTITION_MONOTONE {
+	} else if s.cfg.PropsConfig.Partitioning == config.DescSAMPLE_PARTITION_MONOTONE {
 		// Partition the walkable surface into simple regions without holes.
 		// Monotone partitioning does not need distancefield.
 		if !recast.RcBuildRegionsMonotone(s.m_chf, 0, int32(s.m_cfg.MinRegionArea), int32(s.m_cfg.MergeRegionArea)) {
@@ -584,9 +586,9 @@ func (s *SampleSoloMesh) handleBuild() bool {
 		params.OffMeshConFlags = common.SliceTToSlice[int, uint16](s.m_geom.getOffMeshConnectionFlags())
 		params.OffMeshConUserID = common.SliceTToSlice[int, uint32](s.m_geom.getOffMeshConnectionId())
 		params.OffMeshConCount = int32(s.m_geom.getOffMeshConnectionCount())
-		params.WalkableHeight = s.m_agentHeight
-		params.WalkableRadius = s.m_agentRadius
-		params.WalkableClimb = s.m_agentMaxClimb
+		params.WalkableHeight = float32(s.cfg.PropsConfig.AgentHeight)
+		params.WalkableRadius = float32(s.cfg.PropsConfig.AgentRadius)
+		params.WalkableClimb = float32(s.cfg.PropsConfig.AgentMaxClimb)
 		copy(params.Bmin[:], s.m_pmesh.Bmin)
 		copy(params.Bmax[:], s.m_pmesh.Bmax)
 		params.Cs = s.m_cfg.Cs

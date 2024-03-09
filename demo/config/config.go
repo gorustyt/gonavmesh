@@ -258,6 +258,15 @@ type PropsConfig struct {
 	DrawMode         string
 }
 
+func (cfg *PropsConfig) HasFiltering(s string) bool {
+	for _, v := range cfg.Filtering {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 func (cfg *PropsConfig) Reset() {
 	cfg.InputMeshLists = GetInputMeshList()
 	cfg.Filtering = []string{

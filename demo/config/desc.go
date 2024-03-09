@@ -82,7 +82,7 @@ const (
 type SamplePartitionType int
 
 const (
-	SAMPLE_PARTITION_WATERSHED = iota
+	SAMPLE_PARTITION_WATERSHED SamplePartitionType = iota
 	SAMPLE_PARTITION_MONOTONE
 	SAMPLE_PARTITION_LAYERS
 

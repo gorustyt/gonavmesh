@@ -504,7 +504,7 @@ func DuAppendCross(dd DuDebugDraw, x, y, z,
 	dd.Vertex1(x, y, z+s, col)
 }
 
-func DuRGBA[T int | int32 | int32 | uint8](r, g, b, a T) Colorb {
+func DuRGBA[T int | int32 | uint8](r, g, b, a T) Colorb {
 	return Colorb{uint8(r), uint8(g), uint8(b), uint8(a)}
 }
 
@@ -532,19 +532,20 @@ func DuDarkenCol(col Colorb) (res Colorb) {
 }
 
 func DuLerpCol(ca, cb Colorb, u uint8) Colorb {
-	ra := ca.R() & 0xff
-	ga := (ca.G()) & 0xff
-	ba := (ca.B()) & 0xff
-	aa := (ca.A()) & 0xff
-	rb := cb.R() & 0xff
-	gb := (cb.G()) & 0xff
-	bb := (cb.B()) & 0xff
-	ab := (cb.A()) & 0xff
+	ui := int(u)
+	ra := int(ca.R())
+	ga := int(ca.G())
+	ba := int(ca.B())
+	aa := int(ca.A())
+	rb := int(cb.R())
+	gb := int(cb.G())
+	bb := int(cb.B())
+	ab := int(cb.A())
 
-	r := (ra*(255-u) + rb*u) / 255
-	g := (ga*(255-u) + gb*u) / 255
-	b := (ba*(255-u) + bb*u) / 255
-	a := (aa*(255-u) + ab*u) / 255
+	r := (ra*(255-ui) + rb*ui) / 255
+	g := (ga*(255-ui) + gb*ui) / 255
+	b := (ba*(255-ui) + bb*ui) / 255
+	a := (aa*(255-ui) + ab*ui) / 255
 	return DuRGBA(r, g, b, a)
 }
 
